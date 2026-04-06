@@ -1,0 +1,369 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.svelte';
+import Footer from '../components/Footer.svelte';
+import { SITE_URL, META, LINKS } from '../config';
+
+// Fetch the CHANGELOG.md from GitHub at build time — baked into the static output
+const CHANGELOG_URL =
+  'https://raw.githubusercontent.com/jaypatrick/adblock-compiler/main/CHANGELOG.md';
+
+let rawChangelog = '';
+try {
+  const res = await fetch(CHANGELOG_URL);
+  if (res.ok) rawChangelog = await res.text();
+} catch {
+  rawChangelog = ''; // graceful fallback; page still renders
+}
+
+// Parse into versioned sections ─────────────────────────────────────────────
+// Sections start with "## [x.y.z] - YYYY-MM-DD" or "## [Unreleased]"
+interface ChangeSection {
+  version:  string;
+  date:     string | null;
+  isLatest: boolean;
+  content:  string;
+}
+
+function parseChangelog(raw: string): ChangeSection[] {
+  const lines = raw.split('\n');
+  const sections: ChangeSection[] = [];
+  let current: ChangeSection | null = null;
+  let bodyLines: string[] = [];
+
+  const versionRe = /^## \[(.+?)\](?:\s+-\s+(\d{4}-\d{2}-\d{2}))?/;
+
+  for (const line of lines) {
+    const match = line.match(versionRe);
+    if (match) {
+      if (current) {
+        current.content = bodyLines.join('\n').trim();
+        sections.push(current);
+      }
+      current = {
+        version:  match[1],
+        date:     match[2] ?? null,
+        isLatest: sections.length === 0,
+        content:  '',
+      };
+      bodyLines = [];
+    } else if (current) {
+      bodyLines.push(line);
+    }
+  }
+  if (current) {
+    current.content = bodyLines.join('\n').trim();
+    sections.push(current);
+  }
+
+  // Skip "Unreleased" section if empty
+  return sections.filter(
+    (s) => !(s.version === 'Unreleased' && s.content.trim() === '')
+  );
+}
+
+// Minimal markdown-to-html — only what changelogs actually use
+function simpleMarkdown(md: string): string {
+  return md
+    // ### heading
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    // **bold**
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // `code`
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // [text](url)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" rel="noopener noreferrer" target="_blank">$1</a>')
+    // - list item
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    // wrap consecutive <li> in <ul>
+    .replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, (m) => `<ul>${m}</ul>`)
+    // blank line → paragraph break
+    .replace(/\n\n/g, '</p><p>')
+    // clean up orphaned p tags around block elements
+    .replace(/<p>(<h[23]>)/g, '$1')
+    .replace(/(<\/h[23]>)<\/p>/g, '$1')
+    .replace(/<p>(<ul>)/g, '$1')
+    .replace(/(<\/ul>)<\/p>/g, '$1');
+}
+
+const sections = parseChangelog(rawChangelog).slice(0, 20); // show last 20 releases
+
+const meta = {
+  title:       'Bloqr Changelog — What\'s New',
+  description: 'A running log of every Bloqr release: features added, bugs fixed, things we broke and fixed again.',
+  url:         `${SITE_URL}/changelog`,
+  image:       `${SITE_URL}${META.ogImage}`,
+};
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+  <meta property="og:title"       content={meta.title} />
+  <meta property="og:description" content={meta.description} />
+  <meta property="og:url"         content={meta.url} />
+  <meta property="og:image"       content={meta.image} />
+  <meta property="og:type"        content="website" />
+  <link rel="canonical" href={meta.url} />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+</head>
+<body>
+  <Nav client:load />
+
+  <main class="changelog-page">
+    <div class="container">
+
+      <header class="page-header">
+        <div class="header-label">What's new</div>
+        <h1>Changelog.</h1>
+        <p class="header-sub">
+          Every release, documented. No marketing fluff — just what changed and why.
+          Source of truth is always
+          <a href={`${LINKS.github}/blob/main/CHANGELOG.md`} rel="noopener noreferrer" target="_blank" class="gh-link">
+            GitHub
+          </a>.
+        </p>
+      </header>
+
+      {sections.length === 0 && (
+        <div class="fallback">
+          <p>Changelog couldn't be fetched at build time. View it directly on
+            <a href={`${LINKS.github}/blob/main/CHANGELOG.md`} rel="noopener noreferrer" target="_blank">GitHub</a>.
+          </p>
+        </div>
+      )}
+
+      <div class="timeline">
+        {sections.map((section) => (
+          <div class={`release ${section.isLatest ? 'latest' : ''}`} id={`v${section.version.toLowerCase().replace(/\./g, '-')}`}>
+            <div class="release-gutter">
+              <div class="dot"></div>
+              <div class="line"></div>
+            </div>
+            <div class="release-body">
+              <div class="release-meta">
+                <span class="version">
+                  {section.version === 'Unreleased' ? 'Unreleased' : `v${section.version}`}
+                </span>
+                {section.isLatest && <span class="latest-badge">Latest</span>}
+                {section.date && <time>{section.date}</time>}
+              </div>
+              <div class="release-content" set:html={simpleMarkdown(section.content)} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  </main>
+
+  <Footer />
+</body>
+</html>
+
+<style>
+  .changelog-page { padding: 64px 0 96px; }
+
+  /* ── Header ── */
+  .page-header {
+    max-width: 640px;
+    margin-bottom: 64px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-label {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .page-header h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 16px;
+  }
+
+  .header-sub {
+    color: var(--text-2);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .gh-link {
+    color: var(--orange);
+    text-decoration: none;
+    border-bottom: 1px solid var(--orange-dim);
+    transition: border-color 150ms;
+  }
+  .gh-link:hover { border-bottom-color: var(--orange); }
+
+  .fallback {
+    color: var(--text-3);
+    padding: 32px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .fallback a { color: var(--orange); }
+
+  /* ── Timeline ── */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .release {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 0 24px;
+    margin-bottom: 0;
+  }
+
+  /* Gutter: dot + vertical line */
+  .release-gutter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border-2);
+    border: 2px solid var(--bg-base);
+    flex-shrink: 0;
+    z-index: 1;
+    transition: background 150ms;
+  }
+
+  .latest .dot {
+    background: var(--orange);
+    box-shadow: 0 0 12px rgba(255,85,0,0.4);
+  }
+
+  .line {
+    flex: 1;
+    width: 1px;
+    background: var(--border);
+    margin-top: 4px;
+    min-height: 40px;
+  }
+
+  .release:last-child .line { display: none; }
+
+  /* Release body */
+  .release-body {
+    padding-bottom: 48px;
+  }
+
+  .release-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .version {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-1);
+    font-family: var(--font-mono);
+  }
+
+  .latest-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--orange-dim);
+    color: var(--orange);
+    border: 1px solid rgba(255,85,0,0.2);
+    border-radius: 4px;
+    padding: 2px 7px;
+  }
+
+  .release-meta time {
+    font-size: 13px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+  }
+
+  /* Changelog markdown content */
+  .release-content {
+    font-size: 0.9375rem;
+    color: var(--text-2);
+    line-height: 1.75;
+  }
+
+  .release-content :global(h3) {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: 20px 0 8px;
+  }
+
+  .release-content :global(ul) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .release-content :global(li) {
+    padding-left: 16px;
+    position: relative;
+    color: var(--text-2);
+  }
+
+  .release-content :global(li)::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--text-3);
+  }
+
+  .release-content :global(strong) {
+    color: var(--text-1);
+    font-weight: 600;
+  }
+
+  .release-content :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.8125em;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+    color: var(--cyan);
+  }
+
+  .release-content :global(a) {
+    color: var(--orange);
+    text-decoration: none;
+    border-bottom: 1px solid var(--orange-dim);
+    transition: border-color 150ms;
+  }
+  .release-content :global(a:hover) { border-bottom-color: var(--orange); }
+
+  @media (max-width: 600px) {
+    .changelog-page { padding: 40px 0 64px; }
+    .release { grid-template-columns: 20px 1fr; gap: 0 16px; }
+  }
+</style>

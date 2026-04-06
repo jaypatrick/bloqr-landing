@@ -1,0 +1,326 @@
+---
+import '../../styles/global.css';
+import Nav from '../../components/Nav.svelte';
+import Footer from '../../components/Footer.svelte';
+import { getCollection, render } from 'astro:content';
+import { SITE_URL, META } from '../../config';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map((post) => ({ params: { slug: post.slug }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const categoryLabel: Record<string, string> = {
+  education: 'Education',
+  industry:  'Industry News',
+  release:   'Release',
+};
+const categoryClass: Record<string, string> = {
+  education: 'badge-cyan',
+  industry:  'badge-orange',
+  release:   'badge-green',
+};
+
+function formatDate(d: Date) {
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+const meta = {
+  title:       `${post.data.title} — Bloqr`,
+  description: post.data.description,
+  url:         `${SITE_URL}/blog/${post.slug}`,
+  image:       `${SITE_URL}${META.ogImage}`,
+};
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+  <!-- Open Graph -->
+  <meta property="og:site_name"    content="Bloqr" />
+  <meta property="og:title"        content={meta.title} />
+  <meta property="og:description"  content={meta.description} />
+  <meta property="og:url"          content={meta.url} />
+  <meta property="og:image"        content={meta.image} />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content={meta.title} />
+  <meta property="og:type"         content="article" />
+  <meta property="article:published_time" content={post.data.pubDate.toISOString()} />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={meta.title} />
+  <meta name="twitter:description" content={meta.description} />
+  <meta name="twitter:image"       content={meta.image} />
+  <meta name="twitter:image:alt"   content={meta.title} />
+
+  <link rel="canonical" href={meta.url} />
+  <link rel="alternate"  type="application/rss+xml" title="Bloqr Blog" href="/rss.xml" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+</head>
+<body>
+  <Nav client:load />
+
+  <main class="post-page">
+
+    <div class="container">
+
+      <!-- Back link -->
+      <a href="/blog" class="back-link">← All posts</a>
+
+      <!-- Post header -->
+      <header class="post-header">
+        <div class="post-meta">
+          <span class={`badge ${categoryClass[post.data.category]}`}>
+            {categoryLabel[post.data.category]}
+          </span>
+          <time datetime={post.data.pubDate.toISOString()}>
+            {formatDate(post.data.pubDate)}
+          </time>
+          <span class="author">by {post.data.author}</span>
+        </div>
+
+        <h1>{post.data.title}</h1>
+        <p class="post-desc">{post.data.description}</p>
+
+        {post.data.tags.length > 0 && (
+          <div class="tags">
+            {post.data.tags.map(tag => (
+              <span class="tag">#{tag}</span>
+            ))}
+          </div>
+        )}
+      </header>
+
+      <!-- Post body -->
+      <article class="post-body">
+        <Content />
+      </article>
+
+      <!-- Footer nav -->
+      <div class="post-footer">
+        <a href="/blog" class="back-link">← Back to all posts</a>
+        <a href="/rss.xml" class="rss-link">Subscribe via RSS</a>
+      </div>
+
+    </div>
+
+  </main>
+
+  <Footer />
+</body>
+</html>
+
+<style>
+  .post-page {
+    padding: 64px 0 96px;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-3);
+    text-decoration: none;
+    margin-bottom: 40px;
+    transition: color 150ms;
+  }
+  .back-link:hover { color: var(--text-2); }
+
+  /* ── Post header ── */
+  .post-header {
+    max-width: 720px;
+    margin-bottom: 48px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .badge-cyan   { background: var(--cyan-dim);   color: var(--cyan);   }
+  .badge-orange { background: var(--orange-dim); color: var(--orange); }
+  .badge-green  { background: rgba(52,211,153,0.12); color: #34d399; }
+
+  .post-meta time {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  .author {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  .post-header h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    color: var(--text-1);
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+
+  .post-desc {
+    font-size: 1.0625rem;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag {
+    font-size: 12px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+  }
+
+  /* ── Post body ── */
+  .post-body {
+    max-width: 720px;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--text-2);
+  }
+
+  /* Markdown typography */
+  .post-body :global(h2) {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .post-body :global(h3) {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 2rem 0 0.75rem;
+  }
+
+  .post-body :global(p) {
+    margin-bottom: 1.25rem;
+  }
+
+  .post-body :global(ul),
+  .post-body :global(ol) {
+    margin: 0 0 1.25rem 1.5rem;
+  }
+
+  .post-body :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-body :global(strong) {
+    color: var(--text-1);
+    font-weight: 600;
+  }
+
+  .post-body :global(em) {
+    color: var(--cyan);
+    font-style: normal;
+  }
+
+  .post-body :global(a) {
+    color: var(--orange);
+    text-decoration: none;
+    border-bottom: 1px solid var(--orange-dim);
+    transition: border-color 150ms;
+  }
+  .post-body :global(a:hover) { border-bottom-color: var(--orange); }
+
+  .post-body :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+    color: var(--cyan);
+  }
+
+  .post-body :global(pre) {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  .post-body :global(pre code) {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.875rem;
+    color: var(--text-1);
+  }
+
+  .post-body :global(blockquote) {
+    border-left: 3px solid var(--orange);
+    padding-left: 20px;
+    margin: 1.5rem 0;
+    color: var(--text-3);
+    font-style: italic;
+  }
+
+  .post-body :global(hr) {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  /* ── Post footer ── */
+  .post-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 720px;
+    padding-top: 40px;
+    margin-top: 48px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .rss-link {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-3);
+    text-decoration: none;
+    transition: color 150ms;
+  }
+  .rss-link:hover { color: var(--orange); }
+
+  @media (max-width: 600px) {
+    .post-page { padding: 40px 0 64px; }
+  }
+</style>

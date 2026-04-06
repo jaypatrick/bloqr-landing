@@ -1,0 +1,1308 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.svelte';
+import Footer from '../components/Footer.svelte';
+import { SITE_URL, LINKS } from '../config';
+
+const meta = {
+  title:       'Consumer VPN Myths, Examined — Bloqr',
+  description: 'A sourced, honest look at what consumer VPNs actually do — and don\'t do. Fingerprinting, DNS, jurisdiction, vendor lock-in, and more.',
+  url:         `${SITE_URL}/vpn-myths`,
+  image:       `${SITE_URL}/og-image.png`,
+};
+
+interface MythHighlight {
+  icon: string;
+  title: string;
+  body: string;
+  variant?: 'warning' | 'info' | 'bloqr';
+}
+
+interface Myth {
+  id: number;
+  claim: string;
+  verdict: string;
+  verdictClass: 'false' | 'partial' | 'true';
+  reality: string;
+  note?: string;
+  highlight?: MythHighlight;
+  fingerprintRef?: boolean;
+  showDiagram?: boolean;
+  sources: { label: string; url: string }[];
+}
+
+const myths: Myth[] = [
+  {
+    id: 1,
+    claim: 'A VPN makes me anonymous online.',
+    verdict: 'False — and there\'s a bigger threat you\'ve probably never heard of.',
+    verdictClass: 'false',
+    reality: `A VPN replaces your IP address with the VPN provider's IP address. That's it. That's the privacy product. Your IP address is one of the least reliable ways you're tracked online — and masking it while leaving everything else untouched is like putting on a hat to avoid being recognized while your passport is visible, your gait is distinctive, and your voice is carrying.
+
+The more durable tracking mechanisms — browser fingerprinting, first-party cookies, advertiser pixels, login sessions — operate completely independently of your IP. Log into Gmail from a VPN and Google knows exactly who you are. Browse Amazon without logging in and Amazon can still identify your device with high confidence from your browser's fingerprint alone. A VPN doesn't touch any of this.
+
+More importantly: a VPN doesn't hide you from the VPN provider. You've simply moved your visibility from your ISP to a third-party company whose entire business model depends on you believing you're invisible.`,
+    note: 'True anonymity — hiding your identity from everyone, including the tools you use — requires routing through multiple independent parties with no single point of knowledge. That\'s what Tor does. Bloqr is a privacy tool. Tor is an anonymity tool. They solve different problems.',
+    highlight: {
+      icon: '🍪',
+      title: 'You clicked "Reject All." They\'re still tracking you.',
+      body: 'Those cookie consent popups required by EU law give many people a false sense of control. When you reject tracking cookies, some website operators simply switch to fingerprinting instead — and fingerprinting is legal in most jurisdictions, requires no consent banner, leaves no trace in your browser, and is often more accurate than cookies. Clicking "reject" stopped one method. It didn\'t stop tracking.',
+      variant: 'warning',
+    },
+    fingerprintRef: true,
+    sources: [
+      { label: 'EFF: Choosing the VPN That\'s Right for You', url: 'https://ssd.eff.org/module/choosing-vpn-thats-right-you' },
+      { label: 'EFF: The Limitations of VPNs', url: 'https://www.eff.org/deeplinks/2019/11/virtually-private-network-nordvpns-breach-and-limitations-vpns' },
+      { label: 'W3C: Browser Fingerprinting Explainer', url: 'https://www.w3.org/2019/06/20-fingerprinting-minutes.html' },
+    ],
+  },
+  {
+    id: 2,
+    claim: '"No-log" means my VPN provider can\'t see my activity.',
+    verdict: 'Documented lie, in multiple court cases.',
+    verdictClass: 'false',
+    reality: `Several major VPN providers have been proven in court to have logged user activity and handed it to law enforcement — directly contradicting their advertised "no-log" policies.
+
+PureVPN's own marketing claimed "we keep absolutely no logs." Court documents showed they provided the FBI with timestamp-correlated IP address data used to prosecute a stalking case. IPVanish supplied session logs to US Homeland Security. In 2020, seven VPN providers operating shared infrastructure were found to have 1.2TB of user logs sitting on a publicly accessible server — all of them advertised "no-log" policies.
+
+The pattern is consistent: "no-log" is a marketing claim. Without audited, published technical architecture showing what data is physically impossible to collect, it's unverifiable. You are trusting their word against a backdrop of documented cases where their word was wrong.`,
+    highlight: {
+      icon: '🔍',
+      title: 'What Bloqr actually stores — and what we don\'t.',
+      body: 'We\'ve designed around data minimization from the start, not as an afterthought. What we collect: account identifiers (hashed where technically feasible), subscription status, and your filter rule configuration. What we don\'t collect: DNS queries, domain visit history, timestamps tied to individual lookups, or behavioral patterns of any kind. The full list is published. Every data element has a documented retention period. You can delete your data instantly, down to the row level, from your account dashboard. "No-log" as a technical architecture is different from "no-log" as a slogan — we intend to be the former, and our legal counsel is reviewing every claim on this page to make sure we mean it.',
+      variant: 'bloqr',
+    },
+    sources: [
+      { label: 'CyberInsider: Court Documents Prove PureVPN Logged Users', url: 'https://cyberinsider.com/vpn-logs-lies/' },
+      { label: 'The Register: Seven "No-Log" VPNs Leak 1.2TB of User Logs', url: 'https://www.theregister.com/2020/07/17/ufo_vpn_database/' },
+      { label: 'AllThingsSecured: The Truth About VPN Logging Policies', url: 'https://www.allthingssecured.com/vpn/truth-about-vpn-logging-policies/' },
+    ],
+  },
+  {
+    id: 3,
+    claim: 'VPNs protect me from hackers on public WiFi.',
+    verdict: 'The threat they solved is mostly gone. The threat they didn\'t solve is very much not.',
+    verdictClass: 'partial',
+    reality: `This was a reasonable concern in 2012. Back then, most websites used unencrypted HTTP, and a rogue hotspot could trivially intercept your passwords in plain text. VPNs were a real defense against a real attack.
+
+Today, over 95% of web traffic uses HTTPS — the same encryption that protects your bank, your email, and your social media. A coffee shop attacker can no longer read your traffic regardless of whether you're on a VPN. The scary "public WiFi hacker" scenario the VPN ads show you has been largely neutralized by something that happened quietly while they kept running those ads.
+
+But here's what the ads don't mention: the router itself — whether in a coffee shop, a hotel, or your neighbor's home — can still see and log every website name you look up. Not the content (HTTPS handles that). The lookups. Every domain. Every device. Every session.
+
+That lookup — "where is this website?" — travels in plain text, like a postcard, not a sealed envelope. The router owner doesn't need to be a hacker to read it. The router firmware just does it, because that's how the internet was designed in 1987 and nobody updated the defaults.
+
+A VPN solves this by routing your lookups through the VPN's server instead. But so does encrypted DNS — without routing all your traffic through a stranger's proxy.`,
+    showDiagram: true,
+    highlight: {
+      icon: '📡',
+      title: 'Even password-protected WiFi doesn\'t protect your lookups from the router owner.',
+      body: 'A WiFi password keeps outsiders off the network. It doesn\'t hide your traffic from the person running the router. The coffee shop owner, the hotel IT team, whoever set up that airport hotspot — they all have the keys to the WiFi encryption layer. They can see every domain name your device looks up, even if they can\'t read the actual page content. This is the threat most VPN ads visualize but almost none of them explain accurately.',
+      variant: 'warning',
+    },
+    sources: [
+      { label: 'EFF: A Wider View on TunnelVision and VPN Advice (2024)', url: 'https://www.eff.org/deeplinks/2024/05/wider-view-tunnelvision-and-vpn-advice' },
+      { label: 'Cloudflare: What is DNS over HTTPS?', url: 'https://www.cloudflare.com/learning/dns/dns-over-https/' },
+    ],
+  },
+  {
+    id: 4,
+    claim: 'Using a VPN means my internet provider can\'t see what I do.',
+    verdict: 'True — but you\'ve relocated the problem, not solved it. And DNS is still the gap.',
+    verdictClass: 'partial',
+    reality: `This one is technically accurate, and it's also the entire VPN sales pitch. What it leaves out: you haven't eliminated surveillance — you've moved it from your ISP to your VPN provider. You've traded one large company with a regulatory body for a smaller company often incorporated in a jurisdiction chosen specifically to avoid oversight. The EFF says it plainly: "you should be sure you trust your VPN provider."
+
+But there's a larger problem this framing sidesteps entirely: the thing that makes you most trackable isn't your IP address. It's your DNS lookups.
+
+DNS is the internet's address book. Every time you visit a website, your device asks a server: "what's the address for this domain?" That question travels in plain text — unencrypted, readable by your ISP, your router, every network hop between you and the answer. HTTPS encrypts the actual conversation once you get there. It doesn't encrypt the lookup that got you there.
+
+This is the last major plaintext protocol in everyday internet use. The web moved to HTTPS. Email moved to TLS. Messaging moved to end-to-end encryption. DNS was designed in 1987 and the encryption couldn't be retrofitted into the original protocol — which is why encrypted DNS (DoH, DoT) exists as a separate layer rather than an update to the standard.
+
+VPN providers also maintain physical infrastructure in dozens of countries. Those servers are subject to the laws of wherever they're physically located — not just where the company is incorporated. That legal complexity is expensive. Lawyers in 47 jurisdictions cost money. Compliance teams cost money. Server colocation in strategic locations costs money. This is a meaningful part of why consumer VPNs cost $10-20 per month.
+
+Bloqr runs on Cloudflare's network — the same infrastructure that handles roughly 20% of all internet traffic globally. Cloudflare's data governance, privacy commitments, and legal framework are unified, published, and backed by the same company that provides infrastructure for millions of businesses. We inherit that framework. We don't have 47 sets of laws to navigate. Neither do you.`,
+    highlight: {
+      icon: '🌍',
+      title: 'One jurisdiction. No legal treasure hunt.',
+      body: 'Consumer VPN providers often advertise their incorporation in "privacy-friendly" countries as a selling point. In practice, their servers are physically located in dozens of countries, each with its own laws about what can be demanded from infrastructure operators. Your traffic may exit through a server in a country you\'ve never thought about, subject to laws you\'ve never read. Bloqr operates on Cloudflare\'s network under a single, published privacy framework. You\'re not buying a legal mystery. You\'re buying something we can actually explain.',
+      variant: 'info',
+    },
+    sources: [
+      { label: 'EFF: Choosing the VPN That\'s Right for You', url: 'https://ssd.eff.org/module/choosing-vpn-thats-right-you' },
+      { label: 'Cloudflare: What is DNS?', url: 'https://www.cloudflare.com/learning/dns/what-is-dns/' },
+      { label: 'VPN Logging Policies and Jurisdiction in 2025', url: 'https://redact.dev/blog/vpn-logging-policies-2025' },
+    ],
+  },
+  {
+    id: 5,
+    claim: 'VPNs don\'t slow down your internet.',
+    verdict: 'False. And the right tool for the job actually makes you faster.',
+    verdictClass: 'false',
+    reality: `A VPN adds overhead. This is not a defect — it's the mechanism. Every packet is encrypted, wrapped, sent to the VPN server, unwrapped, forwarded, and the response makes the same trip back. Quality paid VPNs typically show 10–30% speed reductions under normal conditions; free VPNs frequently deliver 50–80% losses on congested shared infrastructure.
+
+Latency gets worse. If you're in Chicago connecting through a VPN server in Amsterdam to reach a US website, your data physically travels Chicago → Amsterdam → US → Amsterdam → Chicago for every single request. This is called the trombone effect. It's unavoidable geometry.
+
+Here's what the ads don't mention: if blocking trackers and ads is your actual goal, DNS-level filtering doesn't add latency — it removes it. Your browser normally has to wait for every tracker, ad script, analytics beacon, and A/B testing framework to load before the page is considered finished. These aren't decoration. They're blocking calls. A page that loads 40 external trackers waits for all 40 before it's complete — and some are slow servers in foreign countries.
+
+When Bloqr blocks those domains at the network level, your browser doesn't wait for them. The request never leaves your device. Pages load faster as a direct byproduct of better privacy hygiene. Speed is the dividend of filtering, not a tradeoff against it.`,
+    highlight: {
+      icon: '⚡',
+      title: 'Filtering doesn\'t slow your internet. It unclogs it.',
+      body: 'Independent testing consistently shows that DNS-level ad and tracker blocking reduces page load times by 20–40% on media-heavy websites. The resources that aren\'t blocked don\'t have to wait for the ones that are. Every tracker that never loads is milliseconds back in your life — multiplied by every page, every day. A VPN adds a toll booth. Good hygiene removes the traffic jam.',
+      variant: 'bloqr',
+    },
+    sources: [
+      { label: 'Cloudflare: How VPNs Affect Internet Speed', url: 'https://www.cloudflare.com/learning/access-management/vpn-speed/' },
+      { label: 'Fortinet: Does VPN Decrease Internet Speed?', url: 'https://www.fortinet.com/resources/cyberglossary/does-vpn-decrease-internet-speed' },
+    ],
+  },
+  {
+    id: 6,
+    claim: 'Consumer VPNs are the same as corporate VPNs.',
+    verdict: 'Completely different products. Same three letters.',
+    verdictClass: 'false',
+    reality: `Corporate VPNs connect your device to a private internal network — your company's file servers, internal tools, and systems that aren't accessible from the public internet. They extend the private network to you. In enterprise deployments using RADIUS authentication, your company owns and controls the encryption keys, and those keys are subject to the same legal obligations that govern your employment agreement. There is accountability in both directions.
+
+Consumer VPNs do something entirely different: they route your traffic through a proxy server operated by a third party. There is no private network you're joining. You're not being extended trust. You're paying a stranger to be in the middle of your internet connection and hoping they're trustworthy.
+
+The VPN industry borrowed the acronym from enterprise networking deliberately. It adds an air of security legitimacy to what is, technically, an encrypted proxy service. Calling them both "VPN" is like calling a garden hose and a fire main the same thing because they both carry water.
+
+If what you actually want is enterprise-grade network security — zero-trust access control, identity-verified tunnels, device posture checking — that technology exists. Cloudflare One provides exactly this, built on Cloudflare Tunnel, with no single point of failure and no performance penalty for routing your traffic through a distant proxy. It's not a consumer VPN. It's the architecture consumer VPNs are pretending to be. We're evaluating whether to offer this as a Bloqr add-on for users who want genuine network-level security beyond DNS hygiene.`,
+    sources: [
+      { label: 'EFF: Choosing the VPN That\'s Right for You', url: 'https://ssd.eff.org/module/choosing-vpn-thats-right-you' },
+      { label: 'Cloudflare One: Replace Your VPN', url: 'https://developers.cloudflare.com/cloudflare-one/setup/replace-vpn/' },
+    ],
+  },
+  {
+    id: 7,
+    claim: 'A VPN gives me full control over my privacy settings.',
+    verdict: 'The opposite. You get their rules, their servers, their decisions — and often their contract.',
+    verdictClass: 'false',
+    reality: `Take NordVPN as an example — the most-marketed consumer VPN on the market. Their "Threat Protection" feature does DNS-level blocking of ads, trackers, and malware domains. Sounds useful. Here's what you don't get: you cannot see which domains are blocked. You cannot add your own block rules. You cannot whitelist a domain that was incorrectly blocked. You cannot use a different DNS provider. You cannot bring your own filter lists. There is no transparency into what "threat" means in their system. It's their definition, updated on their schedule, with no audit trail visible to you.
+
+This isn't an oversight. It's the model. Opacity prevents churn. If you can't see what's blocked, you can't compare it to anything else. If you can't import your own rules, you can't leave without losing your configuration. If you're on an annual contract — which their marketing aggressively pushes with discounts — you're legally obligated to keep paying.
+
+Monthly plans run $12-20 depending on provider and current promotion. Annual contracts offer discounts in exchange for removing your ability to cancel without losing money.
+
+Bloqr's model is the inverse of this: your rules, your lists, your vendor. Every blocked domain is visible to you. False positives are whitelistable instantly, and the change propagates to every device you own in seconds. If you already use AdGuard, NextDNS, Pi-hole, or another filtering provider, we integrate with their API — you don't lose your configuration, your lists, or your institutional knowledge. If you don't have a provider, we handle it, and you can switch to your own later without starting over. No long-term contracts. Monthly and annual pricing, with no penalty for leaving.`,
+    highlight: {
+      icon: '🔒',
+      title: 'Vendor lock-in is a privacy risk too.',
+      body: 'When your privacy tool controls your rules and you can\'t export them, you\'re dependent on that company\'s continued existence, continued trustworthiness, and continued pricing. Privacy tools shouldn\'t create new dependencies. Bloqr is built around portability: your lists, your vendor, your configuration — and we\'re here to make all of it work better together, not to replace it all with ours.',
+      variant: 'warning',
+    },
+    sources: [
+      { label: 'EFF: The Limitations of VPNs', url: 'https://www.eff.org/deeplinks/2019/11/virtually-private-network-nordvpns-breach-and-limitations-vpns' },
+      { label: 'RestorePrivacy: VPN Comparison — Features & Customization', url: 'https://restoreprivacy.com/vpn/reviews/' },
+    ],
+  },
+  {
+    id: 8,
+    claim: 'You can trust a VPN\'s jurisdiction to protect your privacy from legal requests.',
+    verdict: 'Complicated. And Cloudflare makes our answer much simpler than most.',
+    verdictClass: 'partial',
+    reality: `Many VPN providers advertise incorporation in "privacy-friendly" jurisdictions — the British Virgin Islands, Panama, Romania. The theory: local laws prevent them from complying with foreign government data requests. In practice, this is far more complicated.
+
+Mutual legal assistance treaties (MLATs) create pathways for cross-border data requests. Server seizures happen in whatever country the physical hardware is located — which may be different from where the company is incorporated. Voluntary compliance happens when providers decide cooperation is easier than litigation. And the five-eyes, nine-eyes, and fourteen-eyes intelligence-sharing agreements create additional pathways that "we're incorporated in Panama" does not address.
+
+Legal complexity is also expensive complexity. Maintaining servers in 60 countries, each with unique data retention laws, disclosure requirements, and regulatory bodies, requires legal teams in each jurisdiction. That's a meaningful driver of why VPN pricing is what it is.
+
+Our situation is different. Bloqr runs on Cloudflare's infrastructure — a publicly traded US company with published transparency reports, a GDPR-compliant data processing framework, and one set of clearly documented policies. We don't operate VPN servers in 60 countries. We don't have 60 sets of laws to navigate or hide behind. Our legal framework is singular, documented, and inherits from one of the most scrutinized privacy policies on the internet.
+
+More relevantly: the most effective legal protection isn't a favorable jurisdiction. It's not having the data in the first place. We do not log DNS queries. We do not record your browsing behavior. What is architecturally impossible to collect cannot be produced in response to any legal request, regardless of jurisdiction. We\'re having our attorneys verify the precise framing of that claim — because we want to say it accurately, not just reassuringly.`,
+    highlight: {
+      icon: '⚖️',
+      title: 'What\'s never logged in the first place can\'t be produced.',
+      body: 'This is the only airtight answer to the jurisdiction question, and it\'s one most VPN providers can\'t honestly give because they do log — they just claim not to. Our architecture is designed so that the data most likely to be requested (browsing history, DNS query logs) is never recorded. Note: we\'re working with legal counsel to validate the specific technical and legal claims on this page. We\'ll update them if the answer is more nuanced than the principle. That\'s what we mean by transparency.',
+      variant: 'bloqr',
+    },
+    sources: [
+      { label: 'EFF: Choosing the VPN That\'s Right for You', url: 'https://ssd.eff.org/module/choosing-vpn-thats-right-you' },
+      { label: 'Cloudflare Transparency Report', url: 'https://www.cloudflare.com/transparency/' },
+      { label: 'VPN Logging Policies in 2025', url: 'https://redact.dev/blog/vpn-logging-policies-2025' },
+    ],
+  },
+];
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name"    content="Bloqr" />
+  <meta property="og:title"        content={meta.title} />
+  <meta property="og:description"  content={meta.description} />
+  <meta property="og:url"          content={meta.url} />
+  <meta property="og:image"        content={meta.image} />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content="VPN Myths, Examined — Bloqr" />
+  <meta property="og:type"         content="article" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={meta.title} />
+  <meta name="twitter:description" content={meta.description} />
+  <meta name="twitter:image"       content={meta.image} />
+  <meta name="twitter:image:alt"   content="VPN Myths, Examined — Bloqr" />
+
+  <!-- Canonical -->
+  <link rel="canonical" href={meta.url} />
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+</head>
+<body>
+  <Nav client:load />
+
+  <main class="myths-page">
+
+    <!-- Page header -->
+    <section class="page-header">
+      <div class="container">
+        <a href="/" class="back-link">← Back to Bloqr</a>
+        <div class="header-badge">
+          <span class="badge-dot"></span>
+          Consumer Privacy Education
+        </div>
+        <h1>Consumer VPN Myths.<br /><em>Examined.</em></h1>
+        <p class="page-sub">
+          Privacy and anonymity are different things. Consumer VPNs are proxies, not
+          security tools. "No-log" is a marketing claim, not a technical guarantee.
+          And fingerprinting is the tracking method most people have never heard of —
+          and no VPN stops it. Here's what the evidence actually shows.
+        </p>
+        <div class="disclaimer">
+          <strong>Note:</strong> This page exists because people making privacy decisions
+          deserve better information than VPN ads provide. We make a privacy tool.
+          We're not anti-VPN — we're pro-accurate-expectations. Sources on every claim.
+        </div>
+      </div>
+    </section>
+
+    <!-- Privacy ≠ Anonymity primer -->
+    <section class="primer">
+      <div class="container">
+        <div class="primer-grid">
+          <div class="primer-card">
+            <div class="primer-icon">🔐</div>
+            <h3>Privacy</h3>
+            <p>Controlling who can see your data and what they can do with it. Blocking ads, trackers, and malware domains. Managing what you share and with whom. <strong>This is what Bloqr does.</strong></p>
+          </div>
+          <div class="primer-divider" aria-hidden="true">≠</div>
+          <div class="primer-card">
+            <div class="primer-icon">👤</div>
+            <h3>Anonymity</h3>
+            <p>Hiding your identity entirely — from everyone, including the tools you use. Requires routing through multiple independent parties with no single point of knowledge. <strong>This is what Tor does.</strong></p>
+          </div>
+          <div class="primer-divider" aria-hidden="true">≠</div>
+          <div class="primer-card">
+            <div class="primer-icon">🛡️</div>
+            <h3>Consumer VPNs</h3>
+            <p>Encrypted proxies that route your traffic through a third-party server, masking your IP. They borrowed the "VPN" acronym from enterprise networking to add legitimacy to what is, technically, a paid middleman service.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Myths list -->
+    <section class="myths">
+      <div class="container">
+        <div class="myths-list">
+          {myths.map((myth) => (
+            <article class="myth-card" id={`myth-${myth.id}`}>
+              <div class="myth-header">
+                <div class="myth-num">Myth {myth.id}</div>
+                <span class={`verdict verdict-${myth.verdictClass}`}>
+                  {myth.verdictClass === 'false' ? '✗ False' : myth.verdictClass === 'partial' ? '◑ Partial' : '✓ True'}
+                </span>
+              </div>
+              <h2 class="myth-claim">"{myth.claim}"</h2>
+              <div class="verdict-label">{myth.verdict}</div>
+              <p class="myth-reality">{myth.reality}</p>
+
+              {/* DNS diagram for Myth 3 */}
+              {myth.id === 3 && (
+                <div class="dns-diagram" aria-label="DNS lookup flow diagram">
+                  <div class="diagram-label">Where your "what's the address for this website?" request is visible:</div>
+                  <div class="diagram-flow">
+                    <div class="diagram-node you">
+                      <span class="node-icon">💻</span>
+                      <span class="node-name">Your Device</span>
+                    </div>
+                    <div class="diagram-arrow">
+                      <div class="arrow-line"></div>
+                      <div class="arrow-tag visible">📬 Plain text</div>
+                    </div>
+                    <div class="diagram-node router">
+                      <span class="node-icon">📡</span>
+                      <span class="node-name">Router<br/><small>(café / hotel / home)</small></span>
+                      <div class="node-sees">Can read it</div>
+                    </div>
+                    <div class="diagram-arrow">
+                      <div class="arrow-line"></div>
+                      <div class="arrow-tag visible">📬 Still plain text</div>
+                    </div>
+                    <div class="diagram-node isp">
+                      <span class="node-icon">🏢</span>
+                      <span class="node-name">Your ISP</span>
+                      <div class="node-sees">Can read &amp; sell it</div>
+                    </div>
+                    <div class="diagram-arrow">
+                      <div class="arrow-line"></div>
+                      <div class="arrow-tag visible">📬 Still plain text</div>
+                    </div>
+                    <div class="diagram-node dns">
+                      <span class="node-icon">📖</span>
+                      <span class="node-name">DNS Server</span>
+                      <div class="node-sees">Logs your queries</div>
+                    </div>
+                  </div>
+                  <div class="diagram-note">HTTPS encrypts your actual browsing (the page content). It does not encrypt the lookup that gets you there. Encrypted DNS — which Bloqr enables — seals that envelope.</div>
+                </div>
+              )}
+
+              {myth.highlight && (
+                <div class={`myth-highlight variant-${myth.highlight.variant ?? 'info'}`}>
+                  <span class="highlight-icon" aria-hidden="true">{myth.highlight.icon}</span>
+                  <div class="highlight-body">
+                    <strong class="highlight-title">{myth.highlight.title}</strong>
+                    <p>{myth.highlight.body}</p>
+                  </div>
+                </div>
+              )}
+
+              {myth.note && (
+                <div class="myth-note">
+                  <span class="note-icon">💡</span>
+                  {myth.note}
+                </div>
+              )}
+
+              {myth.fingerprintRef && (
+                <a href="#fingerprinting" class="fingerprint-ref-link">
+                  ↓ What is browser fingerprinting — and why is it harder to stop than cookies?
+                </a>
+              )}
+
+              <div class="myth-sources">
+                <span class="sources-label">Sources:</span>
+                <ul>
+                  {myth.sources.map((src) => (
+                    <li>
+                      <a href={src.url} target="_blank" rel="noopener noreferrer">
+                        {src.label}
+                        <span class="ext-icon" aria-label="opens in new tab">↗</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Conclusion + CTA -->
+    <section class="conclusion">
+      <div class="container">
+        <div class="conclusion-inner">
+          <div class="conclusion-text">
+            <p class="section-label">So what actually works?</p>
+            <h2>DNS-level filtering.<br />AI-powered lists.<br />No rerouting.</h2>
+            <p>
+              For blocking ads, trackers, and malware domains — the use case most
+              consumer VPN buyers actually have — DNS-level filtering is more effective,
+              faster, and more transparent than a proxy. You don't need to route
+              your traffic through a server you don't control. You need better
+              filters applied closer to the source.
+            </p>
+            <p>
+              For genuine anonymity — hiding from governments, bypassing censorship,
+              protecting source identity — use <a href="https://www.torproject.org" target="_blank" rel="noopener noreferrer">Tor</a>.
+              It's free, open source, and designed specifically for that threat model.
+              We're not Tor and we don't pretend to be.
+            </p>
+            <p>
+              For fingerprinting protection — coming in Bloqr v2. It's our next
+              priority precisely because it's the gap that matters most and gets
+              talked about least. <a href="#fingerprinting">See below ↓</a>
+            </p>
+          </div>
+          <div class="conclusion-cta">
+            <div class="cta-card">
+              <p class="cta-label">Good internet hygiene.</p>
+              <h3>Set it.<br />Bloqr it.<br />Forget it.</h3>
+              <p class="cta-desc">
+                Bring your existing DNS provider or use ours. AI-curated threat lists,
+                DNS-level blocking, full rule transparency, instant propagation to every device.
+                No traffic rerouting. No guessing what's blocked. No contracts.
+              </p>
+              <div class="cta-actions">
+                <a href={LINKS.app} class="btn btn-primary" rel="noopener noreferrer" target="_blank">
+                  Launch the app →
+                </a>
+                <a href="/" class="btn btn-outline">
+                  Learn more
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fingerprinting explainer -->
+    <section class="fingerprinting" id="fingerprinting">
+      <div class="container">
+        <div class="fingerprinting-header">
+          <div class="header-badge">
+            <span class="badge-dot"></span>
+            The tracking method most people have never heard of
+          </div>
+          <h2>Browser Fingerprinting.<br /><em>Explained.</em></h2>
+          <p class="fp-intro">
+            Cookies get all the press. Fingerprinting is why the press coverage barely matters.
+          </p>
+        </div>
+
+        <div class="fp-analogy">
+          <div class="fp-analogy-card">
+            <div class="fp-analogy-icon">✍️</div>
+            <h3>The handwriting analogy</h3>
+            <p>Imagine a letter with no signature and no return address. You still might recognize the handwriting — the way someone forms their letters, their spacing, their pressure on the pen. Handwriting is unique without being labeled.</p>
+            <p>Your browser has handwriting. Every website you visit receives a detailed technical profile of your browser and device: the exact browser version, your operating system, your screen resolution, your installed fonts, your timezone, your graphics card capabilities, your language settings, the plugins you've installed, and dozens of other attributes. Individually, most are common. Combined, the profile is statistically unique to you — across sessions, across websites, and across IP addresses.</p>
+            <p>No cookie needed. No login required. No consent banner changes anything.</p>
+          </div>
+        </div>
+
+        <div class="fp-how-grid">
+          <div class="fp-how-card">
+            <div class="fp-how-icon">🧩</div>
+            <h4>How they collect it</h4>
+            <p>JavaScript running on any webpage can query your browser for hundreds of attributes. Canvas fingerprinting renders invisible graphics and reads how your specific hardware renders them — the output varies subtly between GPU models, driver versions, and operating systems. Audio fingerprinting does the same with sound processing. These run silently, in milliseconds, every time you load a page.</p>
+          </div>
+          <div class="fp-how-card">
+            <div class="fp-how-icon">📌</div>
+            <h4>Why it's more durable than cookies</h4>
+            <p>Cookies can be deleted, blocked, or rejected. Fingerprints are derived from your hardware and software — things you can't easily change. Clearing your cookies doesn't change your screen resolution or your GPU. A fingerprint can persist across browser restarts, private browsing sessions, and even different browsers on the same machine. It survives the "reject all" button entirely.</p>
+          </div>
+          <div class="fp-how-card">
+            <div class="fp-how-icon">📋</div>
+            <h4>What the EU cookie law actually covers</h4>
+            <p>The GDPR and ePrivacy Directive require consent for cookies and similar tracking technologies. Courts are still debating whether fingerprinting requires consent — and many operators have concluded the legal risk is lower than the business cost of not tracking. When you click "reject all" on a cookie banner, you've addressed one specific technology. The fingerprinting script loading alongside the cookie consent manager may have already run.</p>
+          </div>
+        </div>
+
+        <div class="fp-test-box">
+          <div class="fp-test-content">
+            <div class="fp-test-icon">🔬</div>
+            <div>
+              <h3>See your own fingerprint</h3>
+              <p>The Electronic Frontier Foundation runs a free tool called Cover Your Tracks that shows you exactly how unique your browser's fingerprint is and which tracking protections you have in place.</p>
+              <p class="fp-disclaimer">
+                <strong>Important:</strong> Cover Your Tracks is operated by the EFF — an independent digital rights nonprofit. It is not affiliated with Bloqr. We have no access to any data collected or displayed there, and we never will. We're linking to it because it's the best demonstration of fingerprinting that exists, run by people whose entire mission is protecting you.
+              </p>
+              <a href="https://coveryourtracks.eff.org/" target="_blank" rel="noopener noreferrer" class="fp-test-link">
+                Test your fingerprint at the EFF ↗
+                <span class="fp-test-badge">Not our site. Not our data. Just a good tool.</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="fp-bloqr-box">
+          <div class="fp-bloqr-icon">🚧</div>
+          <div>
+            <h3>Anti-fingerprinting is coming in Bloqr v2.</h3>
+            <p>
+              Fingerprinting protection is our highest-priority feature for the next release. Effective anti-fingerprinting works by randomizing or normalizing the attributes that make your browser unique — returning plausible but non-identifying values to fingerprinting scripts rather than your actual hardware characteristics. It's subtle, technically demanding, and far more effective than simply blocking the scripts (which breaks too many legitimate sites).
+            </p>
+            <p>
+              In the meantime: Firefox with Strict mode enabled provides meaningful fingerprinting resistance. The Tor Browser provides the strongest protection available by design. If fingerprinting is a serious concern for your threat model, those are the best current options while we build ours.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <Footer />
+</body>
+</html>
+
+<style>
+  /* ── Page layout ───────────────────────────────────────── */
+  .myths-page { padding-bottom: 0; }
+
+  /* ── Page header ───────────────────────────────────────── */
+  .page-header {
+    padding: 80px 0 64px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 800px; height: 400px;
+    background: radial-gradient(ellipse at center, rgba(255,85,0,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--text-3);
+    text-decoration: none;
+    margin-bottom: 32px;
+    transition: color 150ms;
+  }
+  .back-link:hover { color: var(--text-2); }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,85,0,0.3);
+    background: rgba(255,85,0,0.08);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .badge-dot {
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+  }
+
+  .page-header h1 {
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+    max-width: 700px;
+  }
+
+  .page-header h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--orange) 0%, #FF8833 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .page-sub {
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    color: var(--text-2);
+    max-width: 640px;
+    line-height: 1.65;
+    margin-bottom: 28px;
+  }
+
+  .disclaimer {
+    display: inline-block;
+    padding: 12px 18px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: var(--text-2);
+    max-width: 560px;
+    line-height: 1.55;
+  }
+
+  .disclaimer strong { color: var(--text-1); }
+
+  /* ── Primer ────────────────────────────────────────────── */
+  .primer {
+    padding: 56px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .primer-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 0;
+    align-items: center;
+  }
+
+  @media (max-width: 860px) {
+    .primer-grid { grid-template-columns: 1fr; }
+    .primer-divider { font-size: 2rem; text-align: center; padding: 8px 0; }
+  }
+
+  .primer-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+
+  .primer-card:last-child {
+    border-color: rgba(255,85,0,0.15);
+    background: var(--bg-elevated);
+  }
+
+  .primer-icon { font-size: 24px; margin-bottom: 12px; }
+
+  .primer-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-1);
+  }
+
+  .primer-card p {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .primer-card p strong { color: var(--orange); }
+
+  .primer-divider {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--border-2);
+    padding: 0 20px;
+    user-select: none;
+  }
+
+  /* ── Myths ─────────────────────────────────────────────── */
+  .myths {
+    padding: 64px 0 80px;
+    border-top: 1px solid var(--border);
+  }
+
+  .myths-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--border);
+  }
+
+  .myth-card {
+    background: var(--bg-surface);
+    padding: 40px;
+    transition: background 200ms;
+  }
+
+  .myth-card:hover { background: var(--bg-elevated); }
+
+  .myth-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .myth-num {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+  }
+
+  .verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .verdict-false {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.25);
+    color: #f87171;
+  }
+
+  .verdict-partial {
+    background: rgba(251,191,36,0.1);
+    border: 1px solid rgba(251,191,36,0.25);
+    color: #fbbf24;
+  }
+
+  .myth-claim {
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+    font-weight: 700;
+    color: var(--text-1);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+
+  .verdict-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .myth-reality {
+    font-size: 0.9rem;
+    color: var(--text-2);
+    line-height: 1.75;
+    max-width: 760px;
+    margin-bottom: 20px;
+    white-space: pre-line;
+  }
+
+  /* ── DNS Diagram ───────────────────────────────────────── */
+  .dns-diagram {
+    margin: 4px 0 20px;
+    padding: 24px;
+    background: var(--bg-page, #070B14);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 760px;
+  }
+
+  .diagram-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 20px;
+  }
+
+  .diagram-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .diagram-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .node-icon { font-size: 24px; }
+
+  .node-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .node-name small {
+    display: block;
+    font-weight: 400;
+    color: var(--text-3);
+    font-size: 10px;
+  }
+
+  .node-sees {
+    font-size: 10px;
+    color: #f87171;
+    font-weight: 600;
+    text-align: center;
+    padding: 2px 6px;
+    background: rgba(239,68,68,0.1);
+    border-radius: 4px;
+    margin-top: 2px;
+  }
+
+  .diagram-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 60px;
+    max-width: 100px;
+  }
+
+  .arrow-line {
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--border-2), var(--border-2));
+    position: relative;
+  }
+
+  .arrow-line::after {
+    content: '→';
+    position: absolute;
+    right: -6px;
+    top: -10px;
+    font-size: 14px;
+    color: var(--text-3);
+  }
+
+  .arrow-tag {
+    font-size: 10px;
+    color: var(--text-3);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .arrow-tag.visible { color: #f87171; }
+
+  .diagram-note {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-3);
+    line-height: 1.6;
+    max-width: 600px;
+  }
+
+  /* ── Myth Highlights ───────────────────────────────────── */
+  .myth-highlight {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    max-width: 760px;
+  }
+
+  .variant-warning {
+    background: rgba(251,191,36,0.07);
+    border: 1px solid rgba(251,191,36,0.2);
+  }
+
+  .variant-info {
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.15);
+  }
+
+  .variant-bloqr {
+    background: rgba(255,85,0,0.06);
+    border: 1px solid rgba(255,85,0,0.2);
+  }
+
+  .highlight-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+
+  .highlight-body { flex: 1; }
+
+  .highlight-title {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 6px;
+  }
+
+  .highlight-body p {
+    font-size: 0.85rem;
+    color: var(--text-2);
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  /* ── Myth Note ─────────────────────────────────────────── */
+  .myth-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 18px;
+    background: rgba(255,85,0,0.06);
+    border: 1px solid rgba(255,85,0,0.2);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-2);
+    line-height: 1.55;
+    max-width: 680px;
+    margin-bottom: 16px;
+  }
+
+  .note-icon { flex-shrink: 0; }
+
+  /* ── Fingerprint Ref Link ──────────────────────────────── */
+  .fingerprint-ref-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--cyan);
+    text-decoration: none;
+    margin-bottom: 20px;
+    padding: 8px 14px;
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 8px;
+    background: rgba(0,212,255,0.04);
+    transition: background 150ms, border-color 150ms;
+  }
+
+  .fingerprint-ref-link:hover {
+    background: rgba(0,212,255,0.1);
+    border-color: rgba(0,212,255,0.35);
+  }
+
+  /* ── Sources ───────────────────────────────────────────── */
+  .myth-sources {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .sources-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+
+  .myth-sources ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    list-style: none;
+  }
+
+  .myth-sources a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--cyan);
+    text-decoration: none;
+    padding: 3px 10px;
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 9999px;
+    background: rgba(0,212,255,0.05);
+    transition: background 150ms, border-color 150ms;
+  }
+
+  .myth-sources a:hover {
+    background: rgba(0,212,255,0.12);
+    border-color: rgba(0,212,255,0.4);
+  }
+
+  .ext-icon { font-size: 10px; opacity: 0.7; }
+
+  /* ── Conclusion ────────────────────────────────────────── */
+  .conclusion {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .conclusion-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .conclusion-inner { grid-template-columns: 1fr; gap: 40px; }
+  }
+
+  .conclusion-text .section-label {
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .conclusion-text h2 {
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 24px;
+  }
+
+  .conclusion-text p {
+    font-size: 0.95rem;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 16px;
+    max-width: 520px;
+  }
+
+  .conclusion-text a { color: var(--cyan); text-decoration: none; }
+  .conclusion-text a:hover { text-decoration: underline; }
+
+  .cta-card {
+    background: var(--bg-surface);
+    border: 1px solid rgba(255,85,0,0.25);
+    border-radius: 20px;
+    padding: 40px;
+    position: sticky;
+    top: 90px;
+  }
+
+  .cta-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 12px !important;
+  }
+
+  .cta-card h3 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .cta-desc {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.65;
+    margin-bottom: 28px !important;
+  }
+
+  .cta-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cta-actions .btn { text-align: center; }
+
+  /* ── Fingerprinting Section ────────────────────────────── */
+  .fingerprinting {
+    padding: 80px 0 100px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elevated, rgba(255,255,255,0.015));
+  }
+
+  .fingerprinting-header {
+    margin-bottom: 48px;
+  }
+
+  .fingerprinting-header h2 {
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    margin-top: 20px;
+    max-width: 600px;
+  }
+
+  .fingerprinting-header h2 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--orange) 0%, #FF8833 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .fp-intro {
+    font-size: 1.1rem;
+    color: var(--text-2);
+    max-width: 560px;
+    line-height: 1.6;
+  }
+
+  .fp-analogy {
+    margin-bottom: 40px;
+  }
+
+  .fp-analogy-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    max-width: 760px;
+  }
+
+  .fp-analogy-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+
+  .fp-analogy-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 16px;
+  }
+
+  .fp-analogy-card p {
+    font-size: 0.9rem;
+    color: var(--text-2);
+    line-height: 1.75;
+    margin-bottom: 14px;
+    max-width: 680px;
+  }
+
+  .fp-analogy-card p:last-child { margin-bottom: 0; }
+
+  .fp-how-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .fp-how-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .fp-how-icon { font-size: 24px; margin-bottom: 12px; }
+
+  .fp-how-card h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 10px;
+  }
+
+  .fp-how-card p {
+    font-size: 0.855rem;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .fp-test-box {
+    background: var(--bg-surface);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    max-width: 760px;
+  }
+
+  .fp-test-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .fp-test-icon { font-size: 32px; flex-shrink: 0; }
+
+  .fp-test-content h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 10px;
+  }
+
+  .fp-test-content p {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .fp-disclaimer {
+    font-size: 0.82rem !important;
+    color: var(--text-3) !important;
+    padding: 10px 14px;
+    background: rgba(251,191,36,0.06);
+    border: 1px solid rgba(251,191,36,0.15);
+    border-radius: 8px;
+    margin-bottom: 16px !important;
+  }
+
+  .fp-disclaimer strong { color: var(--text-2) !important; }
+
+  .fp-test-link {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--cyan);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: color 150ms;
+  }
+
+  .fp-test-link:hover { text-decoration: underline; }
+
+  .fp-test-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+    padding: 3px 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    letter-spacing: 0.03em;
+    text-decoration: none !important;
+  }
+
+  .fp-bloqr-box {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    padding: 28px 32px;
+    background: rgba(255,85,0,0.05);
+    border: 1px solid rgba(255,85,0,0.2);
+    border-radius: 16px;
+    max-width: 760px;
+  }
+
+  .fp-bloqr-icon { font-size: 28px; flex-shrink: 0; margin-top: 4px; }
+
+  .fp-bloqr-box h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 10px;
+  }
+
+  .fp-bloqr-box p {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 10px;
+    max-width: 620px;
+  }
+
+  .fp-bloqr-box p:last-child { margin-bottom: 0; }
+
+  @media (max-width: 640px) {
+    .fp-test-content { flex-direction: column; }
+    .fp-bloqr-box { flex-direction: column; }
+    .myth-card { padding: 24px 20px; }
+    .diagram-flow { flex-direction: column; gap: 12px; }
+    .diagram-arrow { transform: rotate(90deg); min-width: 40px; }
+  }
+</style>

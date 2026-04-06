@@ -1,0 +1,495 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.svelte';
+import Footer from '../components/Footer.svelte';
+import { SITE_URL, META, LINKS } from '../config';
+
+const meta = {
+  title:       'About Bloqr — Why We Exist',
+  description: 'Bloqr started as a two-minute automation task that exposed a twenty-year gap at the center of consumer internet privacy. Here\'s the story.',
+  url:         `${SITE_URL}/about`,
+  image:       `${SITE_URL}${META.ogImage}`,
+};
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+  <meta property="og:title"       content={meta.title} />
+  <meta property="og:description" content={meta.description} />
+  <meta property="og:url"         content={meta.url} />
+  <meta property="og:image"       content={meta.image} />
+  <meta property="og:type"        content="website" />
+  <link rel="canonical" href={meta.url} />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+</head>
+<body>
+  <Nav client:load />
+
+  <main class="about-page">
+
+    <!-- ── Page header ── -->
+    <header class="page-header">
+      <div class="container">
+        <div class="header-label">Our story</div>
+        <h1>The internet has a hygiene problem.<br /><em>Bloqr is the fix.</em></h1>
+        <p class="header-sub">
+          Not a manifesto. Not a pitch deck. Just a honest account of what broke,
+          who noticed, and what they decided to do about it.
+        </p>
+      </div>
+    </header>
+
+    <!-- ── Origin story ── -->
+    <section class="prose-section" aria-labelledby="origin-heading">
+      <div class="container prose-grid">
+        <div class="prose-sidebar">
+          <span class="sidebar-label">Where it started</span>
+        </div>
+        <div class="prose-body">
+          <h2 id="origin-heading">A two-minute task that took twenty years.</h2>
+          <p>
+            The founder of Bloqr — a solutions architect with over two decades in enterprise IT —
+            had already solved the internet privacy problem for himself. Custom filter lists hosted
+            on GitHub. A cluster of AdGuard Home servers running on Red Hat Enterprise Linux.
+            Device-level clients across a dozen machines. Custom DNS instances handling encrypted
+            resolution over DoH and DoT. His own private certificate authority so that he, and only
+            he, held the keys proving who was reading his traffic.
+          </p>
+          <p>
+            It worked beautifully. It also required expert-level knowledge of DNS architecture,
+            public key infrastructure, enterprise networking, and a fair amount of stubbornness
+            to build and maintain.
+          </p>
+          <p>
+            One afternoon, he found himself copy-pasting an updated filter list into four different
+            admin consoles. Tedious. Obviously automatable. He wrote a script to sync his GitHub
+            list to all four AdGuard DNS instances via API. Done in two minutes.
+          </p>
+          <p>
+            And then the question: <em>if this is useful for me, why doesn't it exist for everyone?</em>
+          </p>
+          <p>
+            That question turned into Bloqr.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── The gap ── -->
+    <section class="prose-section prose-section--alt" aria-labelledby="gap-heading">
+      <div class="container prose-grid">
+        <div class="prose-sidebar">
+          <span class="sidebar-label">The problem</span>
+        </div>
+        <div class="prose-body">
+          <h2 id="gap-heading">DNS was designed in 1987. Privacy wasn't on the spec.</h2>
+          <p>
+            DNS — the system that translates every web address you type into an actual server —
+            was standardized in a world where the internet was a handful of universities and
+            government labs. It was never encrypted. It still isn't, by default. Every domain
+            name you visit travels in plain text to your ISP before it reaches the destination,
+            a daily gift of behavioral data to anyone with access to that pipe.
+          </p>
+          <p>
+            Most people don't know this. Most VPNs don't fix it — they just move the trust
+            problem from your ISP to a VPN company in a jurisdiction chosen specifically for
+            its weak accountability laws. "Reject all cookies" doesn't fix it either.
+            Trackers that lose their cookies just switch to fingerprinting, which is more
+            accurate, more durable, and completely invisible to the user.
+          </p>
+          <div class="callout-box">
+            <div class="callout-icon" aria-hidden="true">💡</div>
+            <div>
+              <strong>Internet Hygiene</strong> is the practice of routinely protecting your
+              digital presence the same way you'd protect your physical one — not as a one-time
+              event, but as an automatic background process. Bloqr makes that practice
+              invisible. Set it once. Bloqr handles the rest.
+            </div>
+          </div>
+          <p>
+            The tools to fix this exist. DNS-over-HTTPS, DNS-over-TLS, network-level
+            ad blocking, encrypted resolvers, custom filter lists — they're all there,
+            proven, open, and maintained by communities of engineers and privacy advocates
+            who've been fighting this battle for years. They're just not assembled for anyone
+            outside that community.
+          </p>
+          <p>
+            Bloqr is the assembly.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Mission ── -->
+    <section class="prose-section" aria-labelledby="mission-heading">
+      <div class="container prose-grid">
+        <div class="prose-sidebar">
+          <span class="sidebar-label">The mission</span>
+        </div>
+        <div class="prose-body">
+          <h2 id="mission-heading">Make the internet hygiene that protects experts automatically work for everyone.</h2>
+          <p>
+            Not another VPN. Not another proxy. Not another black box with a slick app and
+            a cancellation dark pattern buried in the settings. A transparent, vendor-agnostic
+            layer that sits between your internet traffic and the parts of the internet that are
+            trying to exploit you — and gets completely out of the way for everything else.
+          </p>
+          <p>
+            If you already have AdGuard, NextDNS, Pi-hole, or any other DNS filtering setup,
+            Bloqr works with it. Bring your vendor. Bring your lists. Bloqr gives them
+            intelligence, consistency, and automation. If you don't have anything — if you
+            just want the internet to stop feeling hostile — Bloqr handles every part of
+            the setup for you.
+          </p>
+          <p>
+            <strong>Bring your own. Or use ours.</strong> Either way, you're not locked in.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── What we believe ── -->
+    <section class="prose-section" aria-labelledby="beliefs-heading">
+      <div class="container prose-grid">
+        <div class="prose-sidebar">
+          <span class="sidebar-label">What we believe</span>
+        </div>
+        <div class="prose-body">
+          <h2 id="beliefs-heading">A few things we won't budge on.</h2>
+
+          <div class="belief-list">
+            <div class="belief">
+              <h3>Privacy is not a product feature.</h3>
+              <p>
+                It's a basic expectation. You shouldn't have to pay extra, read the fine print,
+                or hand your traffic to a stranger in a jurisdiction chosen specifically to avoid
+                accountability in order to control what your internet activity looks like to
+                people watching it.
+              </p>
+            </div>
+            <div class="belief">
+              <h3>Transparency is non-negotiable.</h3>
+              <p>
+                Every rule Bloqr applies to traffic is visible. Every list is documented.
+                If something changes that affects your experience, you'll know. No black boxes.
+                No opacity-as-a-business-model.
+              </p>
+            </div>
+            <div class="belief">
+              <h3>What's never logged can't be produced.</h3>
+              <p>
+                Bloqr doesn't log DNS queries or browsing patterns — not as a marketing
+                claim, but as a technical architecture decision. The data that doesn't exist
+                can't be subpoenaed, sold, breached, or handed to anyone. This is a statement
+                our legal counsel reviews for accuracy, not a line from the marketing department.
+              </p>
+            </div>
+            <div class="belief">
+              <h3>Simple enough for your grandmother. Honest enough for your attorney.</h3>
+              <p>
+                Bloqr will never obscure what it does with jargon. It will never make a
+                claim it can't defend. It will never use "no-log" as a phrase without the
+                technical architecture to back it up. Every claim on this website links
+                to a primary source. Read the fine print. That's the point.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── What we'll never do ── -->
+    <section class="never-section" aria-labelledby="never-heading">
+      <div class="container">
+        <h2 id="never-heading">Things Bloqr will never do.</h2>
+        <ul class="never-grid" role="list">
+          <li>Log your DNS queries or browsing patterns</li>
+          <li>Sell, share, or license your data to third parties — under any circumstances</li>
+          <li>Lock you into a contract you didn't consciously choose</li>
+          <li>Use "no-log" as marketing language without full technical documentation</li>
+          <li>Pretend to be something it isn't (not a VPN, not an anonymity tool, not Tor)</li>
+          <li>Hide the rules applied to your traffic</li>
+          <li>Route your traffic through infrastructure you can't audit</li>
+          <li>Make it hard to leave</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── CTA ── -->
+    <section class="about-cta" aria-label="Get started with Bloqr">
+      <div class="container">
+        <h2>The gap is closed. Come through.</h2>
+        <p>
+          Internet hygiene that used to require a home server lab now requires exactly
+          nothing. Bloqr sets itself up, stays up to date, and follows you everywhere.
+        </p>
+        <div class="cta-actions">
+          <a href={LINKS.app} class="btn btn-primary" rel="noopener noreferrer" target="_blank">
+            Get started free →
+          </a>
+          <a href="/#waitlist" class="btn btn-outline">
+            Join the early access list
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <Footer />
+</body>
+</html>
+
+<style>
+  /* ── Layout ── */
+  .about-page {
+    color: var(--text-1);
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    padding: 96px 0 72px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse at center, rgba(255,85,0,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 20px;
+  }
+
+  .page-header h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .page-header h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--orange) 0%, #FF8833 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-sub {
+    font-size: 1.05rem;
+    color: var(--text-2);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Prose sections ── */
+  .prose-section {
+    padding: 72px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prose-section--alt {
+    background: rgba(255, 255, 255, 0.01);
+  }
+
+  .prose-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  @media (max-width: 700px) {
+    .prose-grid { grid-template-columns: 1fr; gap: 16px; }
+    .prose-sidebar { display: none; }
+  }
+
+  .prose-sidebar {
+    padding-top: 8px;
+    position: sticky;
+    top: 80px;
+  }
+
+  .sidebar-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  .prose-body h2 {
+    font-size: clamp(1.3rem, 2.8vw, 1.9rem);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    margin-bottom: 24px;
+  }
+
+  .prose-body h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 28px 0 10px;
+    color: var(--text-1);
+  }
+
+  .prose-body p {
+    font-size: 0.97rem;
+    color: var(--text-2);
+    line-height: 1.75;
+    margin-bottom: 18px;
+  }
+
+  .prose-body p em {
+    color: var(--text-1);
+    font-style: italic;
+  }
+
+  .prose-body strong { color: var(--text-1); }
+
+  /* ── Callout box ── */
+  .callout-box {
+    display: flex;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 85, 0, 0.2);
+    background: rgba(255, 85, 0, 0.05);
+    margin: 24px 0;
+    font-size: 0.9rem;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .callout-box strong { color: var(--text-1); }
+  .callout-icon { font-size: 1.2rem; flex-shrink: 0; padding-top: 2px; }
+
+  /* ── Beliefs ── */
+  .belief-list {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .belief h3 {
+    margin-bottom: 8px;
+    color: var(--orange);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .belief p {
+    font-size: 0.95rem;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  /* ── Never section ── */
+  .never-section {
+    padding: 72px 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .never-section h2 {
+    font-size: clamp(1.3rem, 2.8vw, 1.9rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-bottom: 36px;
+  }
+
+  .never-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .never-grid { grid-template-columns: 1fr; }
+  }
+
+  .never-grid li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 0.88rem;
+    color: var(--text-2);
+    line-height: 1.4;
+  }
+
+  .never-grid li::before {
+    content: '✕';
+    color: var(--orange);
+    font-weight: 700;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── CTA ── */
+  .about-cta {
+    padding: 96px 0;
+    text-align: center;
+  }
+
+  .about-cta h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-bottom: 16px;
+  }
+
+  .about-cta p {
+    font-size: 1rem;
+    color: var(--text-2);
+    max-width: 480px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>

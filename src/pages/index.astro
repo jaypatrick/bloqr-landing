@@ -1,0 +1,78 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.svelte';
+import Hero from '../components/Hero.svelte';
+import ComingSoon from '../components/ComingSoon.svelte';
+import Problem from '../components/Problem.svelte';
+import HowItWorks from '../components/HowItWorks.svelte';
+import Audiences from '../components/Audiences.svelte';
+import Features from '../components/Features.svelte';
+import WaitlistSignup from '../components/WaitlistSignup.svelte';
+import CodeDemo from '../components/CodeDemo.svelte';
+import DynamicWorkers from '../components/DynamicWorkers.svelte';
+import WhyCloudflare from '../components/WhyCloudflare.svelte';
+import Pricing from '../components/Pricing.svelte';
+import CtaBanner from '../components/CtaBanner.svelte';
+import Footer from '../components/Footer.svelte';
+import { SITE_URL, META } from '../config';
+
+const meta = {
+  title:       META.title,
+  description: META.description,
+  url:         SITE_URL,
+  image:       `${SITE_URL}${META.ogImage}`,  // absolute URL required by social crawlers
+};
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name"    content="Bloqr" />
+  <meta property="og:title"        content={meta.title} />
+  <meta property="og:description"  content={meta.description} />
+  <meta property="og:url"          content={meta.url} />
+  <meta property="og:image"        content={meta.image} />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content="Bloqr — Good Internet Hygiene. Automated." />
+  <meta property="og:type"         content="website" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={meta.title} />
+  <meta name="twitter:description" content={meta.description} />
+  <meta name="twitter:image"       content={meta.image} />
+  <meta name="twitter:image:alt"   content="Bloqr — Good Internet Hygiene. Automated." />
+
+  <!-- Canonical -->
+  <link rel="canonical" href={meta.url} />
+
+  <!-- Favicon (inline SVG data URI) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+</head>
+<body>
+  <Nav client:load />
+  <main>
+    <Hero client:load />
+    <ComingSoon client:visible />
+    <div class="divider-glow"></div>
+    <Problem />
+    <HowItWorks />
+    <Audiences />
+    <Features />
+    <DynamicWorkers />
+    <WhyCloudflare />
+    <Pricing />
+    <WaitlistSignup client:visible />
+    <CodeDemo client:visible />
+    <CtaBanner />
+  </main>
+  <Footer />
+</body>
+</html>

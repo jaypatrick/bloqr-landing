@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdBlock Compiler — Privacy Infrastructure for the Open Web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-base:      #070B14;
+    --bg-surface:   #0E1829;
+    --bg-elevated:  #162035;
+    --orange:       #FF5500;
+    --orange-hover: #FF7033;
+    --orange-dim:   rgba(255,85,0,0.12);
+    --cyan:         #00D4FF;
+    --cyan-dim:     rgba(0,212,255,0.1);
+    --text-1:       #F1F5F9;
+    --text-2:       #94A3B8;
+    --text-3:       #475569;
+    --border:       #1E2D40;
+    --border-2:     #2A3F5A;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-1);
+    font-family: var(--font-display);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE TEXTURE overlay ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── LAYOUT ─── */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  section { position: relative; z-index: 1; }
+
+  /* ─── NAV ─── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--border);
+    background: rgba(7,11,20,0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .logo-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--text-1);
+  }
+  .logo-bar:nth-child(1) { width: 20px; }
+  .logo-bar:nth-child(2) { width: 15px; opacity: 0.65; }
+  .logo-bar:nth-child(3) { width: 8px; background: var(--orange); }
+
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  .logo-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-1);
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 14px;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: color 150ms;
+    letter-spacing: 0.01em;
+  }
+
+  .nav-links a:hover { color: var(--text-1); }
+
+  .nav-cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 150ms;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+  }
+
+  .btn-ghost {
+    color: var(--text-2);
+    background: transparent;
+  }
+  .btn-ghost:hover { color: var(--text-1); }
+
+  .btn-outline {
+    color: var(--text-1);
+    background: transparent;
+    border: 1px solid var(--border-2);
+  }
+  .btn-outline:hover {
+    border-color: var(--text-2);
+    background: var(--bg-surface);
+  }
+
+  .btn-primary {
+    color: #fff;
+    background: var(--orange);
+    box-shadow: 0 0 20px rgba(255,85,0,0.3);
+  }
+  .btn-primary:hover {
+    background: var(--orange-hover);
+    box-shadow: 0 0 32px rgba(255,85,0,0.45);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 120px 0 80px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Radial glow behind hero text */
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 800px; height: 500px;
+    background: radial-gradient(ellipse at center, rgba(255,85,0,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,85,0,0.3);
+    background: rgba(255,85,0,0.08);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.6; transform: scale(0.85); }
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 24px;
+    max-width: 880px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--orange) 0%, #FF8833 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: var(--text-2);
+    max-width: 600px;
+    margin: 0 auto 48px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 72px;
+  }
+
+  .btn-primary .arrow { transition: transform 150ms; }
+  .btn-primary:hover .arrow { transform: translateX(3px); }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text-1);
+    display: block;
+  }
+
+  .stat-value span { color: var(--orange); }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* ─── SECTION HEADERS ─── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .section-desc {
+    font-size: 1.05rem;
+    color: var(--text-2);
+    max-width: 560px;
+    line-height: 1.65;
+  }
+
+  /* ─── PROBLEM SECTION ─── */
+  .problem {
+    padding: 80px 0;
+  }
+
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--border);
+  }
+
+  .problem-card {
+    background: var(--bg-surface);
+    padding: 40px;
+  }
+
+  .problem-card.bad {
+    position: relative;
+  }
+
+  .problem-card.bad::before {
+    content: 'VPN PROVIDERS';
+    position: absolute;
+    top: 20px; right: 20px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+
+  .problem-card.good::before {
+    content: 'ADBLOCK COMPILER';
+    position: absolute;
+    top: 20px; right: 20px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--orange);
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  .problem-card.good { position: relative; }
+
+  .problem-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 24px;
+  }
+
+  .problem-icon.bad-icon { background: rgba(239,68,68,0.12); }
+  .problem-icon.good-icon { background: var(--orange-dim); }
+
+  .problem-card h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .problem-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .problem-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+
+  .problem-list li::before {
+    content: '—';
+    color: var(--text-3);
+    flex-shrink: 0;
+    font-size: 0.85rem;
+  }
+
+  .problem-card.good .problem-list li::before {
+    content: '✓';
+    color: var(--orange);
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .how {
+    padding: 80px 0;
+  }
+
+  .how-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 56px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .step {
+    position: relative;
+    padding: 32px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: border-color 250ms, transform 250ms;
+  }
+
+  .step:hover {
+    border-color: var(--border-2);
+    transform: translateY(-2px);
+  }
+
+  /* Connecting line between steps */
+  .steps .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 40px;
+    right: -13px;
+    width: 24px; height: 1px;
+    background: linear-gradient(90deg, var(--border-2), transparent);
+    z-index: 1;
+  }
+
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 9999px;
+    background: var(--orange-dim);
+    border: 1px solid rgba(255,85,0,0.3);
+    color: var(--orange);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+    font-family: var(--font-mono);
+  }
+
+  .step h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .step p {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .step-code {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--bg-base);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-2);
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  .step-code .key   { color: var(--cyan); }
+  .step-code .val   { color: #A5D6A7; }
+  .step-code .str   { color: #FFD54F; }
+  .step-code .op    { color: var(--orange); }
+  .step-code .cmt   { color: var(--text-3); }
+
+  /* ─── AUDIENCES ─── */
+  .audiences {
+    padding: 80px 0;
+  }
+
+  .audiences-header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  .audiences-header .section-desc {
+    margin: 0 auto;
+  }
+
+  .audience-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .audience-card {
+    padding: 36px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: border-color 250ms, transform 250ms, box-shadow 250ms;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .audience-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--orange);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 300ms var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+  }
+
+  .audience-card:hover {
+    border-color: var(--border-2);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  }
+
+  .audience-card:hover::before { transform: scaleX(1); }
+
+  .audience-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--bg-elevated);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-2);
+  }
+
+  .audience-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .audience-card p {
+    font-size: 0.9rem;
+    color: var(--text-2);
+    line-height: 1.65;
+    margin-bottom: 20px;
+  }
+
+  .audience-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: var(--bg-elevated);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+
+  /* ─── FEATURES ─── */
+  .features {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .features-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 56px;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .feature-cell {
+    background: var(--bg-surface);
+    padding: 32px;
+    transition: background 200ms;
+  }
+
+  .feature-cell:hover { background: var(--bg-elevated); }
+
+  .feature-icon-wrap {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-2);
+  }
+
+  .feature-cell h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .feature-cell p {
+    font-size: 0.825rem;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  /* ─── CODE DEMO ─── */
+  .demo {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .demo-inner {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 64px;
+    align-items: center;
+  }
+
+  .demo-content .section-desc { margin-bottom: 32px; }
+
+  .code-window {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+  }
+
+  .code-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red    { background: #FF5F57; }
+  .dot-yellow { background: #FEBC2E; }
+  .dot-green  { background: #28C840; }
+
+  .code-filename {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .code-body {
+    padding: 24px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-2);
+    overflow-x: auto;
+  }
+
+  .code-body .k  { color: #C792EA; }  /* keyword */
+  .code-body .t  { color: var(--cyan); }  /* type */
+  .code-body .s  { color: #C3E88D; }  /* string */
+  .code-body .n  { color: #82AAFF; }  /* number/bool */
+  .code-body .c  { color: var(--text-3); }  /* comment */
+  .code-body .p  { color: var(--text-1); }  /* punctuation */
+  .code-body .fn { color: #FFCB6B; }  /* function */
+  .code-body .o  { color: var(--orange); }  /* orange accent */
+
+  /* ─── CTA BANNER ─── */
+  .cta-banner {
+    padding: 80px 0;
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+
+  .cta-banner .section-title {
+    max-width: 640px;
+    margin: 0 auto 16px;
+  }
+
+  .cta-banner .section-desc {
+    margin: 0 auto 48px;
+  }
+
+  .cta-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 48px 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .footer-copy {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-size: 13px;
+    color: var(--text-3);
+    text-decoration: none;
+    transition: color 150ms;
+  }
+
+  .footer-links a:hover { color: var(--text-2); }
+
+  /* ─── DIVIDER GRADIENT ─── */
+  .divider-glow {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--orange) 50%, transparent);
+    opacity: 0.3;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">
+        <div class="logo-bar"></div>
+        <div class="logo-bar"></div>
+        <div class="logo-bar"></div>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">ADBLOCK</span>
+        <span class="logo-sub">Compiler</span>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="https://adblock-compiler-docs.pages.dev">Docs</a></li>
+      <li><a href="https://jsr.io/@jk-com/adblock-compiler">JSR</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="https://github.com/jaypatrick/adblock-compiler" class="btn btn-outline btn-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.579.688.481C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        GitHub
+      </a>
+      <a href="https://adblock-compiler-docs.pages.dev" class="btn btn-primary btn-sm">
+        Get Started <span class="arrow">→</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Open Source · Edge-First · GPL-3.0
+    </div>
+
+    <h1>Privacy infrastructure that makes<br><em>VPNs obsolete.</em></h1>
+
+    <p class="hero-sub">
+      AdBlock Compiler is a Compiler-as-a-Service for adblock filter lists.
+      Deployed at the edge, available to everyone, at a fraction of the cost of a VPN.
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://adblock-compiler-docs.pages.dev" class="btn btn-primary">
+        Start compiling <span class="arrow">→</span>
+      </a>
+      <a href="https://github.com/jaypatrick/adblock-compiler" class="btn btn-outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.579.688.481C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+      <a href="https://jsr.io/@jk-com/adblock-compiler" class="btn btn-ghost">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--cyan)">@jk-com/adblock-compiler</span>
+      </a>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-value"><span>11</span></span>
+        <span class="stat-label">Transformations</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value"><span>3</span> modes</span>
+        <span class="stat-label">Stream · Batch · Async</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value"><span>0</span> servers</span>
+        <span class="stat-label">Edge-first via Cloudflare</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">GPL<span>-3</span></span>
+        <span class="stat-label">Fully open source</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-glow"></div>
+
+<!-- THE PROBLEM -->
+<section class="problem" id="why">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:48px">
+      <p class="section-label">The problem</p>
+      <h2 class="section-title">You don't need a tunnel.<br>You need better filters.</h2>
+      <p class="section-desc" style="margin:0 auto">VPN providers charge $15/month for a product they often use to log your traffic. We built an open alternative that costs nothing to run — because we removed the server overhead entirely.</p>
+    </div>
+
+    <div class="problem-grid">
+      <div class="problem-card bad">
+        <div class="problem-icon bad-icon">🔒</div>
+        <h3>Traditional VPN approach</h3>
+        <ul class="problem-list">
+          <li>$10–20/month subscription fees</li>
+          <li>All traffic routed through third-party servers</li>
+          <li>Closed source — you can't audit what they log</li>
+          <li>Added latency from centralized server hops</li>
+          <li>Sells "privacy" while frequently logging behavior</li>
+          <li>Overkill for the goal of blocking ads and trackers</li>
+        </ul>
+      </div>
+      <div class="problem-card good">
+        <div class="problem-icon good-icon">⚡</div>
+        <h3>AdBlock Compiler approach</h3>
+        <ul class="problem-list">
+          <li>Free to use. Open source. No subscriptions.</li>
+          <li>Runs at the edge — Cloudflare's 300+ global PoPs</li>
+          <li>GPL-3.0 licensed — fork it, audit it, own it</li>
+          <li>Zero-latency overhead. No tunnel, no rerouting.</li>
+          <li>Blocks ads, trackers, and malware domains directly</li>
+          <li>Works with Pi-hole, NextDNS, AdGuard, uBlock, and more</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="container">
+    <div class="how-header">
+      <div>
+        <p class="section-label">How it works</p>
+        <h2 class="section-title">Configure, compile, deploy.</h2>
+      </div>
+      <a href="https://adblock-compiler-docs.pages.dev" class="btn btn-outline btn-sm">Read the docs →</a>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Configure your sources</h3>
+        <p>Point to any URL or local file. Mix adblock and hosts formats. Apply per-source transformations.</p>
+        <div class="step-code">
+          <span class="key">"sources"</span><span class="op">:</span> [<br>
+          &nbsp;&nbsp;{<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"source"</span><span class="op">:</span> <span class="str">"https://easylist.to/easylist/easylist.txt"</span><span class="op">,</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"type"</span><span class="op">:</span> <span class="val">"adblock"</span><br>
+          &nbsp;&nbsp;}<br>
+          ]
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Choose your transformations</h3>
+        <p>Select from 11 built-in transformations — deduplicate, validate, compress, strip comments, and more.</p>
+        <div class="step-code">
+          <span class="key">"transformations"</span><span class="op">:</span> [<br>
+          &nbsp;&nbsp;<span class="str">"Deduplicate"</span><span class="op">,</span><br>
+          &nbsp;&nbsp;<span class="str">"Validate"</span><span class="op">,</span><br>
+          &nbsp;&nbsp;<span class="str">"Compress"</span><span class="op">,</span><br>
+          &nbsp;&nbsp;<span class="str">"RemoveComments"</span><br>
+          ]
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Deploy or call the API</h3>
+        <p>Use the streaming API for real-time output, batch mode for up to 10 lists, or embed the library directly.</p>
+        <div class="step-code">
+          <span class="cmt">// Streaming compilation</span><br>
+          <span class="key">POST</span> <span class="val">/compile/stream</span><br>
+          <br>
+          <span class="cmt">// Embed as library</span><br>
+          <span class="key">import</span> { <span class="op">compile</span> }<br>
+          &nbsp;&nbsp;<span class="key">from</span> <span class="str">"@jk-com/adblock-compiler"</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHO IT'S FOR -->
+<section class="audiences" id="audiences">
+  <div class="container">
+    <div class="audiences-header">
+      <p class="section-label">Who it's for</p>
+      <h2 class="section-title">Built for three audiences.</h2>
+      <p class="section-desc">One tool. Three ways to use it — whether you're an end user who wants control, a developer building privacy products, or a vendor who needs reliable infrastructure.</p>
+    </div>
+
+    <div class="audience-grid">
+      <div class="audience-card">
+        <div class="audience-icon">🛡️</div>
+        <h3>Consumers</h3>
+        <p>Stop paying for privacy. Block ads, trackers, and malware domains on your network without a monthly subscription or a VPN you can't audit.</p>
+        <div class="audience-tags">
+          <span class="tag">Ad blocking</span>
+          <span class="tag">Tracker blocking</span>
+          <span class="tag">Malware domains</span>
+          <span class="tag">No subscription</span>
+        </div>
+      </div>
+
+      <div class="audience-card">
+        <div class="audience-icon">⚙️</div>
+        <h3>Developers</h3>
+        <p>Embed the library in your product or call the API. Full TypeScript types, OpenAPI spec, streaming support, and 11 composable transformations — all running on Workers.</p>
+        <div class="audience-tags">
+          <span class="tag">TypeScript</span>
+          <span class="tag">OpenAPI</span>
+          <span class="tag">SSE / WebSocket</span>
+          <span class="tag">Deno · Node · Workers</span>
+        </div>
+      </div>
+
+      <div class="audience-card">
+        <div class="audience-icon">🔗</div>
+        <h3>Privacy Vendors</h3>
+        <p>Pi-hole, NextDNS, AdGuard, uBlock — use AdBlock Compiler as your filter list pipeline. Production-ready infrastructure with structured logging, rate limiting, and RBAC out of the box.</p>
+        <div class="audience-tags">
+          <span class="tag">Pi-hole</span>
+          <span class="tag">NextDNS</span>
+          <span class="tag">AdGuard</span>
+          <span class="tag">uBlock</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="features-header">
+      <div>
+        <p class="section-label">Capabilities</p>
+        <h2 class="section-title">Production-ready.<br>No compromises.</h2>
+      </div>
+      <p class="section-desc" style="max-width:340px">Everything you'd build yourself — done right, open-sourced, and deployed in one command.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-cell">
+        <div class="feature-icon-wrap">⚡</div>
+        <h4>Edge-first architecture</h4>
+        <p>Runs natively on Cloudflare Workers. 300+ global PoPs, zero cold starts, zero server overhead.</p>
+      </div>
+      <div class="feature-cell">
+        <div class="feature-icon-wrap">🔄</div>
+        <h4>11 transformations</h4>
+        <p>Deduplicate, validate, compress, strip comments, convert to ASCII, invert allow rules, and more — composable per source.</p>
+      </div>
+      <div class="feature-cell">
+        <div class="feature-icon-wrap">📡</div>
+        <h4>Three compilation modes</h4>
+        <p>Real-time streaming via SSE, batch processing up to 10 lists, or async queue-based compilation for large jobs.</p>
+      </div>
+      <div class="feature-cell">
+        <div class="feature-icon-wrap">🌐</div>
+        <h4>Universal runtime</h4>
+        <p>Works on Deno, Node.js, Cloudflare Workers, and browsers. One library, every platform.</p>
+      </div>
+      <div class="feature-cell">
+        <div class="feature-icon-wrap">📋</div>
+        <h4>OpenAPI + TypeScript</h4>
+        <p>Full OpenAPI spec, typed TypeScript interfaces, and JSR package. Integrate cleanly in any codebase.</p>
+      </div>
+      <div class="feature-cell">
+        <div class="feature-icon-wrap">🔐</div>
+        <h4>Production hardened</h4>
+        <p>Rate limiting, circuit breakers, structured JSON logging, OpenTelemetry, RBAC, and fault-tolerant downloads.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE DEMO -->
+<section class="demo" id="start">
+  <div class="container">
+    <div class="demo-inner">
+      <div class="demo-content">
+        <p class="section-label">Get started</p>
+        <h2 class="section-title">Up and running<br>in minutes.</h2>
+        <p class="section-desc">Install from JSR, configure your sources, and compile. Or deploy the full Worker and call it over HTTP. Either way, you're done before your VPN subscription renews.</p>
+        <div style="margin-top:32px;display:flex;gap:12px;flex-wrap:wrap">
+          <a href="https://adblock-compiler-docs.pages.dev" class="btn btn-primary">View full docs <span class="arrow">→</span></a>
+          <a href="https://jsr.io/@jk-com/adblock-compiler" class="btn btn-outline">JSR package</a>
+        </div>
+      </div>
+
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+          <span class="code-filename">example.ts</span>
+        </div>
+        <div class="code-body">
+<span class="c">// Install: deno add @jk-com/adblock-compiler</span>
+<span class="k">import</span> <span class="p">{</span> <span class="t">FilterCompiler</span><span class="p">,</span> <span class="t">TransformationType</span> <span class="p">}</span>
+  <span class="k">from</span> <span class="s">"@jk-com/adblock-compiler"</span><span class="p">;</span>
+
+<span class="k">const</span> <span class="fn">compiler</span> <span class="p">=</span> <span class="k">new</span> <span class="t">FilterCompiler</span><span class="p">();</span>
+
+<span class="k">const</span> <span class="fn">result</span> <span class="p">=</span> <span class="k">await</span> <span class="fn">compiler</span><span class="p">.</span><span class="fn">compile</span><span class="p">({</span>
+  <span class="fn">name</span><span class="p">:</span> <span class="s">"My Privacy List"</span><span class="p">,</span>
+  <span class="fn">sources</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="fn">source</span><span class="p">:</span> <span class="s">"https://easylist.to/easylist/easylist.txt"</span><span class="p">,</span>
+      <span class="fn">type</span><span class="p">:</span> <span class="s">"adblock"</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="fn">source</span><span class="p">:</span> <span class="s">"https://someonewhocares.org/hosts/hosts"</span><span class="p">,</span>
+      <span class="fn">type</span><span class="p">:</span> <span class="s">"hosts"</span><span class="p">,</span>
+    <span class="p">},</span>
+  <span class="p">],</span>
+  <span class="fn">transformations</span><span class="p">:</span> <span class="p">[</span>
+    <span class="t">TransformationType</span><span class="p">.</span><span class="o">Deduplicate</span><span class="p">,</span>
+    <span class="t">TransformationType</span><span class="p">.</span><span class="o">Validate</span><span class="p">,</span>
+    <span class="t">TransformationType</span><span class="p">.</span><span class="o">Compress</span><span class="p">,</span>
+  <span class="p">],</span>
+<span class="p">});</span>
+
+<span class="t">console</span><span class="p">.</span><span class="fn">log</span><span class="p">(</span><span class="s">`Compiled <span class="o">${result.rules.length}</span> rules`</span><span class="p">);</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-banner">
+  <div class="container">
+    <p class="section-label">Ready?</p>
+    <h2 class="section-title">Stop paying VPN prices<br>for privacy you can own.</h2>
+    <p class="section-desc">Open source. Edge-first. Built for consumers, developers, and the privacy vendors they depend on.</p>
+    <div class="cta-actions">
+      <a href="https://adblock-compiler-docs.pages.dev" class="btn btn-primary">Get started for free <span class="arrow">→</span></a>
+      <a href="https://github.com/jaypatrick/adblock-compiler" class="btn btn-outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.579.688.481C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-copy">© 2026 AdBlock Compiler · GPL-3.0 · Made by <a href="https://jaysonknight.com" style="color:var(--text-2);text-decoration:none">Jayson Knight</a></span>
+      <ul class="footer-links">
+        <li><a href="https://adblock-compiler-docs.pages.dev">Docs</a></li>
+        <li><a href="https://github.com/jaypatrick/adblock-compiler">GitHub</a></li>
+        <li><a href="https://jsr.io/@jk-com/adblock-compiler">JSR</a></li>
+        <li><a href="https://adblock-compiler-docs.pages.dev/api">API</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
