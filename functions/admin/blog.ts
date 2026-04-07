@@ -1,22 +1,29 @@
 /**
- * functions/admin/blog.ts — GET/POST/PUT /admin/blog handler
+ * functions/admin/blog.ts — GET/POST/PUT/OPTIONS /admin/blog handler
  *
  * Manages blog posts stored in Neon PostgreSQL.
- * Requires: Authorization: Bearer <ADMIN_SECRET>
  *
- * GET  /admin/blog  → list all posts (no auth required for listing)
- * POST /admin/blog  → create new post (bearer auth)
- * PUT  /admin/blog  → update existing post by id (bearer auth)
+ * GET  /admin/blog  → list all posts
+ * POST /admin/blog  → create new post (auth required)
+ * PUT  /admin/blog  → update existing post by id (auth required)
+ * OPTIONS /admin/blog → CORS preflight
  *
+ * Auth: Better Auth session (primary) or legacy ADMIN_SECRET bearer token (fallback).
  * Exported as plain functions for import by src/worker.ts.
  */
 
 import { neon } from '@neondatabase/serverless';
 import { BlogPostSchema } from '../../src/lib/blog-post-schema';
+import { getSession, isAdminUser } from '../../src/lib/auth';
 
 export interface Env {
   DATABASE_URL: string;
-  ADMIN_SECRET: string;
+  ADMIN_SECRET?: string;
+  BETTER_AUTH_SECRET?: string;
+  BETTER_AUTH_URL?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  BETTER_AUTH_TRUSTED_ORIGINS?: string;
 }
 
 const json = (data: unknown, status = 200) =>
@@ -29,10 +36,26 @@ const json = (data: unknown, status = 200) =>
     },
   });
 
-function isAuthorized(request: Request, env: Env): boolean {
+/**
+ * Dual-auth: Better Auth session first, legacy ADMIN_SECRET bearer as fallback.
+ */
+async function isAuthorized(request: Request, env: Env): Promise<boolean> {
+  // 1. Try Better Auth session (the new way)
+  if (env.DATABASE_URL && env.BETTER_AUTH_SECRET) {
+    try {
+      const session = await getSession(request, env as Parameters<typeof getSession>[1]);
+      if (session?.user && isAdminUser(session.user.name ?? '')) return true;
+    } catch {
+      // fall through to legacy check
+    }
+  }
+
+  // 2. Fall back to legacy ADMIN_SECRET bearer token (backward compat)
   const authHeader = request.headers.get('Authorization') ?? '';
   const [scheme, token] = authHeader.split(' ');
-  return scheme === 'Bearer' && token === env.ADMIN_SECRET;
+  if (scheme === 'Bearer' && env.ADMIN_SECRET && token === env.ADMIN_SECRET) return true;
+
+  return false;
 }
 
 export function handleOptions(): Response {
@@ -50,7 +73,6 @@ export async function handleGet(request: Request, env: Env): Promise<Response> {
     return json({ error: 'Service unavailable.' }, 503);
   }
 
-  // Future: add ?limit and ?offset query params for pagination
   const url = new URL(request.url);
   const limit  = Math.min(parseInt(url.searchParams.get('limit')  ?? '100', 10), 100);
   const offset = Math.max(parseInt(url.searchParams.get('offset') ?? '0',   10), 0);
@@ -74,14 +96,11 @@ export async function handleGet(request: Request, env: Env): Promise<Response> {
 }
 
 export async function handlePost(request: Request, env: Env): Promise<Response> {
-  if (!env.ADMIN_SECRET) {
-    return json({ error: 'Admin access is not configured.' }, 503);
-  }
-  if (!isAuthorized(request, env)) {
-    return json({ error: 'Forbidden.' }, 403);
-  }
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ error: 'Forbidden.' }, 403);
   }
 
   let body: unknown;
@@ -121,14 +140,11 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
 }
 
 export async function handlePut(request: Request, env: Env): Promise<Response> {
-  if (!env.ADMIN_SECRET) {
-    return json({ error: 'Admin access is not configured.' }, 503);
-  }
-  if (!isAuthorized(request, env)) {
-    return json({ error: 'Forbidden.' }, 403);
-  }
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ error: 'Forbidden.' }, 403);
   }
 
   let body: unknown;

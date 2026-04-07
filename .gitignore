@@ -2,6 +2,9 @@
 dist/
 .astro/
 
+# Generated assets
+public/icons/
+
 # Dependencies
 node_modules/
 
