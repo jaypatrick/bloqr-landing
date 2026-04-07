@@ -1,5 +1,6 @@
 ---
 import '../../styles/global.css';
+import { ViewTransitions } from 'astro:transitions';
 import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import { getCollection } from 'astro:content';
@@ -60,9 +61,15 @@ function formatDate(d: Date) {
   <link rel="canonical" href={meta.url} />
   <link rel="alternate"   type="application/rss+xml" title="Bloqr Blog" href="/rss.xml" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+
+  <!-- PWA / Theme -->
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#FF5500" />
+
+  <ViewTransitions />
 </head>
 <body>
-  <Nav client:load />
+  <Nav client:idle />
 
   <main class="blog-index">
 

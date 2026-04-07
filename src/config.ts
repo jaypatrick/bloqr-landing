@@ -54,11 +54,11 @@ const DEFAULTS: SiteConfig = {
  * module-level exports below (SITE_URL, LINKS, META) are used at build time.
  *
  * @param databaseUrl - Optional Neon connection string. Pass `env.DATABASE_URL`
- *                      from a Cloudflare Pages Function context.
+ *                      from a Cloudflare Worker context.
  */
 export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
-  // Prefer the explicitly-passed URL (required in Cloudflare Workers / Pages Functions
-  // where process.env is not available). The process.env fallback is only for Node.js
+  // Prefer the explicitly-passed URL (required in Cloudflare Workers where
+  // process.env is not available). The process.env fallback is only for Node.js
   // contexts (e.g., running the migration script locally with tsx/ts-node).
   const url =
     databaseUrl ??
@@ -93,7 +93,11 @@ export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
 /** Canonical site URL */
 export const SITE_URL = DEFAULTS.SITE_URL;
 
-/** External URLs — one place to update if they ever change */
+/**
+ * External URLs — managed here for build-time static pages.
+ * To update for bloqr.ai launch: update these values (or the SITE_URL env var in
+ * Cloudflare Pages dashboard) and trigger a redeploy.
+ */
 export const LINKS = {
   app:       DEFAULTS.APP_URL,
   github:    DEFAULTS.GITHUB_URL,
@@ -106,6 +110,8 @@ export const LINKS = {
   blog:      '/blog',
   changelog: '/changelog',
   rss:       '/rss.xml',
+  privacy:   '/privacy',
+  terms:     '/terms',
 } as const;
 
 /** Site metadata */
