@@ -23,6 +23,7 @@
     "@fontsource/space-grotesk": "^5.2.10",
     "@neondatabase/serverless": "^1.0.2",
     "astro": "^5.0.0",
+    "posthog-js": "^1.364.7",
     "svelte": "^5.0.0"
   },
   "devDependencies": {
