@@ -186,15 +186,11 @@ export async function handlePut(request: Request, env: Env): Promise<Response> {
     const rows = await sql<BlogPost[]>`
       UPDATE blog_posts
       SET
-        slug      = COALESCE(${updates['slug']      as string | null ?? null}, slug),
-        title     = COALESCE(${updates['title']     as string | null ?? null}, title),
-        excerpt   = CASE WHEN ${('excerpt' in updates) as boolean}
-                        THEN ${updates['excerpt']   as string | null ?? null}
-                        ELSE excerpt END,
-        content   = CASE WHEN ${('content' in updates) as boolean}
-                        THEN ${updates['content']   as string | null ?? null}
-                        ELSE content END,
-        published = COALESCE(${updates['published'] as boolean | null ?? null}, published),
+        slug      = CASE WHEN ${('slug'      in updates) as boolean} THEN ${updates['slug']      as string  ?? null} ELSE slug      END,
+        title     = CASE WHEN ${('title'     in updates) as boolean} THEN ${updates['title']     as string  ?? null} ELSE title     END,
+        excerpt   = CASE WHEN ${('excerpt'   in updates) as boolean} THEN ${updates['excerpt']   as string  ?? null} ELSE excerpt   END,
+        content   = CASE WHEN ${('content'   in updates) as boolean} THEN ${updates['content']   as string  ?? null} ELSE content   END,
+        published = CASE WHEN ${('published' in updates) as boolean} THEN ${updates['published'] as boolean ?? null} ELSE published END,
         updated_at = now()
       WHERE id = ${id}
       RETURNING id, slug, title, excerpt, published, created_at, updated_at
