@@ -13,18 +13,18 @@
     </p>
     <div class="tiers">
       <div class="tier">
-        <span class="tier-name">Hobbyist</span>
-        <span class="tier-desc">Personal lists, unlimited sources</span>
+        <span class="tier-name">Personal</span>
+        <span class="tier-desc">For households who just want it handled</span>
       </div>
       <div class="tier-sep" aria-hidden="true">·</div>
       <div class="tier">
-        <span class="tier-name">Pro</span>
-        <span class="tier-desc">AI threat feeds + batch API</span>
+        <span class="tier-name">Power User</span>
+        <span class="tier-desc">AI threat feeds + custom pipelines</span>
       </div>
       <div class="tier-sep" aria-hidden="true">·</div>
       <div class="tier">
-        <span class="tier-name">Enterprise</span>
-        <span class="tier-desc">Full pipeline + SLA + dedicated support</span>
+        <span class="tier-name">Developer</span>
+        <span class="tier-desc">Self-hosted · GPL-3.0 · Free forever</span>
       </div>
     </div>
     <div class="actions">

@@ -2,7 +2,7 @@
  * Cloudflare Pages Function — POST /waitlist
  *
  * Accepts: { email: string, segment?: 'list-maker' | 'privacy-vendor' | 'individual' }
- * Writes to: Neon adblock-db.waitlist
+ * Writes to: Neon bloqr database (waitlist table)
  * Also creates/enriches an Apollo contact (fire-and-forget, non-blocking)
  */
 
