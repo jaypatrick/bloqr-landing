@@ -27,6 +27,8 @@ export const LINKS = {
   blog:      '/blog',
   changelog: '/changelog',
   rss:       '/rss.xml',
+  privacy:   '/privacy',
+  terms:     '/terms',
 } as const;
 
 /** Site metadata */
