@@ -4,6 +4,7 @@ import Nav from '../components/Nav.svelte';
 import Hero from '../components/Hero.svelte';
 import ComingSoon from '../components/ComingSoon.svelte';
 import Problem from '../components/Problem.svelte';
+import BeforeAfter from '../components/BeforeAfter.svelte';
 import HowItWorks from '../components/HowItWorks.svelte';
 import Audiences from '../components/Audiences.svelte';
 import Features from '../components/Features.svelte';
@@ -11,7 +12,9 @@ import WaitlistSignup from '../components/WaitlistSignup.svelte';
 import CodeDemo from '../components/CodeDemo.svelte';
 import DynamicWorkers from '../components/DynamicWorkers.svelte';
 import WhyCloudflare from '../components/WhyCloudflare.svelte';
+import PrivacyCommitments from '../components/PrivacyCommitments.svelte';
 import Pricing from '../components/Pricing.svelte';
+import FounderNote from '../components/FounderNote.svelte';
 import CtaBanner from '../components/CtaBanner.svelte';
 import Footer from '../components/Footer.svelte';
 import { SITE_URL, META } from '../config';
@@ -63,12 +66,15 @@ const meta = {
     <ComingSoon client:visible />
     <div class="divider-glow"></div>
     <Problem />
+    <BeforeAfter client:visible />
     <HowItWorks />
     <Audiences />
     <Features />
     <DynamicWorkers />
     <WhyCloudflare />
+    <PrivacyCommitments />
     <Pricing />
+    <FounderNote />
     <WaitlistSignup client:visible />
     <CodeDemo client:visible />
     <CtaBanner />

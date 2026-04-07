@@ -45,7 +45,14 @@
           <li>Drop-in integration for Pi-hole, NextDNS, AdGuard, uBlock</li>
         </ul>
       </div>
-    </div>
+    </div><!-- /grid -->
+
+    <a href={LINKS.vpnMyths} class="myths-banner" aria-label="Read 8 consumer VPN myths, sourced and examined">
+      <span class="banner-book" aria-hidden="true">📖</span>
+      Not convinced? Read 8 consumer VPN myths, sourced and examined.
+      <span class="banner-arrow" aria-hidden="true">→</span>
+    </a>
+
   </div>
 </section>
 
@@ -140,4 +147,36 @@
     transition: opacity 150ms;
   }
   .myth-link:hover { opacity: 0.75; }
-</style>
+
+  /* ── Myths banner ── */
+  .myths-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px 20px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    color: var(--text-2);
+    transition: border-color 150ms;
+  }
+
+  .myths-banner:hover {
+    border-color: var(--border-2);
+    color: var(--text-1);
+  }
+
+  .banner-book { font-size: 1rem; flex-shrink: 0; }
+
+  .myths-banner span.banner-book { margin-right: 2px; }
+
+  .banner-arrow {
+    margin-left: auto;
+    color: var(--orange);
+    font-size: 1rem;
+    flex-shrink: 0;
+  }</style>
