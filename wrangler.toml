@@ -28,7 +28,6 @@ pages_build_output_dir = "./dist"
 #   DATABASE_URL   — Neon adblock-compiler connection string (branch-specific, see above)
 #   ADMIN_SECRET   — Bearer token for POST /admin/config
 #   APOLLO_API_KEY — Apollo.io API key for contact enrichment
-#   CONFIG_CACHE   — D1Database binding (see [[d1_databases]] below)
 #
 # Local dev: values live in .dev.vars (gitignored), then run:
 #   npm run preview   →  wrangler pages dev ./dist

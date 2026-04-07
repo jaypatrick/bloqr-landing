@@ -16,7 +16,6 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface Env {
   DATABASE_URL: string;
-  ADMIN_SECRET: string;
   CONFIG_CACHE: D1Database;
 }
 
@@ -51,7 +50,10 @@ async function writeToD1(db: D1Database, config: Record<string, string>): Promis
   const now = Date.now();
   const stmts = Object.entries(config).map(([key, value]) =>
     db
-      .prepare('INSERT INTO config_cache (key, value, cached_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, cached_at = excluded.cached_at')
+      .prepare(
+        'INSERT INTO config_cache (key, value, cached_at) VALUES (?, ?, ?)' +
+        ' ON CONFLICT(key) DO UPDATE SET value = excluded.value, cached_at = excluded.cached_at'
+      )
       .bind(key, value, now)
   );
   await db.batch(stmts);
