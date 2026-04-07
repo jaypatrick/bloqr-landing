@@ -31,7 +31,7 @@
       <a href={LINKS.app} class="btn btn-primary" rel="noopener noreferrer" target="_blank">
         Launch the app <span aria-hidden="true">→</span>
       </a>
-      <a href={LINKS.docs} class="btn btn-outline" rel="noopener">
+      <a href={LINKS.docs} class="btn btn-outline" rel="noopener noreferrer" target="_blank">
         View docs
       </a>
     </div>

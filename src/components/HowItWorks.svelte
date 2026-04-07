@@ -2,10 +2,10 @@
   import { LINKS } from '../config';
   let showCode = $state([false, false, false]);
   function toggle(i) {
-    showCode[i] = !showCode[i];
+    showCode = showCode.map((val, idx) => idx === i ? !val : val);
   }
   function showUI(i) {
-    showCode[i] = false;
+    showCode = showCode.map((val, idx) => idx === i ? false : val);
   }
   function showAll() {
     showCode = [true, true, true];
@@ -27,7 +27,7 @@
           </button>
         </p>
       </div>
-      <a href={LINKS.docs} class="btn btn-outline btn-sm">
+      <a href={LINKS.docs} class="btn btn-outline btn-sm" rel="noopener noreferrer" target="_blank">
         Read the docs →
       </a>
     </div>

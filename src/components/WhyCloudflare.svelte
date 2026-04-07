@@ -396,12 +396,17 @@
 
   .cf-links a {
     font-size: 0.82rem;
-    color: var(--text-3);
+    color: var(--orange);
     text-decoration: none;
-    transition: color 0.15s;
+    transition: color 0.15s, text-decoration 0.15s;
+    font-weight: 600;
   }
 
-  .cf-links a:hover { color: var(--orange); }
+  .cf-links a:hover {
+    color: var(--orange-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 
   .cf-links span { color: var(--border); }
 </style>
