@@ -63,6 +63,7 @@ async function writeToD1(db: D1Database, config: Record<string, string>): Promis
 
 /** Invalidate a single key in D1 cache (called after POST /admin/config). */
 export async function invalidateD1Key(db: D1Database, key: string): Promise<void> {
+  if (!key || key.trim() === '') return;
   await db.prepare('DELETE FROM config_cache WHERE key = ?').bind(key).run();
 }
 

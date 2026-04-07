@@ -79,7 +79,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
     `;
 
-    // Invalidate the D1 cache for this key (non-blocking)
+    // Invalidate the D1 cache for this key (non-blocking — eventual consistency:
+    // a failed invalidation means the stale cache entry expires naturally after 5 min).
     if (env.CONFIG_CACHE) {
       void invalidateD1Key(env.CONFIG_CACHE, key).catch((err) =>
         console.warn('D1 cache invalidation failed:', err),

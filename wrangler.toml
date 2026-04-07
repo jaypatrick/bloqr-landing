@@ -40,8 +40,7 @@ pages_build_output_dir = "./dist"
 
 # ─── D1 Cache (site_config read-through cache) ────────────────────────────────
 # Caches site_config rows from Neon for low-latency reads at the edge.
-# Create with: wrangler d1 create bloqr-config-cache
-# Then copy the database_id output into this binding.
+# See D1 setup steps above for first-time provisioning instructions.
 #
 [[d1_databases]]
 binding = "CONFIG_CACHE"
