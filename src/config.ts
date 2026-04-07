@@ -57,11 +57,18 @@ export type SiteConfigKey =
 export type SiteConfig = Record<SiteConfigKey, string>;
 
 /**
- * getConfig() — async, reads from Neon `site_config` when DATABASE_URL is
- * available, otherwise returns hardcoded fallbacks.
+ * getConfig() — async, reads from Neon `site_config` when a database URL is
+ * provided, otherwise returns hardcoded fallbacks.
  *
- * Use in edge functions or SSR callers. Static pages use the module-level
- * SITE_URL / LINKS / META exports at build time.
+ * **Callers MUST pass `databaseUrl` explicitly** — in Cloudflare Workers, env
+ * vars are available only on the `env` binding (not `process.env`), so always
+ * call `getConfig(env.DATABASE_URL)` from a Worker handler.
+ *
+ * The `process.env` fallback exists only for Node.js script contexts such as
+ * the migration script (`scripts/migrate-site-config.ts`), where `process.env`
+ * is available. It will never be set in a Worker invocation.
+ *
+ * Static pages use the module-level SITE_URL / LINKS / META exports at build time.
  */
 export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
   const DEFAULTS: SiteConfig = {

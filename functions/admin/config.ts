@@ -72,14 +72,14 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
   const sql = neon(env.DATABASE_URL);
 
   try {
-    const result = await sql`
+    const rows = await sql`
       UPDATE site_config
       SET    value      = ${value},
              updated_at = now()
       WHERE  key        = ${key}
+      RETURNING key
     `;
-    const rowCount = (result as { rowCount?: number | null }).rowCount ?? 0;
-    if (rowCount === 0) {
+    if (!rows.length) {
       return json({ error: `No config row found for key: ${key}` }, 404);
     }
     return json({ success: true });

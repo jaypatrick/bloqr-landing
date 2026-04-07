@@ -301,12 +301,13 @@
       const div = document.createElement('div');
       div.className = 'config-row';
       div.dataset.key = key;
+      const inputId = `input-${escHtml(key)}`;
       div.innerHTML = `
         <div class="config-row-header">
-          <span class="config-key">${escHtml(key)}</span>
+          <label class="config-key" for="${inputId}">${escHtml(key)}</label>
           ${label ? `<span class="config-label">${escHtml(label)}</span>` : ''}
         </div>
-        <input type="text" class="value-input" value="${escAttr(value)}" data-original="${escAttr(value)}" />
+        <input id="${inputId}" type="text" class="value-input" value="${escAttr(value)}" data-original="${escAttr(value)}" />
         <button class="btn-primary save-row-btn">Save</button>
       `;
       div.querySelector('.save-row-btn').addEventListener('click', () => saveRow(div));
@@ -425,15 +426,20 @@
         },
         body: JSON.stringify({ key: '__ping__', value: '__ping__' }),
       }).then(res => {
-        // 404 means auth passed but key not found — which is fine (token is valid)
-        // 403 means wrong token
+        // 404 = auth passed but __ping__ key not found (token is valid)
+        // 200 = auth passed and key updated (shouldn't happen for __ping__ but handle it)
+        // 403 = wrong token
+        // anything else (400, 500, 503, …) = server error, do not unlock
         if (res.status === 403) {
           document.getElementById('auth-error').textContent = 'Incorrect secret — try again.';
           document.getElementById('auth-error').style.display = 'block';
-        } else {
+        } else if (res.status === 404 || res.status === 200) {
           storeToken(token);
           document.getElementById('auth-error').style.display = 'none';
           unlockApp(token);
+        } else {
+          document.getElementById('auth-error').textContent = `Server error (${res.status}) — check that ADMIN_SECRET and DATABASE_URL are configured.`;
+          document.getElementById('auth-error').style.display = 'block';
         }
       }).catch(() => {
         // Network error — show error, do not unlock
