@@ -15,6 +15,8 @@
         <li><a href={LINKS.docs}     rel="noopener noreferrer" target="_blank">Docs</a></li>
         <li><a href={LINKS.api}      rel="noopener noreferrer" target="_blank">API</a></li>
         <li><a href={LINKS.vpnMyths}>VPN Myths</a></li>
+        <li><a href={LINKS.privacy}>Privacy</a></li>
+        <li><a href={LINKS.terms}>Terms</a></li>
         <li><a href={LINKS.github}   rel="noopener noreferrer" target="_blank">GitHub</a></li>
       </ul>
     </nav>
