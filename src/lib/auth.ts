@@ -126,11 +126,10 @@ function getOrCreateAuth(env: Env) {
       },
     },
 
-    // Cross-app SSO — origins are supplied via BETTER_AUTH_TRUSTED_ORIGINS env var.
-    // The base URL is always trusted implicitly by Better Auth.
-    // Add other Bloqr app origins to BETTER_AUTH_TRUSTED_ORIGINS (comma-separated)
-    // rather than hard-coding them here.
-    trustedOrigins: [FALLBACK_BASE_URL, ...trustedOrigins],
+    // Trust the resolved base URL for this environment, plus any explicitly
+    // configured cross-app origins. This avoids always trusting the fallback
+    // Pages domain when a different canonical BETTER_AUTH_URL is configured.
+    trustedOrigins: [...new Set([baseURL, ...trustedOrigins])],
 
     // Rate limiting (uses DB storage for Cloudflare Workers compatibility)
     rateLimit: {
