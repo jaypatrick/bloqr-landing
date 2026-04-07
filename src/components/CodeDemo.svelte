@@ -47,10 +47,6 @@ console.log(\`Compiled \${result.rules.length} rules\`);
     }
   }
 
-  function toggleView() {
-    showCode = !showCode;
-  }
-
   // Simple syntax highlighter — returns HTML string
   function highlight(src) {
     return src
@@ -116,13 +112,13 @@ console.log(\`Compiled \${result.rules.length} rules\`);
           <button
             class="toggle-btn"
             class:active={!showCode}
-            onclick={toggleView}
+            onclick={() => (showCode = false)}
             aria-pressed={!showCode}
           >⬜ See the UI</button>
           <button
             class="toggle-btn"
             class:active={showCode}
-            onclick={toggleView}
+            onclick={() => (showCode = true)}
             aria-pressed={showCode}
           >&lt;/&gt; See the code</button>
         </div>
@@ -191,10 +187,10 @@ console.log(\`Compiled \${result.rules.length} rules\`);
                 <span class="preview-label">Preview</span>
                 <span class="preview-count">87,432 rules ready to deploy</span>
               </div>
-              <button class="mock-deploy-btn">
+              <div class="mock-deploy-btn">
                 <span>Deploy now</span>
                 <span aria-hidden="true">→</span>
-              </button>
+              </div>
             </div>
           </div>
           <p class="ui-note">The UI generates configuration automatically. Developers can export the JSON config for CI/CD pipelines.</p>

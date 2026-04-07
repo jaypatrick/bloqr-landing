@@ -52,13 +52,16 @@
           More <span class="dropdown-arrow" aria-hidden="true">▾</span>
         </button>
         {#if dropdownOpen}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="dropdown-backdrop" onclick={closeDropdown}></div>
-          <div class="dropdown-menu" role="menu">
-            <a href={LINKS.blog} role="menuitem" onclick={closeDropdown}>News</a>
-            <a href={LINKS.changelog} role="menuitem" onclick={closeDropdown}>Changelog</a>
-            <a href={LINKS.about} role="menuitem" onclick={closeDropdown}>About</a>
+          <button
+            type="button"
+            class="dropdown-backdrop"
+            aria-label="Close dropdown menu"
+            onclick={closeDropdown}
+          ></button>
+          <div class="dropdown-menu">
+            <a href={LINKS.blog} onclick={closeDropdown}>News</a>
+            <a href={LINKS.changelog} onclick={closeDropdown}>Changelog</a>
+            <a href={LINKS.about} onclick={closeDropdown}>About</a>
           </div>
         {/if}
       </li>
@@ -246,6 +249,10 @@
     position: fixed;
     inset: 0;
     z-index: 199;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: default;
   }
 
   .dropdown-menu {
