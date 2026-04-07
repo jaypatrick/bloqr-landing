@@ -19,6 +19,7 @@
 </script>
 
 <nav class:scrolled class:menu-open={menuOpen} aria-label="Main navigation">
+  <a href="#main-content" class="skip-to-content">Skip to main content</a>
   <div class="inner container">
 
     <!-- Logo -->
@@ -132,6 +133,25 @@
     z-index: 100;
     border-bottom: 1px solid transparent;
     transition: border-color 200ms, background 200ms, backdrop-filter 200ms;
+  }
+
+  .skip-to-content {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    background: var(--orange);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 0 0 8px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    z-index: 9999;
+    transition: top 150ms;
+  }
+
+  .skip-to-content:focus {
+    top: 0;
   }
 
   nav.scrolled,
