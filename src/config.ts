@@ -40,3 +40,73 @@ export const META = {
   description: 'AI-powered adblock list management and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
   ogImage:     '/og-image.png', // regenerate once bloqr.ai brand assets are confirmed
 } as const;
+
+// ── TypeScript types for site_config keys ─────────────────────────────────────
+export type SiteConfigKey =
+  | 'SITE_URL'
+  | 'APP_URL'
+  | 'DOCS_URL'
+  | 'API_URL'
+  | 'JSR_URL'
+  | 'GITHUB_URL'
+  | 'AUTHOR_URL'
+  | 'PRODUCT_NAME'
+  | 'PRODUCT_TAGLINE'
+  | 'OG_IMAGE_PATH';
+
+export type SiteConfig = Record<SiteConfigKey, string>;
+
+/**
+ * getConfig() — async, reads from Neon `site_config` when a database URL is
+ * provided, otherwise returns hardcoded fallbacks.
+ *
+ * **Callers MUST pass `databaseUrl` explicitly** — in Cloudflare Workers, env
+ * vars are available only on the `env` binding (not `process.env`), so always
+ * call `getConfig(env.DATABASE_URL)` from a Worker handler.
+ *
+ * The `process.env` fallback exists only for Node.js script contexts such as
+ * the migration script (`scripts/migrate-site-config.ts`), where `process.env`
+ * is available. It will never be set in a Worker invocation.
+ *
+ * Static pages use the module-level SITE_URL / LINKS / META exports at build time.
+ */
+export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
+  const DEFAULTS: SiteConfig = {
+    SITE_URL:        import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev',
+    APP_URL:         'https://adblock-frontend.jayson-knight.workers.dev',
+    DOCS_URL:        'https://adblock-compiler-docs.pages.dev',
+    API_URL:         'https://adblock-compiler-docs.pages.dev',
+    JSR_URL:         'https://jsr.io/@jk-com/adblock-compiler',
+    GITHUB_URL:      'https://github.com/jaypatrick/adblock-compiler',
+    AUTHOR_URL:      'https://jaysonknight.com',
+    PRODUCT_NAME:    'Bloqr',
+    PRODUCT_TAGLINE: 'Good Internet Hygiene. Automated.',
+    OG_IMAGE_PATH:   '/og-image.png',
+  };
+
+  const url =
+    databaseUrl ??
+    (typeof process !== 'undefined' && typeof process.env !== 'undefined'
+      ? process.env.DATABASE_URL
+      : undefined);
+
+  if (!url) return { ...DEFAULTS };
+
+  try {
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(url);
+    const rows = await sql<{ key: string; value: string }[]>`
+      SELECT key, value FROM site_config
+    `;
+    const config = { ...DEFAULTS };
+    for (const row of rows) {
+      if (row.key in config) {
+        (config as Record<string, string>)[row.key] = row.value;
+      }
+    }
+    return config;
+  } catch (err) {
+    console.warn('getConfig: failed to read site_config from DB, using fallbacks.', err);
+    return { ...DEFAULTS };
+  }
+}
