@@ -49,14 +49,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   // ── Parse body ────────────────────────────────────────────────────────────
   let body: { key?: string; value?: string };
-  try { body = await request.json(); }
-  catch { return json({ error: 'Invalid JSON' }, 400); }
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
 
   const key = body.key?.trim();
   const { value } = body;
-  if (!key)                                        return json({ error: 'key is required' }, 400);
+  if (!key) return json({ error: 'key is required' }, 400);
   if (value === undefined || typeof value !== 'string') return json({ error: 'value is required' }, 400);
-  if (!env.DATABASE_URL)                           return json({ error: 'Service unavailable.' }, 503);
+  if (!env.DATABASE_URL) return json({ error: 'Service unavailable.' }, 503);
 
   // ── Write to Neon ─────────────────────────────────────────────────────────
   const sql = neon(env.DATABASE_URL);

@@ -57,8 +57,8 @@ async function writeToD1(db: D1Database, config: Record<string, string>): Promis
     Object.entries(config).map(([key, value]) =>
       db
         .prepare(
-          'INSERT INTO config_cache (key, value, cached_at) VALUES (?, ?, ?) ' +
-          'ON CONFLICT(key) DO UPDATE SET value = excluded.value, cached_at = excluded.cached_at'
+          `INSERT INTO config_cache (key, value, cached_at) VALUES (?, ?, ?)
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, cached_at = excluded.cached_at`
         )
         .bind(key, value, now)
     )
