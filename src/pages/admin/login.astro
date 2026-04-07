@@ -225,6 +225,10 @@ const callbackUrl = '/admin/config';
           'Content-Type':  'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        // Use a sentinel key to probe auth without side effects.
+        // 404 = auth passed but __ping__ key doesn't exist (token is valid).
+        // 200 = auth passed and key was unexpectedly updated (still valid).
+        // 403 = wrong token. Anything else = server config error.
         body: JSON.stringify({ key: '__ping__', value: '__ping__' }),
       }).then(res => {
         if (res.status === 403) {

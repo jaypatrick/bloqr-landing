@@ -34,7 +34,9 @@ export interface Env {
 
 /**
  * Admin allowlist — only GitHub accounts in this list get admin access.
- * Checked against the GitHub OAuth account username.
+ * Checked against the GitHub OAuth account username. When a user authenticates
+ * via the GitHub social provider, Better Auth stores the GitHub login (username)
+ * in `session.user.name`, which is what `isAdminUser()` checks.
  * TODO: move to a DB table when the team grows beyond 1.
  */
 const ADMIN_GITHUB_LOGINS = new Set([
@@ -45,7 +47,12 @@ export function isAdminUser(githubLogin: string): boolean {
   return ADMIN_GITHUB_LOGINS.has(githubLogin);
 }
 
-const DEFAULT_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
+/**
+ * Fallback base URL used when BETTER_AUTH_URL is not set in environment.
+ * Override this with the BETTER_AUTH_URL secret in Cloudflare Workers.
+ * Update to https://bloqr.ai when the domain is live.
+ */
+const FALLBACK_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
 
 /**
  * Create the Better Auth instance.
@@ -53,7 +60,7 @@ const DEFAULT_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
  */
 function createAuth(env: Env) {
   const pool = new Pool({ connectionString: env.DATABASE_URL });
-  const baseURL = env.BETTER_AUTH_URL ?? DEFAULT_BASE_URL;
+  const baseURL = env.BETTER_AUTH_URL ?? FALLBACK_BASE_URL;
 
   const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
     ? env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
@@ -94,7 +101,7 @@ function createAuth(env: Env) {
 
     // Cross-app SSO — other Bloqr apps can validate sessions here
     trustedOrigins: [
-      DEFAULT_BASE_URL,
+      FALLBACK_BASE_URL,
       'https://adblock-frontend.jayson-knight.workers.dev',
       ...trustedOrigins,
     ],
