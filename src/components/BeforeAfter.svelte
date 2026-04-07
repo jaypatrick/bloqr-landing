@@ -2,10 +2,11 @@
 <script>
   import { onMount } from 'svelte';
 
-  let visible = $state(false);
+  let visible = $state(true);
 
   onMount(() => {
-    // Small delay so animation plays after the section scrolls into view
+    // Reset to false first so the animation plays on mount/hydration
+    visible = false;
     const t = setTimeout(() => { visible = true; }, 120);
     return () => clearTimeout(t);
   });
@@ -51,7 +52,12 @@
       </p>
     </div>
 
-    <div class="panels" role="img" aria-label="Side-by-side page load comparison: without Bloqr shows 18 requests including 5 trackers, 4 ad scripts, and 3 suspicious domains; with Bloqr shows only 6 legitimate content requests with 12 domains blocked">
+    <p id="ba-panels-desc" class="sr-only">
+      Side-by-side page load comparison: without Bloqr shows 18 requests including 5 trackers,
+      4 ad scripts, and 3 suspicious domains; with Bloqr shows only 6 legitimate content
+      requests with 12 domains blocked.
+    </p>
+    <div class="panels" aria-describedby="ba-panels-desc">
       <!-- Without Bloqr -->
       <div class="panel panel--bad">
         <div class="panel-header">
@@ -139,6 +145,18 @@
 </section>
 
 <style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .before-after {
     padding: 80px 0;
     border-top: 1px solid var(--border);
