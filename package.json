@@ -6,9 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "icons": "node scripts/generate-icons.mjs",
+    "prebuild": "node scripts/generate-icons.mjs",
     "build": "astro build",
     "preview": "wrangler dev",
     "deploy": "astro build && wrangler deploy",
+    "sync-blog": "npx tsx scripts/sync-blog-from-db.ts",
+    "migrate-blog": "npx tsx scripts/migrate-blog-posts.ts",
     "migrate:auth": "tsx scripts/migrate-better-auth.ts"
   },
   "dependencies": {
@@ -21,6 +25,7 @@
     "@neondatabase/serverless": "^1.0.2",
     "astro": "^5.0.0",
     "better-auth": "^1.6.0",
+    "posthog-js": "^1.364.7",
     "svelte": "^5.0.0"
   },
   "devDependencies": {

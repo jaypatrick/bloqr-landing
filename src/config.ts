@@ -6,7 +6,7 @@
  * or in a local .env file during development.
  */
 export const SITE_URL =
-  import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // TODO: update to https://bloqr.ai when domain is confirmed
+  import.meta.env.SITE_URL ?? 'https://bloqr.ai';
 
 /**
  * External URLs — managed here for build-time static pages.
@@ -72,7 +72,7 @@ export type SiteConfig = Record<SiteConfigKey, string>;
  */
 export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
   const DEFAULTS: SiteConfig = {
-    SITE_URL:        import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev',
+    SITE_URL:        import.meta.env.SITE_URL ?? 'https://bloqr.ai',
     APP_URL:         'https://adblock-frontend.jayson-knight.workers.dev',
     DOCS_URL:        'https://adblock-compiler-docs.pages.dev',
     API_URL:         'https://adblock-compiler-docs.pages.dev',

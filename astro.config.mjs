@@ -8,8 +8,7 @@ export default defineConfig({
   // Switch to output: 'server' + adapter: cloudflare() if you need SSR/edge functions
   output: 'static',
 
-  // TODO: update to https://bloqr.ai once the domain is live
-  site: 'https://adblock-compiler-landing.pages.dev',
+  site: 'https://bloqr.ai',
 
   // To enable Cloudflare Workers SSR, uncomment:
   // output: 'server',
@@ -23,7 +22,9 @@ export default defineConfig({
   vite: {
     server: {
       headers: {
-        'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self';"
+        // NOTE: This CSP is dev-only. Production CSP should be set in wrangler.toml
+        // or Cloudflare Pages headers (/_headers file) for proper edge delivery.
+        'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self' https://app.posthog.com https://plausible.io;"
       }
     }
   }

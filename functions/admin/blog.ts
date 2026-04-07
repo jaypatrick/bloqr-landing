@@ -1,39 +1,22 @@
 /**
- * functions/admin/blog.ts — /admin/blog handler
+ * functions/admin/blog.ts — GET/POST/PUT /admin/blog handler
  *
- * GET    /admin/blog  → list blog posts
- * POST   /admin/blog  → create blog post
- * PUT    /admin/blog  → update blog post
- * OPTIONS /admin/blog → CORS preflight
- *
+ * Manages blog posts stored in Neon PostgreSQL.
  * Auth: Better Auth session (primary) or legacy ADMIN_SECRET bearer token (fallback).
+ *
+ * GET  /admin/blog  → list all posts (requires auth)
+ * POST /admin/blog  → create new post (requires auth)
+ * PUT  /admin/blog  → update existing post by id (requires auth)
+ *
  * Exported as plain functions for import by src/worker.ts.
  */
 
 import { neon } from '@neondatabase/serverless';
+import { BlogPostSchema } from '../../src/lib/blog-post-schema';
 import { getSession, isAdminUser, type AuthEnv } from '../../src/lib/auth';
 
 export interface Env extends AuthEnv {
   DATABASE_URL: string;
-}
-
-interface BlogPost {
-  id:          string;
-  slug:        string;
-  title:       string;
-  excerpt:     string | null;
-  content:     string | null;
-  published:   boolean;
-  created_at:  string;
-  updated_at:  string;
-}
-
-interface BlogPostBody {
-  slug?:      string;
-  title?:     string;
-  excerpt?:   string;
-  content?:   string;
-  published?: boolean;
 }
 
 const json = (data: unknown, status = 200) =>
@@ -97,18 +80,26 @@ export async function handleGet(request: Request, env: Env): Promise<Response> {
     return json({ error: 'Forbidden.' }, 403);
   }
 
+  // Future: add ?limit and ?offset query params for pagination
+  const url = new URL(request.url);
+  const limit  = Math.min(parseInt(url.searchParams.get('limit')  ?? '100', 10), 100);
+  const offset = Math.max(parseInt(url.searchParams.get('offset') ?? '0',   10), 0);
+
   const sql = neon(env.DATABASE_URL);
 
   try {
-    const rows = await sql<BlogPost[]>`
-      SELECT id, slug, title, excerpt, content, published, created_at, updated_at
+    const rows = await sql`
+      SELECT
+        id, slug, title, description, pub_date, updated_date,
+        author, category, tags, draft, og_image, created_at
       FROM blog_posts
-      ORDER BY created_at DESC
+      ORDER BY pub_date DESC
+      LIMIT ${limit} OFFSET ${offset}
     `;
-    return json({ posts: rows });
+    return json(rows);
   } catch (err) {
     console.error('GET /admin/blog error:', err);
-    return json({ error: 'Failed to load blog posts.' }, 500);
+    return json({ error: 'Failed to fetch posts.' }, 500);
   }
 }
 
@@ -123,39 +114,44 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
     return json({ error: 'Forbidden.' }, 403);
   }
 
-  let body: BlogPostBody;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return json({ error: 'Invalid JSON.' }, 400);
   }
 
-  const slug    = (body.slug    ?? '').trim();
-  const title   = (body.title   ?? '').trim();
-  const excerpt = (body.excerpt ?? '').trim() || null;
-  const content = (body.content ?? '').trim() || null;
-  const published = body.published ?? false;
+  const parsed = BlogPostSchema.safeParse(body);
+  if (!parsed.success) {
+    return json({ error: 'Validation failed.', details: parsed.error.flatten() }, 400);
+  }
 
+  const post = parsed.data;
+  const slug  = post.slug.trim();
+  const title = post.title.trim();
   if (!slug)  return json({ error: 'slug is required.' },  400);
   if (!title) return json({ error: 'title is required.' }, 400);
 
   const sql = neon(env.DATABASE_URL);
 
   try {
-    const id = crypto.randomUUID();
-    const rows = await sql<BlogPost[]>`
-      INSERT INTO blog_posts (id, slug, title, excerpt, content, published)
-      VALUES (${id}, ${slug}, ${title}, ${excerpt}, ${content}, ${published})
-      RETURNING id, slug, title, excerpt, published, created_at, updated_at
+    const rows = await sql`
+      INSERT INTO blog_posts
+        (slug, title, description, content, pub_date, updated_date, author, category, tags, draft, og_image)
+      VALUES
+        (${slug}, ${title}, ${post.description}, ${post.content},
+         ${post.pubDate.toISOString()}, ${post.updatedDate?.toISOString() ?? null},
+         ${post.author}, ${post.category}, ${post.tags}, ${post.draft}, ${post.image ?? null})
+      RETURNING id, slug
     `;
-    return json({ post: rows[0] }, 201);
+    return json({ success: true, id: rows[0].id, slug: rows[0].slug }, 201);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('unique') || msg.includes('duplicate')) {
-      return json({ error: `Slug "${slug}" already exists.` }, 409);
+      return json({ error: `A post with slug "${slug}" already exists.` }, 409);
     }
     console.error('POST /admin/blog error:', err);
-    return json({ error: 'Failed to create blog post.' }, 500);
+    return json({ error: 'Failed to create post.' }, 500);
   }
 }
 
@@ -170,56 +166,64 @@ export async function handlePut(request: Request, env: Env): Promise<Response> {
     return json({ error: 'Forbidden.' }, 403);
   }
 
-  let body: BlogPostBody & { id?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return json({ error: 'Invalid JSON.' }, 400);
   }
 
-  const id = (body.id ?? '').trim();
-  if (!id) return json({ error: 'id is required.' }, 400);
+  if (typeof body !== 'object' || body === null || !('id' in body)) {
+    return json({ error: 'id is required for updates.' }, 400);
+  }
 
-  const updates: Record<string, unknown> = {};
-  if (body.slug !== undefined) {
-    const slug = body.slug.trim();
+  const { id, ...rest } = body as { id: string; [key: string]: unknown };
+
+  const parsed = BlogPostSchema.partial().safeParse(rest);
+  if (!parsed.success) {
+    return json({ error: 'Validation failed.', details: parsed.error.flatten() }, 400);
+  }
+
+  const post = parsed.data;
+
+  // Validate that slug/title are not set to empty strings
+  if (post.slug !== undefined) {
+    const slug = post.slug.trim();
     if (!slug) return json({ error: 'slug cannot be empty.' }, 400);
-    updates['slug'] = slug;
+    post.slug = slug;
   }
-  if (body.title !== undefined) {
-    const title = body.title.trim();
+  if (post.title !== undefined) {
+    const title = post.title.trim();
     if (!title) return json({ error: 'title cannot be empty.' }, 400);
-    updates['title'] = title;
-  }
-  if (body.excerpt  !== undefined) updates['excerpt']   = body.excerpt.trim()  || null;
-  if (body.content  !== undefined) updates['content']   = body.content.trim()  || null;
-  if (body.published !== undefined) updates['published'] = body.published;
-
-  if (Object.keys(updates).length === 0) {
-    return json({ error: 'No fields to update.' }, 400);
+    post.title = title;
   }
 
   const sql = neon(env.DATABASE_URL);
 
   try {
-    const rows = await sql<BlogPost[]>`
+    const rows = await sql`
       UPDATE blog_posts
       SET
-        slug      = CASE WHEN ${('slug'      in updates) as boolean} THEN ${updates['slug']      as string  ?? null} ELSE slug      END,
-        title     = CASE WHEN ${('title'     in updates) as boolean} THEN ${updates['title']     as string  ?? null} ELSE title     END,
-        excerpt   = CASE WHEN ${('excerpt'   in updates) as boolean} THEN ${updates['excerpt']   as string  ?? null} ELSE excerpt   END,
-        content   = CASE WHEN ${('content'   in updates) as boolean} THEN ${updates['content']   as string  ?? null} ELSE content   END,
-        published = CASE WHEN ${('published' in updates) as boolean} THEN ${updates['published'] as boolean ?? null} ELSE published END,
-        updated_at = now()
+        slug         = COALESCE(${post.slug ?? null}, slug),
+        title        = COALESCE(${post.title ?? null}, title),
+        description  = COALESCE(${post.description ?? null}, description),
+        content      = COALESCE(${post.content ?? null}, content),
+        pub_date     = COALESCE(${post.pubDate?.toISOString() ?? null}, pub_date),
+        updated_date = COALESCE(${post.updatedDate?.toISOString() ?? null}, updated_date),
+        author       = COALESCE(${post.author ?? null}, author),
+        category     = COALESCE(${post.category ?? null}, category),
+        tags         = COALESCE(${post.tags ?? null}, tags),
+        draft        = COALESCE(${post.draft ?? null}, draft),
+        og_image     = COALESCE(${post.image ?? null}, og_image)
       WHERE id = ${id}
-      RETURNING id, slug, title, excerpt, published, created_at, updated_at
+      RETURNING id, slug
     `;
     if (!rows.length) {
-      return json({ error: `No blog post found with id: ${id}` }, 404);
+      return json({ error: `No post found with id: ${id}` }, 404);
     }
-    return json({ post: rows[0] });
+    return json({ success: true, id: rows[0].id, slug: rows[0].slug });
   } catch (err) {
     console.error('PUT /admin/blog error:', err);
-    return json({ error: 'Failed to update blog post.' }, 500);
+    return json({ error: 'Failed to update post.' }, 500);
   }
 }
