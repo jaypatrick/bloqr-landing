@@ -6,11 +6,14 @@
  *
  * Response is cached for 5 minutes at the edge, with a 10-minute
  * stale-while-revalidate window so deploys don't cause a hard miss.
+ *
+ * Exported as plain functions so they can be imported by the Worker entry
+ * point (src/worker.ts) without duplicating logic.
  */
 
 import { neon } from '@neondatabase/serverless';
 
-interface Env {
+export interface Env {
   DATABASE_URL: string;
 }
 
@@ -30,7 +33,17 @@ const json = (data: unknown, status = 200, extraHeaders?: Record<string, string>
     },
   });
 
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+export function handleOptions(): Response {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin':  '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+export async function handleGet(_request: Request, env: Env): Promise<Response> {
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503, { 'Cache-Control': 'no-store' });
   }
@@ -50,13 +63,4 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     console.error('GET /config error:', err);
     return json({ error: 'Failed to load config.' }, 500, { 'Cache-Control': 'no-store' });
   }
-};
-
-export const onRequestOptions: PagesFunction = () =>
-  new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin':  '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+}

@@ -6,11 +6,14 @@
  *
  * Body: { key: string, value: string }
  * Returns: { success: true } or an error object.
+ *
+ * Exported as plain functions so they can be imported by the Worker entry
+ * point (src/worker.ts) without duplicating logic.
  */
 
 import { neon } from '@neondatabase/serverless';
 
-interface Env {
+export interface Env {
   DATABASE_URL: string;
   ADMIN_SECRET: string;
 }
@@ -36,7 +39,17 @@ function isAuthorized(request: Request, env: Env): boolean {
   return scheme === 'Bearer' && token === env.ADMIN_SECRET;
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export function handleOptions(): Response {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin':  '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
+export async function handlePost(request: Request, env: Env): Promise<Response> {
   if (!env.ADMIN_SECRET) {
     return json({ error: 'Admin access is not configured.' }, 503);
   }
@@ -87,13 +100,4 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     console.error('POST /admin/config error:', err);
     return json({ error: 'Failed to update config.' }, 500);
   }
-};
-
-export const onRequestOptions: PagesFunction = () =>
-  new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin':  '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+}
