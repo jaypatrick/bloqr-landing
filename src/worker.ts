@@ -14,12 +14,12 @@ interface Env extends WaitlistEnv {
 }
 
 export default {
-  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === '/waitlist') {
       if (request.method === 'OPTIONS') return handleOptions();
-      if (request.method === 'POST')    return handlePost(request, env);
+      if (request.method === 'POST')    return handlePost(request, env, ctx);
       return new Response('Method Not Allowed', { status: 405 });
     }
 

@@ -84,7 +84,7 @@ async function pushToApollo(
   }
 }
 
-export async function handlePost(request: Request, env: Env): Promise<Response> {
+export async function handlePost(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   // Parse body
   let body: WaitlistBody;
   try {
@@ -122,9 +122,10 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
       VALUES (${email}, ${segment}, ${ip}, ${referrer})
     `;
 
-    // Fire Apollo sync in the background — don't await, don't block the response
+    // Fire Apollo sync in the background via waitUntil so it isn't cancelled
+    // after the response is returned.
     if (env.APOLLO_API_KEY) {
-      void pushToApollo(env.APOLLO_API_KEY, email, segment);
+      ctx.waitUntil(pushToApollo(env.APOLLO_API_KEY, email, segment));
     }
 
     return json({ success: true });

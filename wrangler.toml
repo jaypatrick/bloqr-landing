@@ -8,8 +8,8 @@ assets = { directory = "./dist" }
 main = "src/worker.ts"
 
 # ─── Smart Placement ─────────────────────────────────────────────────────────
-# Cloudflare automatically picks the optimal region based on where your
-# back-end bindings (Neon, Apollo) are located, minimising round-trip latency.
+# Cloudflare automatically places the Worker to help reduce latency based on
+# its Smart Placement heuristics and your application's traffic patterns.
 [placement]
 mode = "smart"
 
