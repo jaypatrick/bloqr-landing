@@ -1,14 +1,14 @@
 {
   "name": "adblock-compiler-landing",
   "version": "0.1.0",
-  "description": "AdBlock Compiler landing page — Astro + Svelte, deployed to Cloudflare Pages",
+  "description": "AdBlock Compiler landing page — Astro + Svelte, deployed to Cloudflare Workers",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "wrangler pages dev ./dist",
-    "deploy": "astro build && wrangler pages deploy ./dist"
+    "preview": "wrangler dev",
+    "deploy": "astro build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.0.0",
@@ -21,6 +21,8 @@
     "svelte": "^5.0.0"
   },
   "devDependencies": {
+    "@cloudflare/puppeteer": "^1.0.6",
+    "@cloudflare/workers-types": "^4.20260405.1",
     "@types/node": "^22.0.0",
     "sharp": "^0.34.5",
     "wrangler": "^3.0.0"
