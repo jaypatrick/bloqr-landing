@@ -8,7 +8,7 @@ pages_build_output_dir = "./dist"
 #
 # Functions in this project:
 #   functions/waitlist.ts  →  POST /waitlist
-#     Writes email signups to Neon (bloqr database, currently named adblock-compiler)
+#     Writes email signups to Neon (bloqr database, currently named adblock-compiler, rename pending)
 #     and pushes contacts to Apollo.io (fire-and-forget, non-blocking).
 #
 # ─── Neon branch → DATABASE_URL mapping ──────────────────────────────────────
@@ -18,7 +18,7 @@ pages_build_output_dir = "./dist"
 #
 # ─── Required secrets (set in CF dashboard OR .dev.vars for local dev) ────────
 # Pages → adblock-landing → Settings → Environment variables
-# Add both as type "Secret" (encrypted at rest):
+# Add all three as type "Secret" (encrypted at rest):
 #
 #   DATABASE_URL   — Neon bloqr database connection string (branch-specific, see above; currently named adblock-compiler)
 #   APOLLO_API_KEY — Apollo.io API key for contact enrichment

@@ -23,7 +23,7 @@
       </div>
       <div class="tier-sep" aria-hidden="true">·</div>
       <div class="tier">
-        <span class="tier-name">Developer</span>
+        <span class="tier-name">Developer / Self-Hosted</span>
         <span class="tier-desc">Self-hosted · GPL-3.0 · Free forever</span>
       </div>
     </div>

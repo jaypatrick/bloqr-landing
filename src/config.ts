@@ -8,12 +8,12 @@
  * Once bloqr.ai is confirmed, update SITE_URL here or in the env variable.
  */
 export const SITE_URL =
-  import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // ← update to https://bloqr.ai when domain confirmed (use /admin/config or update here)
+  import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // ← update to https://bloqr.ai when domain confirmed (update env var in CF Pages dashboard and redeploy)
 
 /**
  * External URLs — managed here for build-time static pages.
- * Runtime values (edge functions, admin UI) read from the site_config table in Neon.
- * To update for bloqr.ai launch: use /admin/config or update these values and redeploy.
+ * To update for bloqr.ai launch: update these values (or the SITE_URL env var in
+ * Cloudflare Pages dashboard) and trigger a redeploy.
  */
 export const LINKS = {
   app:       'https://adblock-frontend.jayson-knight.workers.dev',
