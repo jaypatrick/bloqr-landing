@@ -46,9 +46,9 @@
           <dt>
             <button
               class="trigger"
-              id="faq-trigger-{i}"
+              id={`faq-trigger-${i}`}
               aria-expanded={openIndex === i}
-              aria-controls="faq-panel-{i}"
+              aria-controls={`faq-panel-${i}`}
               onclick={() => toggle(i)}
             >
               <span>{item.q}</span>
@@ -56,9 +56,9 @@
             </button>
           </dt>
           <dd
-            id="faq-panel-{i}"
+            id={`faq-panel-${i}`}
             role="region"
-            aria-labelledby="faq-trigger-{i}"
+            aria-labelledby={`faq-trigger-${i}`}
             hidden={openIndex !== i}
           >
             <div class="answer">
