@@ -26,7 +26,7 @@ head_sampling_rate = 1   # 1 = 100 % of requests sampled (adjust for high traffi
 # Usage: import puppeteer from '@cloudflare/puppeteer'
 #        const browser = await puppeteer.launch(env.BROWSER)
 # Requires Cloudflare Workers paid plan.
-[[browser]]
+[browser]
 binding = "BROWSER"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
