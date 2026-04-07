@@ -96,10 +96,15 @@
   .cell {
     background: var(--bg-surface);
     padding: 32px;
-    transition: background 200ms;
+    transition: background 200ms, transform 200ms, border-color 200ms;
+    cursor: default;
+    position: relative;
   }
 
-  .cell:hover { background: var(--bg-elevated); }
+  .cell:hover {
+    background: var(--bg-elevated);
+    transform: translateY(-2px);
+  }
 
   .cell-icon {
     width: 40px; height: 40px;

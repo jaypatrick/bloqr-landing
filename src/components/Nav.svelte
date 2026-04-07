@@ -4,6 +4,7 @@
 
   let scrolled  = $state(false);
   let menuOpen  = $state(false);
+  let dropdownOpen = $state(false);
 
   onMount(() => {
     const handleScroll = () => { scrolled = window.scrollY > 10; };
@@ -13,6 +14,8 @@
 
   function closeMenu() { menuOpen = false; }
   function toggleMenu() { menuOpen = !menuOpen; }
+  function toggleDropdown() { dropdownOpen = !dropdownOpen; }
+  function closeDropdown() { dropdownOpen = false; }
 </script>
 
 <nav class:scrolled class:menu-open={menuOpen} aria-label="Main navigation">
@@ -39,9 +42,29 @@
       <li><a href="/#features">Features</a></li>
       <li><a href="/#pricing">Pricing</a></li>
       <li><a href={LINKS.vpnMyths}>VPN Myths</a></li>
-      <li><a href={LINKS.blog}>News</a></li>
-      <li><a href={LINKS.changelog}>Changelog</a></li>
-      <li><a href={LINKS.about}>About</a></li>
+      <li class="dropdown">
+        <button
+          class="dropdown-btn"
+          onclick={toggleDropdown}
+          aria-expanded={dropdownOpen}
+          aria-haspopup="true"
+        >
+          More <span class="dropdown-arrow" aria-hidden="true">▾</span>
+        </button>
+        {#if dropdownOpen}
+          <button
+            type="button"
+            class="dropdown-backdrop"
+            aria-label="Close dropdown menu"
+            onclick={closeDropdown}
+          ></button>
+          <div class="dropdown-menu">
+            <a href={LINKS.blog} onclick={closeDropdown}>News</a>
+            <a href={LINKS.changelog} onclick={closeDropdown}>Changelog</a>
+            <a href={LINKS.about} onclick={closeDropdown}>About</a>
+          </div>
+        {/if}
+      </li>
       <li><a href="/#waitlist" class="nav-highlight">Early Access</a></li>
     </ul>
 
@@ -191,6 +214,77 @@
 
   .nav-links a:hover { color: var(--text-1); }
   .nav-highlight { color: var(--orange) !important; }
+
+  /* ── Dropdown ── */
+  .dropdown {
+    position: relative;
+  }
+
+  .dropdown-btn {
+    font-size: 14px;
+    color: var(--text-2);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 150ms;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+  }
+
+  .dropdown-btn:hover { color: var(--text-1); }
+
+  .dropdown-arrow {
+    font-size: 10px;
+    transition: transform 200ms;
+  }
+
+  .dropdown-btn[aria-expanded="true"] .dropdown-arrow {
+    transform: rotate(180deg);
+  }
+
+  .dropdown-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 199;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: default;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    min-width: 160px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    padding: 8px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .dropdown-menu a {
+    display: block;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--text-2);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background 150ms, color 150ms;
+  }
+
+  .dropdown-menu a:hover {
+    background: var(--bg-surface);
+    color: var(--text-1);
+  }
 
   .nav-cta {
     display: flex;
