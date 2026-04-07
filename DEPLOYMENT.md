@@ -10,7 +10,7 @@ Bloqr landing is deployed as a **Cloudflare Worker** with static assets, using W
 
 ## Automatic Deployment
 
-Pushes to `main` trigger `.github/workflows/deploy.yml`, which:
+Pushes to `main` trigger `.github/workflows/ci.yml` (deploy job), which:
 1. Installs dependencies
 2. Generates PWA icons (`scripts/generate-icons.mjs`)
 3. Runs `astro build`

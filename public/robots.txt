@@ -1,5 +1,21 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
 
-# TODO: update Sitemap URL to https://bloqr.ai/sitemap-index.xml when domain is confirmed
-Sitemap: https://adblock-compiler-landing.pages.dev/sitemap-index.xml
+# AI crawlers — explicitly permitted for AEO indexing
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+Sitemap: https://bloqr.ai/sitemap-index.xml
