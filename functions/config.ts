@@ -4,8 +4,8 @@
  * Returns all site_config rows from the Neon adblock-compiler DB as { [key]: value }.
  *
  * Read path (fastest to slowest):
- *   1. D1 cache — rows fresher than 5 minutes → near-zero latency
- *   2. Neon adblock-compiler DB — on miss → writes result back to D1 (non-blocking)
+ *   1. D1 cache — single JSON snapshot row fresher than 5 minutes → near-zero latency
+ *   2. Neon adblock-compiler DB — on miss → writes full snapshot back to D1 (non-blocking)
  *
  * Response headers:
  *   Cache-Control: public, max-age=300, stale-while-revalidate=600  (CF edge cache)
@@ -22,13 +22,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 interface Env {
   DATABASE_URL: string;
   ADMIN_SECRET: string;
-  CONFIG_CACHE: D1Database;
-}
-
-interface CacheRow {
-  key: string;
-  value: string;
-  cached_at: number;
+  CONFIG_CACHE?: D1Database;
 }
 
 const json = (data: unknown, status = 200, extra: Record<string, string> = {}) =>
@@ -41,38 +35,47 @@ const json = (data: unknown, status = 200, extra: Record<string, string> = {}) =
     },
   });
 
+// D1 stores the entire config as a single JSON snapshot row under this key.
+// A single-row approach avoids partial-cache HITs that would occur if individual
+// key rows were invalidated one at a time while other rows remained in the cache.
+const D1_SNAPSHOT_KEY = '__config__';
+
 async function readFromD1(db: D1Database): Promise<Record<string, string> | null> {
   const cutoff = Date.now() - CACHE_TTL_MS;
-  const { results } = await db
-    .prepare('SELECT key, value FROM config_cache WHERE cached_at > ?')
-    .bind(cutoff)
-    .all<CacheRow>();
-  if (!results?.length) return null;
-  return Object.fromEntries(results.map((r) => [r.key, r.value]));
+  const row = await db
+    .prepare('SELECT value FROM config_cache WHERE key = ? AND cached_at > ?')
+    .bind(D1_SNAPSHOT_KEY, cutoff)
+    .first<{ value: string }>();
+  if (!row) return null;
+  try {
+    return JSON.parse(row.value) as Record<string, string>;
+  } catch {
+    return null;
+  }
 }
 
 async function writeToD1(db: D1Database, config: Record<string, string>): Promise<void> {
-  const now = Date.now();
-  await db.batch(
-    Object.entries(config).map(([key, value]) =>
-      db
-        .prepare(
-          `INSERT INTO config_cache (key, value, cached_at) VALUES (?, ?, ?)
-           ON CONFLICT(key) DO UPDATE SET value = excluded.value, cached_at = excluded.cached_at`
-        )
-        .bind(key, value, now)
+  await db
+    .prepare(
+      `INSERT INTO config_cache (key, value, cached_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, cached_at = excluded.cached_at`
     )
-  );
+    .bind(D1_SNAPSHOT_KEY, JSON.stringify(config), Date.now())
+    .run();
 }
 
-/** Invalidate a single key in D1. Called by POST /admin/config after a successful Neon write. */
-export async function invalidateD1Key(db: D1Database, key: string): Promise<void> {
-  await db.prepare('DELETE FROM config_cache WHERE key = ?').bind(key).run();
+/**
+ * Invalidate the D1 snapshot. Called by POST /admin/config after a successful Neon write.
+ * Always invalidates the full snapshot so the next GET /config repopulates all keys from Neon —
+ * partial invalidation is not safe with snapshot storage.
+ */
+export async function invalidateD1Key(db: D1Database, _key: string): Promise<void> {
+  await invalidateD1Cache(db);
 }
 
 /** Invalidate entire D1 cache. */
 export async function invalidateD1Cache(db: D1Database): Promise<void> {
-  await db.prepare('DELETE FROM config_cache').run();
+  await db.prepare('DELETE FROM config_cache WHERE key = ?').bind(D1_SNAPSHOT_KEY).run();
 }
 
 async function fetchFromNeon(url: string): Promise<Record<string, string>> {

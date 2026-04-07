@@ -18,7 +18,7 @@ import { invalidateD1Key } from '../config';
 interface Env {
   DATABASE_URL: string;
   ADMIN_SECRET: string;
-  CONFIG_CACHE: D1Database;
+  CONFIG_CACHE?: D1Database;
 }
 
 const json = (data: unknown, status = 200) =>
