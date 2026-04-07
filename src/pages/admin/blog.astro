@@ -375,7 +375,8 @@
     function getStoredToken() {
       const urlToken = new URLSearchParams(window.location.search).get('token');
       if (urlToken) {
-        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict; Secure`;
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict${secure}`;
         const url = new URL(window.location.href);
         url.searchParams.delete('token');
         window.history.replaceState({}, '', url.toString());
@@ -386,7 +387,8 @@
     }
 
     function storeToken(token) {
-      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict${secure}`;
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
