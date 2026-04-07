@@ -18,5 +18,4 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
-# TODO: Update to https://bloqr.ai/sitemap-index.xml when domain is confirmed
-Sitemap: https://adblock-compiler-landing.pages.dev/sitemap-index.xml
+Sitemap: https://bloqr.ai/sitemap-index.xml

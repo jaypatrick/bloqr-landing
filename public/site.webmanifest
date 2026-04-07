@@ -1,4 +1,8 @@
 {
+  "id": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "orientation": "any",
   "name": "Bloqr",
   "short_name": "Bloqr",
   "description": "Internet Hygiene: Automated. DNS-level ad blocking, AI-powered filter lists, and encrypted DNS for every device.",
