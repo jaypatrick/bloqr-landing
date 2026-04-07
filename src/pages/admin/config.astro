@@ -230,7 +230,8 @@
       const urlToken = new URLSearchParams(window.location.search).get('token');
       if (urlToken) {
         // Persist in session cookie so reloads don't require re-entry
-        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict; Secure`;
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict${secure}`;
         // Strip from URL bar (cosmetic — real auth is server-side)
         const url = new URL(window.location.href);
         url.searchParams.delete('token');
@@ -243,7 +244,8 @@
     }
 
     function storeToken(token) {
-      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict${secure}`;
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
@@ -326,12 +328,14 @@
       btn.textContent = 'Saving…';
 
       try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        // Only send Bearer token for the legacy auth path.
+        // When Better Auth session is active, the session cookie authenticates the request.
+        if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
+
         const res = await fetch('/admin/config', {
           method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${adminToken}`,
-          },
+          headers,
           body: JSON.stringify({ key, value }),
         });
 
@@ -342,7 +346,12 @@
           showToast(`✓ ${key} saved.`);
           return true;
         } else if (res.status === 403) {
-          showToast('Access denied — check your admin secret.', 'error');
+          // Distinguish session-cookie auth (adminToken is empty) from legacy bearer auth.
+          if (adminToken) {
+            showToast('Access denied — check your admin secret.', 'error');
+          } else {
+            showToast('Access denied — your session may have expired. Please log in again.', 'error');
+          }
           return false;
         } else {
           showToast(`Error: ${data.error ?? 'Unknown error'}`, 'error');
@@ -414,8 +423,10 @@
         if (res.ok) {
           const data = await res.json();
           if (data?.session) {
-            // Valid Better Auth session — unlock with a placeholder token value
-            unlockApp(data.session.token ?? '__better-auth__');
+            // Valid Better Auth session — unlock the UI without storing the token.
+            // Authentication for subsequent requests is handled by the session cookie;
+            // we do not echo the session token into JS or the Authorization header.
+            unlockApp('');
             return true;
           }
         }

@@ -375,7 +375,8 @@
     function getStoredToken() {
       const urlToken = new URLSearchParams(window.location.search).get('token');
       if (urlToken) {
-        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict; Secure`;
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict${secure}`;
         const url = new URL(window.location.href);
         url.searchParams.delete('token');
         window.history.replaceState({}, '', url.toString());
@@ -386,7 +387,8 @@
     }
 
     function storeToken(token) {
-      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict${secure}`;
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
@@ -547,7 +549,12 @@
           clearForm();
           await loadPosts();
         } else if (res.status === 403) {
-          showToast('Access denied — check your admin secret.', 'error');
+          // Distinguish session-cookie auth (adminToken is empty) from legacy bearer auth.
+          if (adminToken) {
+            showToast('Access denied — check your admin secret.', 'error');
+          } else {
+            showToast('Access denied — your session may have expired. Please log in again.', 'error');
+          }
         } else {
           showToast(`Error: ${data.error ?? 'Unknown error'}`, 'error');
         }
