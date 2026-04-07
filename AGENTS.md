@@ -9,7 +9,7 @@ making changes, running commands, or generating content.
 
 **Bloqr** is an AI-powered DNS filter list compiler and real-time threat
 intelligence service. This repo is the **marketing landing site** — a static
-Astro site deployed to Cloudflare Pages.
+Astro site served via a Cloudflare Worker with static assets.
 
 | Field           | Value                                                         |
 | --------------- | ------------------------------------------------------------- |
@@ -17,7 +17,7 @@ Astro site deployed to Cloudflare Pages.
 | Repo            | `adblock-compiler.landing` (`bloqr-landing`)                  |
 | Owner           | `jaypatrick`                                                  |
 | Default branch  | `main`                                                        |
-| Deploy target   | Cloudflare Pages (static)                                     |
+| Deploy target   | Cloudflare Workers with static assets                         |
 | Production URL  | `https://adblock-compiler-landing.pages.dev` → `bloqr.ai` TBD |
 
 ---
@@ -29,8 +29,8 @@ Astro site deployed to Cloudflare Pages.
 | Framework      | Astro 5 (`output: 'static'`)                           |
 | Components     | Svelte 5 (runes syntax)                                |
 | Language       | TypeScript (strict mode)                               |
-| Styling        | Plain CSS + CSS custom properties (`brand/tokens.css`) |
-| Edge functions | Cloudflare Pages Functions (`functions/`)              |
+| Styling        | Plain CSS + CSS custom properties (`src/styles/global.css`) |
+| Edge runtime   | Cloudflare Worker (`src/worker.ts`) + handler modules in `functions/` |
 | Database       | Neon Postgres (waitlist signups)                       |
 | CRM            | Apollo.io (contact enrichment, fire-and-forget)        |
 | Fonts          | JetBrains Mono (code) + Space Grotesk (UI)             |
@@ -42,18 +42,22 @@ Astro site deployed to Cloudflare Pages.
 ```
 .
 ├── astro.config.mjs          # Astro + Svelte integration, CSP headers, static output
-├── wrangler.toml             # Cloudflare Pages project: name, build dir, DB branch map
+├── wrangler.toml             # Cloudflare Worker config: name, assets dir, entry point
 ├── tsconfig.json
 ├── package.json
 │
 ├── brand/                    # All brand assets and guidelines (keep co-located here)
-│   ├── tokens.css            # CSS custom properties — colours, spacing, type scale
+│   ├── tokens.css            # CSS design token reference (values mirrored in src/styles/global.css)
 │   ├── logo.svg
 │   ├── BLOQR_DESIGN_LANGUAGE.md  # Personas, voice, page architecture, product strategy
 │   └── BLOQR_ETHOS.md            # Core promises, privacy philosophy, origin story
 │
-├── functions/
-│   └── waitlist.ts           # POST /waitlist — writes to Neon, enriches via Apollo.io
+├── functions/                # Handler modules imported by src/worker.ts (not auto-routed)
+│   ├── waitlist.ts           # handlePost/handleOptions for POST /waitlist
+│   ├── config.ts             # handleGet for GET /config
+│   └── admin/
+│       ├── config.ts         # handlePost for POST /admin/config
+│       └── blog.ts           # handleGet/handlePost/handlePut for /admin/blog
 │
 ├── public/                   # Static assets copied verbatim to dist/
 │
@@ -64,6 +68,7 @@ Astro site deployed to Cloudflare Pages.
 ├── sessions/                 # Agent/conversation session artifacts (reference only)
 │
 └── src/
+    ├── worker.ts             # Cloudflare Worker entry point — routes all requests
     ├── config.ts             # SITE_URL, LINKS, META — single source of truth
     ├── env.d.ts              # Astro environment type declarations
     │
@@ -98,35 +103,48 @@ Astro site deployed to Cloudflare Pages.
     │       └── [slug].astro
     │
     └── styles/
-        └── global.css        # Imports brand/tokens.css; global resets + base styles
+        └── global.css        # Global resets, base styles, and shared :root design tokens
 ```
 
 ---
 
 ## Commands
 
-| Command             | Description                                                |
-| ------------------- | ---------------------------------------------------------- |
-| `npm install`       | Install dependencies                                       |
-| `npm run dev`       | Astro dev server (HMR, no edge functions)                  |
-| `npm run build`     | Build static output to `dist/`                             |
-| `npm run preview`   | Wrangler Pages dev against `dist/` — includes CF Functions |
-| `npm run astro ...` | Astro CLI passthrough                                      |
+| Command             | Description                                                               |
+| ------------------- | ------------------------------------------------------------------------- |
+| `npm install`       | Install dependencies                                                      |
+| `npm run dev`       | Astro dev server (HMR for the static site; does not emulate CF runtime)   |
+| `npm run build`     | Build static output to `dist/`                                            |
+| `npm run preview`   | Wrangler dev server for local Cloudflare runtime/functions testing        |
+| `npm run astro ...` | Astro CLI passthrough                                                     |
 
-> **CF Functions require `npm run preview`**, not `npm run dev`. Local secrets
-> must be in `.dev.vars` (gitignored). See below.
+> Use `npm run dev` for normal Astro UI work and fast HMR. Use
+> `npm run preview` when you need Cloudflare Worker runtime behaviour or
+> access to local secrets from `.dev.vars` (gitignored). See below.
 
 ---
 
 ## Environment Variables
 
-| Variable         | Local file  | CF Pages secret | Notes                                   |
-| ---------------- | ----------- | --------------- | --------------------------------------- |
-| `DATABASE_URL`   | `.dev.vars` | ✅              | Neon connection string, branch-specific |
-| `APOLLO_API_KEY` | `.dev.vars` | ✅              | Apollo.io contact enrichment            |
-| `SITE_URL`       | `.env`      | CF env var      | Overrides default in `src/config.ts`    |
+| Variable               | Local file  | CF secret | Notes                                                    |
+| ---------------------- | ----------- | --------- | -------------------------------------------------------- |
+| `DATABASE_URL`         | `.dev.vars` | ✅        | Neon connection string, branch-specific                  |
+| `APOLLO_API_KEY`       | `.dev.vars` | ✅        | Apollo.io contact enrichment                             |
+| `ADMIN_SECRET`         | `.dev.vars` | ✅        | Required for admin-protected Worker flows                |
+| `BETTER_AUTH_SECRET`   | `.dev.vars` | ✅        | Better Auth signing/encryption secret                    |
+| `BETTER_AUTH_URL`      | `.dev.vars` | CF env var | Base URL for Better Auth callbacks and session endpoints |
+| `GITHUB_CLIENT_ID`     | `.dev.vars` | ✅        | GitHub OAuth application client ID                       |
+| `GITHUB_CLIENT_SECRET` | `.dev.vars` | ✅        | GitHub OAuth application client secret                   |
+| `SITE_URL`             | `.env`      | CF env var | Overrides default in `src/config.ts`                    |
 
-**Never commit `.dev.vars` or any secret.** The `.gitignore` excludes it.
+**Never commit `.dev.vars` or any secret.** Use `.dev.vars.example` as the
+committed template, then copy it locally to `.dev.vars` for `npm run preview`.
+Only `.dev.vars.example` belongs in Git; `.dev.vars` must remain untracked.
+
+If a `.dev.vars` file is ever found tracked in the repository, immediately
+remove it from the index (`git rm --cached .dev.vars`), purge it from Git
+history using `git filter-repo` or BFG Repo-Cleaner, rotate every secret that
+was exposed, and recreate `.dev.vars` locally from `.dev.vars.example`.
 
 ### Neon branch → `DATABASE_URL` mapping
 
@@ -156,12 +174,14 @@ internal page paths.
 - Svelte 5 runes only: `$props()`, `$state()`, `$derived()`, `$effect()`.
 - Do **not** use Svelte 4 `export let` syntax.
 - Scoped `<style>` block per component.
-- Use `var(--token-name)` from `brand/tokens.css` for all design values —
+- Use `var(--token-name)` from `src/styles/global.css` for all design values —
   never hardcode colours, spacing, or font sizes.
 
 ### CSS
 
-- All design tokens live in `brand/tokens.css`.
+- All design tokens are defined as CSS custom properties in `src/styles/global.css`
+  (the `:root` block). The `brand/tokens.css` file is the design reference, but
+  the variables actually used by components come from `global.css`.
 - Class names: BEM-adjacent descriptive names (`.hero__title`, `.features__grid`).
 - Do **not** introduce Tailwind, UnoCSS, or any utility-class framework.
 
@@ -171,10 +191,12 @@ internal page paths.
 - Prefer `const`; use explicit type annotations for function parameters.
 - Use `unknown` + type narrowing instead of `any`.
 
-### Cloudflare Pages Functions
+### Cloudflare Worker Routing
 
-- One function file per route: `functions/waitlist.ts` → `POST /waitlist`.
-- Keep functions thin: validate input → write to service → return `Response`.
+- All API routes are wired in `src/worker.ts` — add new endpoints there to make
+  them reachable. Handler files in `functions/*.ts` are imported by the Worker,
+  not auto-routed by Cloudflare.
+- Keep handlers thin: validate input → write to service → return `Response`.
 - Read secrets from the `env` binding passed by CF, **not** `process.env`.
 - Always set `Content-Type: application/json` and return correct HTTP status codes.
 
@@ -240,17 +262,16 @@ Full persona profiles are in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 
 ## Deployment
 
-Merging to `main` triggers a Cloudflare Pages deployment automatically.
+Merging to `main` triggers a Cloudflare Worker deployment automatically.
 
-Wrangler project name: `adblock-landing`  
-Build output: `./dist`  
+Worker entrypoint: `src/worker.ts`  
+Deploy command: `npm run deploy`  
 Build command: `npm run build`
 
 To deploy manually:
 
 ```bash
-npm run build
-npx wrangler pages deploy ./dist
+npm run deploy
 ```
 
 ---
@@ -259,5 +280,6 @@ npx wrangler pages deploy ./dist
 
 - `brand/BLOQR_DESIGN_LANGUAGE.md` — product strategy, personas, page architecture, voice
 - `brand/BLOQR_ETHOS.md` — privacy philosophy, core promises, origin story
-- `brand/tokens.css` — all CSS design tokens
+- `brand/tokens.css` — design token reference (values are mirrored in `src/styles/global.css`)
+- `src/styles/global.css` — active CSS custom properties used by all components
 - `src/config.ts` — canonical URLs, links, and site metadata

@@ -10,7 +10,7 @@ list compiler and real-time threat intelligence service.
 - Full brand strategy and personas: `brand/BLOQR_DESIGN_LANGUAGE.md`
 - Privacy philosophy and core promises: `brand/BLOQR_ETHOS.md`
 - Canonical URLs, links, and site metadata: `src/config.ts`
-- All CSS design tokens: `brand/tokens.css`
+- CSS design tokens (`:root` vars): `src/styles/global.css`
 
 ---
 
@@ -21,8 +21,8 @@ list compiler and real-time threat intelligence service.
 | Framework      | Astro 5 — `output: 'static'`, file-based routing         |
 | Components     | Svelte 5 — runes syntax (`$state`, `$props`, `$derived`) |
 | Language       | TypeScript — strict mode                                 |
-| Styling        | Plain CSS + CSS custom properties (`brand/tokens.css`)   |
-| Edge functions | Cloudflare Pages Functions (`functions/*.ts`)            |
+| Styling        | Plain CSS + CSS custom properties (`src/styles/global.css`) |
+| Edge runtime   | Cloudflare Worker (`src/worker.ts`) + handlers in `functions/` |
 | Database       | Neon Postgres (waitlist)                                 |
 
 ---
@@ -49,20 +49,21 @@ list compiler and real-time threat intelligence service.
 - Do **not** use Svelte 4 `export let` props, `$:` reactive declarations,
   or writable stores for local component state.
 - Keep styles in the component's `<style>` block (scoped by default).
-- Use `var(--token-name)` from `brand/tokens.css` for **all** colours,
+- Use `var(--token-name)` from `src/styles/global.css` for **all** colours,
   spacing, and typography values — never hardcode hex or rgb values.
 - One component = one major landing page section. Create sub-components
   for patterns repeated within a section, not across sections.
 
 ### CSS
 
-- All design tokens are in `brand/tokens.css` and imported via
-  `src/styles/global.css`.
+- Design tokens are defined as CSS custom properties in `src/styles/global.css`
+  (the `:root` block). The `brand/tokens.css` file is the design reference, but
+  the variables actually used by components come from `global.css`.
 - Class naming convention: BEM-adjacent, descriptive names
   (`.hero__subtitle`, `.features__card`, `.nav__link--active`).
 - Do **not** introduce Tailwind, UnoCSS, or any utility-class framework.
 - Media query breakpoints should use the token values already established
-  in `brand/tokens.css`.
+  in `src/styles/global.css`.
 
 ### Astro Pages
 
@@ -75,11 +76,11 @@ list compiler and real-time threat intelligence service.
 - Do not render content exclusively on the client side via toggled state —
   all SEO-relevant content must be present in the server-rendered HTML.
 
-### Cloudflare Pages Functions
+### Cloudflare Worker Routing
 
-- Function files in `functions/*.ts` map 1:1 to routes (`waitlist.ts` →
-  `/waitlist`).
-- Keep functions thin: **validate input → call service → return Response**.
+- New API routes must be added to `src/worker.ts` — handler files in
+  `functions/*.ts` are imported by the Worker, not auto-routed by Cloudflare.
+- Keep handlers thin: **validate input → call service → return Response**.
 - Read secrets from the `env` parameter (CF's binding) — never from
   `process.env`.
 - Always set `Content-Type: application/json` and return the correct
@@ -141,7 +142,7 @@ Full persona profiles in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 | ----------------------------------------- | --------------------------------------------- |
 | Hardcoding `bloqr.ai` or any URL          | Import from `src/config.ts` (`LINKS`, `META`) |
 | Svelte 4 `export let` prop syntax         | Svelte 5 `$props()` rune                      |
-| Hardcoded hex/rgb/spacing values          | `var(--token-name)` from `brand/tokens.css`   |
+| Hardcoded hex/rgb/spacing values          | `var(--token-name)` from `src/styles/global.css` |
 | `process.env` inside CF functions         | `env.VARIABLE_NAME` (CF Workers binding)      |
 | `any` TypeScript type                     | `unknown` + type narrowing                    |
 | Client-side-only content rendering        | SSR-present HTML, progressively enhanced      |
