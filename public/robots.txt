@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# TODO: update URL to https://bloqr.ai/sitemap-index.xml once the domain is live
+Sitemap: https://adblock-compiler-landing.pages.dev/sitemap-index.xml

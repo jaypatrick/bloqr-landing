@@ -15,7 +15,7 @@
     <p class="hygiene-def" aria-label="What is Internet Hygiene?">
       <strong class="hygiene-term">
         Internet Hygiene
-        <span class="hygiene-tooltip" role="tooltip">
+        <span class="hygiene-tooltip" aria-hidden="true">
           <em>Internet Hygiene</em> (n.) — the ongoing practices that keep your digital life clean, private, and safe.
           Think washing your hands, but for everything you do online.
         </span>

@@ -1,0 +1,16 @@
+{
+  "name": "Bloqr",
+  "short_name": "Bloqr",
+  "description": "Good Internet Hygiene. Automated.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#070B14",
+  "theme_color": "#FF5500",
+  "icons": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png"
+    }
+  ]
+}

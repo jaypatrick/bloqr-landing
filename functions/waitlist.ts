@@ -1,16 +1,20 @@
 /**
- * Cloudflare Pages Function — POST /waitlist
+ * Waitlist edge handler — POST /waitlist
  *
  * Accepts: { email: string, segment?: 'list-maker' | 'privacy-vendor' | 'individual' }
- * Writes to: Neon adblock-db.waitlist
+ * Writes to: Neon bloqr database (waitlist table)
  * Also creates/enriches an Apollo contact (fire-and-forget, non-blocking)
+ *
+ * Exported as plain functions so they can be imported by the Worker entry
+ * point (src/worker.ts) without duplicating logic.
  */
 
 import { neon } from '@neondatabase/serverless';
 
-interface Env {
+export interface Env {
   DATABASE_URL: string;
   APOLLO_API_KEY: string;
+  BROWSER: Fetcher;
 }
 
 interface WaitlistBody {
@@ -36,14 +40,15 @@ const json = (data: unknown, status = 200) =>
     },
   });
 
-export const onRequestOptions = () =>
-  new Response(null, {
+export function handleOptions(): Response {
+  return new Response(null, {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
+}
 
 /**
  * Push a new signup to Apollo as a contact (fire-and-forget).
@@ -79,7 +84,7 @@ async function pushToApollo(
   }
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export async function handlePost(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   // Parse body
   let body: WaitlistBody;
   try {
@@ -117,9 +122,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       VALUES (${email}, ${segment}, ${ip}, ${referrer})
     `;
 
-    // Fire Apollo sync in the background — don't await, don't block the response
+    // Fire Apollo sync in the background via waitUntil so it isn't cancelled
+    // after the response is returned.
     if (env.APOLLO_API_KEY) {
-      void pushToApollo(env.APOLLO_API_KEY, email, segment);
+      ctx.waitUntil(pushToApollo(env.APOLLO_API_KEY, email, segment));
     }
 
     return json({ success: true });
@@ -132,4 +138,5 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     console.error('Waitlist insert error:', msg);
     return json({ error: 'Something went wrong. Please try again.' }, 500);
   }
-};
+}
+
