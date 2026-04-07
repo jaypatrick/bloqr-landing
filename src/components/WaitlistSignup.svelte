@@ -116,6 +116,7 @@
             {/if}
 
             <p class="fine-print">No spam. One email when you're in.</p>
+            <p class="price-hint">Free tier at launch. Pro tier under <span class="price-figure">$5/month</span>. No two-year contracts.</p>
           </form>
         {/if}
       </div>
@@ -287,6 +288,17 @@
     font-size: 11px;
     color: var(--text-3);
     margin: 0;
+  }
+
+  .price-hint {
+    font-size: 11px;
+    color: var(--text-2);
+    margin: 6px 0 0;
+  }
+
+  .price-figure {
+    color: var(--orange);
+    font-weight: 600;
   }
 
   /* Success state */

@@ -6,6 +6,7 @@ import Hero from '../components/Hero.svelte';
 import SocialProof from '../components/SocialProof.svelte';
 import ComingSoon from '../components/ComingSoon.svelte';
 import Problem from '../components/Problem.svelte';
+import BeforeAfter from '../components/BeforeAfter.svelte';
 import HowItWorks from '../components/HowItWorks.svelte';
 import Audiences from '../components/Audiences.svelte';
 import Features from '../components/Features.svelte';
@@ -13,7 +14,9 @@ import WaitlistSignup from '../components/WaitlistSignup.svelte';
 import CodeDemo from '../components/CodeDemo.svelte';
 import DynamicWorkers from '../components/DynamicWorkers.svelte';
 import WhyCloudflare from '../components/WhyCloudflare.svelte';
+import PrivacyCommitments from '../components/PrivacyCommitments.svelte';
 import Pricing from '../components/Pricing.svelte';
+import FounderNote from '../components/FounderNote.svelte';
 import FAQ from '../components/FAQ.svelte';
 import CtaBanner from '../components/CtaBanner.svelte';
 import Footer from '../components/Footer.svelte';
@@ -43,7 +46,7 @@ const meta = {
   <meta property="og:image"        content={meta.image} />
   <meta property="og:image:width"  content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt"    content="Bloqr — Good Internet Hygiene. Automated." />
+  <meta property="og:image:alt"    content="Bloqr — Internet Hygiene: Automated." />
   <meta property="og:type"         content="website" />
 
   <!-- Twitter / X -->
@@ -51,7 +54,7 @@ const meta = {
   <meta name="twitter:title"       content={meta.title} />
   <meta name="twitter:description" content={meta.description} />
   <meta name="twitter:image"       content={meta.image} />
-  <meta name="twitter:image:alt"   content="Bloqr — Good Internet Hygiene. Automated." />
+  <meta name="twitter:image:alt"   content="Bloqr — Internet Hygiene: Automated." />
   <meta name="twitter:site"        content="@bloqr_ai" />
   <meta name="twitter:creator"     content="@jaysonknight" />
 
@@ -74,12 +77,15 @@ const meta = {
     <ComingSoon client:visible />
     <div class="divider-glow"></div>
     <Problem />
+    <BeforeAfter client:visible />
     <HowItWorks />
     <Audiences />
     <Features />
     <DynamicWorkers />
     <WhyCloudflare />
+    <PrivacyCommitments />
     <Pricing />
+    <FounderNote />
     <FAQ />
     <WaitlistSignup client:visible />
     <CodeDemo client:visible />
