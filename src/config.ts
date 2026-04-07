@@ -20,13 +20,14 @@ export const LINKS = {
   api:       'https://adblock-compiler-docs.pages.dev', // /api path not yet live — points to docs root
   jsr:       'https://jsr.io/@jk-com/adblock-compiler',
   author:    'https://jaysonknight.com',
-  vpnMyths:  '/vpn-myths',
-  about:     '/about',
-  blog:      '/blog',
-  changelog: '/changelog',
-  rss:       '/rss.xml',
-  privacy:   '/privacy',
-  terms:     '/terms',
+  vpnMyths:      '/vpn-myths',
+  whyNotPrivate: '/why-not-private',
+  about:         '/about',
+  blog:          '/blog',
+  changelog:     '/changelog',
+  rss:           '/rss.xml',
+  privacy:       '/privacy',
+  terms:         '/terms',
 } as const;
 
 /**
