@@ -12,7 +12,8 @@
     "preview": "wrangler dev",
     "deploy": "astro build && wrangler deploy",
     "sync-blog": "npx tsx scripts/sync-blog-from-db.ts",
-    "migrate-blog": "npx tsx scripts/migrate-blog-posts.ts"
+    "migrate-blog": "npx tsx scripts/migrate-blog-posts.ts",
+    "migrate:auth": "tsx scripts/migrate-better-auth.ts"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.0.0",
@@ -23,6 +24,7 @@
     "@fontsource/space-grotesk": "^5.2.10",
     "@neondatabase/serverless": "^1.0.2",
     "astro": "^5.0.0",
+    "better-auth": "^1.6.0",
     "posthog-js": "^1.364.7",
     "svelte": "^5.0.0"
   },

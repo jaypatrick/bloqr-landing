@@ -407,11 +407,33 @@
       loadConfig();
     }
 
-    // Check for existing token on page load
-    const existingToken = getStoredToken();
-    if (existingToken) {
-      unlockApp(existingToken);
+    // Check Better Auth session on page load (new way)
+    async function checkBetterAuthSession() {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.session) {
+            // Valid Better Auth session — unlock with a placeholder token value
+            unlockApp(data.session.token ?? '__better-auth__');
+            return true;
+          }
+        }
+      } catch { /* fall through to legacy auth */ }
+      return false;
     }
+
+    // On page load: try Better Auth first, then fall back to legacy token gate
+    (async () => {
+      const hasSession = await checkBetterAuthSession();
+      if (!hasSession) {
+        const existingToken = getStoredToken();
+        if (existingToken) {
+          unlockApp(existingToken);
+        }
+        // else: the auth gate UI is already visible (default state)
+      }
+    })();
 
     // Auth button handler
     document.getElementById('auth-btn').addEventListener('click', () => {
