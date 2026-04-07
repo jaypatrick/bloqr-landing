@@ -1,12 +1,13 @@
 /**
- * functions/admin/blog.ts — GET/POST/PUT /admin/blog handler
+ * functions/admin/blog.ts — GET/POST/PUT/OPTIONS /admin/blog handler
  *
  * Manages blog posts stored in Neon PostgreSQL.
  * Auth: Better Auth session (primary) or legacy ADMIN_SECRET bearer token (fallback).
  *
- * GET  /admin/blog  → list all posts (requires auth)
- * POST /admin/blog  → create new post (requires auth)
- * PUT  /admin/blog  → update existing post by id (requires auth)
+ * GET     /admin/blog  → list all posts (requires auth)
+ * POST    /admin/blog  → create new post (requires auth)
+ * PUT     /admin/blog  → update existing post by id (requires auth)
+ * OPTIONS /admin/blog  → CORS preflight
  *
  * Exported as plain functions for import by src/worker.ts.
  */

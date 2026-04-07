@@ -346,7 +346,12 @@
           showToast(`✓ ${key} saved.`);
           return true;
         } else if (res.status === 403) {
-          showToast('Access denied — check your admin secret.', 'error');
+          // Distinguish session-cookie auth (adminToken is empty) from legacy bearer auth.
+          if (adminToken) {
+            showToast('Access denied — check your admin secret.', 'error');
+          } else {
+            showToast('Access denied — your session may have expired. Please log in again.', 'error');
+          }
           return false;
         } else {
           showToast(`Error: ${data.error ?? 'Unknown error'}`, 'error');

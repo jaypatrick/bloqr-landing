@@ -64,10 +64,14 @@ export function isAdminUser(githubLogin: string): boolean {
 const FALLBACK_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
 
 /**
- * Module-level cache of betterAuth instances, keyed by config fingerprint.
- * Cloudflare Workers reuse the same isolate across requests in the same instance,
- * so memoizing here avoids reconstructing a new Pool + auth on every request.
+ * Module-level caches.
+ * - poolCache: reuses a single Pool per DATABASE_URL so we don't leak connections
+ *   when env values change across warm isolate requests (secret rotation, previews).
+ * - authInstanceCache: bounded to MAX_CACHE_ENTRIES betterAuth instances to prevent
+ *   unbounded growth when multiple env combinations are seen in the same isolate.
  */
+const MAX_CACHE_ENTRIES = 4;
+const poolCache         = new Map<string, InstanceType<typeof Pool>>();
 const authInstanceCache = new Map<string, ReturnType<typeof betterAuth>>();
 
 /**
@@ -80,13 +84,20 @@ function getOrCreateAuth(env: Env) {
     env.BETTER_AUTH_SECRET,
     env.BETTER_AUTH_URL ?? '',
     env.GITHUB_CLIENT_ID ?? '',
+    env.GITHUB_CLIENT_SECRET ?? '',
     env.BETTER_AUTH_TRUSTED_ORIGINS ?? '',
   ].join('|');
 
   const cached = authInstanceCache.get(cacheKey);
   if (cached) return cached;
 
-  const pool    = new Pool({ connectionString: env.DATABASE_URL });
+  // Reuse an existing Pool for this DATABASE_URL to avoid leaking connections
+  // across cache entries when env values change while an isolate stays warm.
+  let pool = poolCache.get(env.DATABASE_URL);
+  if (!pool) {
+    pool = new Pool({ connectionString: env.DATABASE_URL });
+    poolCache.set(env.DATABASE_URL, pool);
+  }
   const baseURL = env.BETTER_AUTH_URL ?? FALLBACK_BASE_URL;
 
   const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
@@ -140,6 +151,11 @@ function getOrCreateAuth(env: Env) {
     },
   });
 
+  // Evict the oldest entry when the cache is full before inserting a new one.
+  if (authInstanceCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = authInstanceCache.keys().next().value!;
+    authInstanceCache.delete(oldestKey);
+  }
   authInstanceCache.set(cacheKey, auth);
   return auth;
 }
