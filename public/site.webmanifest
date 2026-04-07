@@ -6,11 +6,5 @@
   "display": "browser",
   "background_color": "#070B14",
   "theme_color": "#FF5500",
-  "icons": [
-    {
-      "src": "/og-image.png",
-      "sizes": "1200x630",
-      "type": "image/png"
-    }
-  ]
+  "icons": []
 }
