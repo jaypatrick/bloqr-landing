@@ -48,8 +48,9 @@ binding = "BROWSER"
 # Workers → adblock-landing → Settings → Environment variables
 # Add both as type "Secret" (encrypted at rest):
 #
-#   DATABASE_URL   — Neon adblock-compiler connection string (branch-specific, see above)
+#   DATABASE_URL   — Neon bloqr database connection string (branch-specific, see above; currently named adblock-compiler)
 #   APOLLO_API_KEY — Apollo.io API key for contact enrichment
+#   ADMIN_SECRET   — Password for /admin/config UI (any strong random string)
 #
 # Local dev: values live in .dev.vars (gitignored), then run:
 #   npm run preview   →  wrangler dev
