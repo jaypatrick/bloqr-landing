@@ -230,7 +230,8 @@
       const urlToken = new URLSearchParams(window.location.search).get('token');
       if (urlToken) {
         // Persist in session cookie so reloads don't require re-entry
-        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict; Secure`;
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict${secure}`;
         // Strip from URL bar (cosmetic — real auth is server-side)
         const url = new URL(window.location.href);
         url.searchParams.delete('token');
@@ -243,7 +244,8 @@
     }
 
     function storeToken(token) {
-      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict${secure}`;
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
