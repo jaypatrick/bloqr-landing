@@ -1,0 +1,62 @@
+/**
+ * functions/config.ts — GET /config
+ *
+ * Returns all site_config rows as a flat JSON object { key: value }.
+ * This endpoint is PUBLIC (config values are URLs, nothing sensitive).
+ *
+ * Response is cached for 5 minutes at the edge, with a 10-minute
+ * stale-while-revalidate window so deploys don't cause a hard miss.
+ */
+
+import { neon } from '@neondatabase/serverless';
+
+interface Env {
+  DATABASE_URL: string;
+}
+
+interface SiteConfigRow {
+  key:   string;
+  value: string;
+}
+
+const json = (data: unknown, status = 200, extraHeaders?: Record<string, string>) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type':  'application/json',
+      'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+      'Access-Control-Allow-Origin': '*',
+      ...extraHeaders,
+    },
+  });
+
+export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+  if (!env.DATABASE_URL) {
+    return json({ error: 'Service unavailable.' }, 503, { 'Cache-Control': 'no-store' });
+  }
+
+  const sql = neon(env.DATABASE_URL);
+
+  try {
+    const rows = await sql<SiteConfigRow[]>`SELECT key, value FROM site_config ORDER BY key`;
+
+    const config: Record<string, string> = {};
+    for (const row of rows) {
+      config[row.key] = row.value;
+    }
+
+    return json(config);
+  } catch (err) {
+    console.error('GET /config error:', err);
+    return json({ error: 'Failed to load config.' }, 500, { 'Cache-Control': 'no-store' });
+  }
+};
+
+export const onRequestOptions: PagesFunction = () =>
+  new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin':  '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
