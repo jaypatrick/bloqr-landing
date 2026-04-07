@@ -1,3 +1,4 @@
+// Astro telemetry is disabled via ASTRO_TELEMETRY_DISABLED=1 (set in CI env and .env.example)
 import { defineConfig } from 'astro/config';
 import svelte from '@astrojs/svelte';
 import cloudflare from '@astrojs/cloudflare';
