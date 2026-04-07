@@ -14,7 +14,7 @@ pages_build_output_dir = "./dist"
 #     Returns all site_config rows as { [key]: value }.
 #     Read path: D1 cache (< 5 min old) → Neon (on miss/stale) → write back to D1
 #   functions/admin/config.ts   →  POST /admin/config
-#     Writes a site_config row to Neon and invalidates the D1 cache for that key.
+#     Writes a site_config row to Neon and flushes the entire D1 cache.
 #
 # ─── Neon branch → DATABASE_URL mapping ──────────────────────────────────────
 #   production  ep-winter-term-a8rxh2a9-pooler      → adblock-compiler (production CF secret)
@@ -42,7 +42,12 @@ pages_build_output_dir = "./dist"
 # Caches site_config rows from Neon for low-latency reads at the edge.
 # See D1 setup steps above for first-time provisioning instructions.
 #
-[[d1_databases]]
-binding = "CONFIG_CACHE"
-database_name = "bloqr-config-cache"
-database_id = "REPLACE_WITH_DATABASE_ID_AFTER_CREATION"
+# ⚠️  The [[d1_databases]] binding below is commented out so the default config
+# remains runnable without a real D1 database. After running setup step 1 above,
+# uncomment the block and replace REPLACE_WITH_DATABASE_ID_AFTER_CREATION with
+# the actual database_id printed by `wrangler d1 create`.
+#
+# [[d1_databases]]
+# binding = "CONFIG_CACHE"
+# database_name = "bloqr-config-cache"
+# database_id = "REPLACE_WITH_DATABASE_ID_AFTER_CREATION"

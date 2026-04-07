@@ -15,7 +15,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 interface Env {
   DATABASE_URL: string;
   ADMIN_SECRET: string;
-  CONFIG_CACHE: D1Database; // D1 binding
+  CONFIG_CACHE?: D1Database; // D1 binding (optional — degrades gracefully to Neon-only)
 }
 
 interface CacheRow {
@@ -85,7 +85,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     const cached = await readFromD1(env.CONFIG_CACHE);
     if (cached) {
       return json(cached, 200, {
-        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+        'Cache-Control': 'public, max-age=300',
         'X-Cache': 'HIT',
       });
     }
@@ -106,7 +106,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   }
 
   return json(config, 200, {
-    'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+    'Cache-Control': 'public, max-age=300',
     'X-Cache': 'MISS',
   });
 };

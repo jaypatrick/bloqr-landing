@@ -9,12 +9,12 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { invalidateD1Key } from '../config';
+import { invalidateD1Cache } from '../config';
 
 interface Env {
   DATABASE_URL: string;
   ADMIN_SECRET: string;
-  CONFIG_CACHE: D1Database; // D1 binding
+  CONFIG_CACHE?: D1Database; // D1 binding (optional — degrades gracefully to Neon-only)
 }
 
 interface ConfigBody {
@@ -79,10 +79,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
     `;
 
-    // Invalidate the D1 cache for this key (non-blocking — eventual consistency:
-    // a failed invalidation means the stale cache entry expires naturally after 5 min).
+    // Flush the entire D1 cache (non-blocking — eventual consistency:
+    // a failed invalidation means the stale entries expire naturally after 5 min TTL).
+    // Full flush is used (not single-key delete) to prevent a partial cache from
+    // being served on the next GET /config if only one key is deleted.
     if (env.CONFIG_CACHE) {
-      void invalidateD1Key(env.CONFIG_CACHE, key).catch((err) =>
+      void invalidateD1Cache(env.CONFIG_CACHE).catch((err) =>
         console.warn('D1 cache invalidation failed:', err),
       );
     }
