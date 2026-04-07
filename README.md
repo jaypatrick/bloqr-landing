@@ -9,6 +9,10 @@ Astro + Svelte landing page, deployed to Cloudflare Pages.
 - **Deployment**: [Cloudflare Pages](https://pages.cloudflare.com)
 - **Fonts**: Space Grotesk + JetBrains Mono (Google Fonts)
 
+## Requirements
+
+- **Node.js ≥ 20.18.1** — required by Wrangler v4 and its `undici`/`miniflare` transitive dependencies. Node.js 22 LTS is recommended and used in CI.
+
 ## Quick start
 
 ```bash
