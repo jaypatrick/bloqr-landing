@@ -1,5 +1,5 @@
 ---
-applyTo: '**'
+applyTo: "**"
 ---
 
 # Bloqr Landing — GitHub Copilot Instructions
@@ -16,14 +16,14 @@ list compiler and real-time threat intelligence service.
 
 ## Tech Stack
 
-| Layer          | Technology                                              |
-| -------------- | ------------------------------------------------------- |
-| Framework      | Astro 5 — `output: 'static'`, file-based routing        |
+| Layer          | Technology                                               |
+| -------------- | -------------------------------------------------------- |
+| Framework      | Astro 5 — `output: 'static'`, file-based routing         |
 | Components     | Svelte 5 — runes syntax (`$state`, `$props`, `$derived`) |
-| Language       | TypeScript — strict mode                                |
-| Styling        | Plain CSS + CSS custom properties (`brand/tokens.css`)  |
-| Edge functions | Cloudflare Pages Functions (`functions/*.ts`)           |
-| Database       | Neon Postgres (waitlist)                                |
+| Language       | TypeScript — strict mode                                 |
+| Styling        | Plain CSS + CSS custom properties (`brand/tokens.css`)   |
+| Edge functions | Cloudflare Pages Functions (`functions/*.ts`)            |
+| Database       | Neon Postgres (waitlist)                                 |
 
 ---
 
@@ -91,7 +91,7 @@ list compiler and real-time threat intelligence service.
 
 ## Brand Voice
 
-> Full guidelines: `brand/BLOQR_DESIGN_LANGUAGE.md` → *Voice & Tone*
+> Full guidelines: `brand/BLOQR_DESIGN_LANGUAGE.md` → _Voice & Tone_
 
 ### Write
 
@@ -111,12 +111,12 @@ list compiler and real-time threat intelligence service.
 
 ### Core Mantras — Use These, Don't Paraphrase
 
-| Mantra                                 | Usage context              |
-| -------------------------------------- | -------------------------- |
-| "Set it. Bloqr it. Forget it."         | Consumer-facing CTAs       |
-| "Bring your own. Or use ours."         | Vendor / integration copy  |
-| "Good internet habits. Automated."     | Tagline — universal        |
-| "Browsing Hygiene"                     | Our coined concept for DNS |
+| Mantra                             | Usage context              |
+| ---------------------------------- | -------------------------- |
+| "Set it. Bloqr it. Forget it."     | Consumer-facing CTAs       |
+| "Bring your own. Or use ours."     | Vendor / integration copy  |
+| "Good internet habits. Automated." | Tagline — universal        |
+| "Browsing Hygiene"                 | Our coined concept for DNS |
 
 ---
 
@@ -124,12 +124,12 @@ list compiler and real-time threat intelligence service.
 
 When writing copy or UI labels, identify which persona is addressed:
 
-| # | Name         | Who they are                                              |
-| - | ------------ | --------------------------------------------------------- |
-| 1 | Beneficiary  | Everyday consumer — no DNS knowledge, wants one-switch UX |
-| 2 | Pilot        | Power user — self-hosted DNS, privacy-aware               |
-| 3 | Builder      | Developer or list maker — API, library, CLI user          |
-| 4 | Ally         | DNS vendor / partner (AdGuard, NextDNS, Pi-hole)          |
+| #   | Name        | Who they are                                              |
+| --- | ----------- | --------------------------------------------------------- |
+| 1   | Beneficiary | Everyday consumer — no DNS knowledge, wants one-switch UX |
+| 2   | Pilot       | Power user — self-hosted DNS, privacy-aware               |
+| 3   | Builder     | Developer or list maker — API, library, CLI user          |
+| 4   | Ally        | DNS vendor / partner (AdGuard, NextDNS, Pi-hole)          |
 
 Full persona profiles in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 
@@ -137,16 +137,16 @@ Full persona profiles in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 
 ## Anti-Patterns — Always Avoid
 
-| Anti-pattern                              | Preferred alternative                          |
-| ----------------------------------------- | ---------------------------------------------- |
-| Hardcoding `bloqr.ai` or any URL          | Import from `src/config.ts` (`LINKS`, `META`)  |
-| Svelte 4 `export let` prop syntax         | Svelte 5 `$props()` rune                       |
-| Hardcoded hex/rgb/spacing values          | `var(--token-name)` from `brand/tokens.css`    |
-| `process.env` inside CF functions         | `env.VARIABLE_NAME` (CF Workers binding)       |
-| `any` TypeScript type                     | `unknown` + type narrowing                     |
-| Client-side-only content rendering        | SSR-present HTML, progressively enhanced       |
-| Positioning AI as replacing list makers   | AI complements and amplifies human curation    |
-| Conflating privacy with anonymity in copy | Use the correct, distinct term                 |
+| Anti-pattern                              | Preferred alternative                         |
+| ----------------------------------------- | --------------------------------------------- |
+| Hardcoding `bloqr.ai` or any URL          | Import from `src/config.ts` (`LINKS`, `META`) |
+| Svelte 4 `export let` prop syntax         | Svelte 5 `$props()` rune                      |
+| Hardcoded hex/rgb/spacing values          | `var(--token-name)` from `brand/tokens.css`   |
+| `process.env` inside CF functions         | `env.VARIABLE_NAME` (CF Workers binding)      |
+| `any` TypeScript type                     | `unknown` + type narrowing                    |
+| Client-side-only content rendering        | SSR-present HTML, progressively enhanced      |
+| Positioning AI as replacing list makers   | AI complements and amplifies human curation   |
+| Conflating privacy with anonymity in copy | Use the correct, distinct term                |
 
 ---
 
@@ -155,7 +155,7 @@ Full persona profiles in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 - **Code / UI toggle:** Code blocks on the landing page pair with a UI
   mockup. The "Show code" toggle reveals the underlying JSON/YAML/API
   call. Always include the companion message:
-  *"You'll never write a line of this. The UI builds it for you."*
+  _"You'll never write a line of this. The UI builds it for you."_
 - **Progressive disclosure:** The product has two modes — "Do it for me"
   (AI-configured) and "Let me drive" (full JSON/YAML/API). Copy and UI
   should never assume one mode over the other.

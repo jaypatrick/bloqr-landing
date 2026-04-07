@@ -11,29 +11,29 @@ making changes, running commands, or generating content.
 intelligence service. This repo is the **marketing landing site** — a static
 Astro site deployed to Cloudflare Pages.
 
-| Field           | Value                                                          |
-| --------------- | -------------------------------------------------------------- |
-| Product tagline | "Good Internet Hygiene. Automated."                            |
+| Field           | Value                                                         |
+| --------------- | ------------------------------------------------------------- |
+| Product tagline | "Good Internet Hygiene. Automated."                           |
 | Repo            | `adblock-compiler.landing` (`bloqr-landing`)                  |
-| Owner           | `jaypatrick`                                                   |
-| Default branch  | `main`                                                         |
-| Deploy target   | Cloudflare Pages (static)                                      |
+| Owner           | `jaypatrick`                                                  |
+| Default branch  | `main`                                                        |
+| Deploy target   | Cloudflare Pages (static)                                     |
 | Production URL  | `https://adblock-compiler-landing.pages.dev` → `bloqr.ai` TBD |
 
 ---
 
 ## Tech Stack
 
-| Layer           | Technology                                             |
-| --------------- | ------------------------------------------------------ |
-| Framework       | Astro 5 (`output: 'static'`)                           |
-| Components      | Svelte 5 (runes syntax)                                |
-| Language        | TypeScript (strict mode)                               |
-| Styling         | Plain CSS + CSS custom properties (`brand/tokens.css`) |
-| Edge functions  | Cloudflare Pages Functions (`functions/`)              |
-| Database        | Neon Postgres (waitlist signups)                       |
-| CRM             | Apollo.io (contact enrichment, fire-and-forget)        |
-| Fonts           | JetBrains Mono (code) + Space Grotesk (UI)             |
+| Layer          | Technology                                             |
+| -------------- | ------------------------------------------------------ |
+| Framework      | Astro 5 (`output: 'static'`)                           |
+| Components     | Svelte 5 (runes syntax)                                |
+| Language       | TypeScript (strict mode)                               |
+| Styling        | Plain CSS + CSS custom properties (`brand/tokens.css`) |
+| Edge functions | Cloudflare Pages Functions (`functions/`)              |
+| Database       | Neon Postgres (waitlist signups)                       |
+| CRM            | Apollo.io (contact enrichment, fire-and-forget)        |
+| Fonts          | JetBrains Mono (code) + Space Grotesk (UI)             |
 
 ---
 
@@ -105,13 +105,13 @@ Astro site deployed to Cloudflare Pages.
 
 ## Commands
 
-| Command             | Description                                                     |
-| ------------------- | --------------------------------------------------------------- |
-| `npm install`       | Install dependencies                                            |
-| `npm run dev`       | Astro dev server (HMR, no edge functions)                       |
-| `npm run build`     | Build static output to `dist/`                                  |
-| `npm run preview`   | Wrangler Pages dev against `dist/` — includes CF Functions      |
-| `npm run astro ...` | Astro CLI passthrough                                           |
+| Command             | Description                                                |
+| ------------------- | ---------------------------------------------------------- |
+| `npm install`       | Install dependencies                                       |
+| `npm run dev`       | Astro dev server (HMR, no edge functions)                  |
+| `npm run build`     | Build static output to `dist/`                             |
+| `npm run preview`   | Wrangler Pages dev against `dist/` — includes CF Functions |
+| `npm run astro ...` | Astro CLI passthrough                                      |
 
 > **CF Functions require `npm run preview`**, not `npm run dev`. Local secrets
 > must be in `.dev.vars` (gitignored). See below.
@@ -120,21 +120,21 @@ Astro site deployed to Cloudflare Pages.
 
 ## Environment Variables
 
-| Variable        | Local file   | CF Pages secret | Notes                                   |
-| --------------- | ------------ | --------------- | --------------------------------------- |
-| `DATABASE_URL`  | `.dev.vars`  | ✅               | Neon connection string, branch-specific |
-| `APOLLO_API_KEY`| `.dev.vars`  | ✅               | Apollo.io contact enrichment            |
-| `SITE_URL`      | `.env`       | CF env var      | Overrides default in `src/config.ts`    |
+| Variable         | Local file  | CF Pages secret | Notes                                   |
+| ---------------- | ----------- | --------------- | --------------------------------------- |
+| `DATABASE_URL`   | `.dev.vars` | ✅              | Neon connection string, branch-specific |
+| `APOLLO_API_KEY` | `.dev.vars` | ✅              | Apollo.io contact enrichment            |
+| `SITE_URL`       | `.env`      | CF env var      | Overrides default in `src/config.ts`    |
 
 **Never commit `.dev.vars` or any secret.** The `.gitignore` excludes it.
 
 ### Neon branch → `DATABASE_URL` mapping
 
-| Branch       | Neon endpoint                              |
-| ------------ | ------------------------------------------ |
-| `production` | `ep-winter-term-a8rxh2a9-pooler`           |
-| `staging`    | `ep-polished-resonance-a8mefek3-pooler`    |
-| `dev/jayson` | `ep-round-recipe-a8b3d3bd-pooler`          |
+| Branch       | Neon endpoint                           |
+| ------------ | --------------------------------------- |
+| `production` | `ep-winter-term-a8rxh2a9-pooler`        |
+| `staging`    | `ep-polished-resonance-a8mefek3-pooler` |
+| `dev/jayson` | `ep-round-recipe-a8b3d3bd-pooler`       |
 
 ---
 
@@ -145,7 +145,7 @@ Astro site deployed to Cloudflare Pages.
 **Always import from `src/config.ts`** — never inline URLs or strings.
 
 ```ts
-import { SITE_URL, LINKS, META } from '../config';
+import { SITE_URL, LINKS, META } from "../config";
 ```
 
 `LINKS` includes `app`, `github`, `docs`, `api`, `jsr`, `author`, and all
@@ -188,16 +188,16 @@ internal page paths.
 
 ## Brand Voice — Quick Reference
 
-Full detail: `brand/BLOQR_DESIGN_LANGUAGE.md` → *Voice & Tone Guidelines*
+Full detail: `brand/BLOQR_DESIGN_LANGUAGE.md` → _Voice & Tone Guidelines_
 
 ### Core Mantras
 
-| Mantra                                    | Context                              |
-| ----------------------------------------- | ------------------------------------ |
-| "Set it. Bloqr it. Forget it."            | Consumer promise — zero maintenance  |
-| "Bring your own. Or use ours."            | Vendor philosophy — no lock-in       |
-| "Good internet habits. Automated."        | Tagline — applies to all personas    |
-| "Browsing Hygiene"                        | Our coined concept — not "security"  |
+| Mantra                             | Context                             |
+| ---------------------------------- | ----------------------------------- |
+| "Set it. Bloqr it. Forget it."     | Consumer promise — zero maintenance |
+| "Bring your own. Or use ours."     | Vendor philosophy — no lock-in      |
+| "Good internet habits. Automated." | Tagline — applies to all personas   |
+| "Browsing Hygiene"                 | Our coined concept — not "security" |
 
 ### Write
 
@@ -214,12 +214,12 @@ Full detail: `brand/BLOQR_DESIGN_LANGUAGE.md` → *Voice & Tone Guidelines*
 
 ### The Four Personas
 
-| # | Persona      | Who They Are                                              |
-| - | ------------ | --------------------------------------------------------- |
-| 1 | Beneficiary  | Everyday consumer — no DNS knowledge, one-switch UX       |
-| 2 | Pilot        | Power user — self-hosted DNS, technically literate        |
-| 3 | Builder      | Developer / list maker — API, library, CLI user           |
-| 4 | Ally         | DNS vendor / partner (AdGuard, NextDNS, Pi-hole)          |
+| #   | Persona     | Who They Are                                        |
+| --- | ----------- | --------------------------------------------------- |
+| 1   | Beneficiary | Everyday consumer — no DNS knowledge, one-switch UX |
+| 2   | Pilot       | Power user — self-hosted DNS, technically literate  |
+| 3   | Builder     | Developer / list maker — API, library, CLI user     |
+| 4   | Ally        | DNS vendor / partner (AdGuard, NextDNS, Pi-hole)    |
 
 When writing copy, identify which persona is addressed and match the voice.
 Full persona profiles are in `brand/BLOQR_DESIGN_LANGUAGE.md`.
@@ -228,12 +228,12 @@ Full persona profiles are in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 
 ## Sensitive Areas — Do Not Get These Wrong
 
-| Topic                    | Rule                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------ |
-| AI vs. list makers       | AI complements human curation — never frames it as a replacement                          |
-| DNS vendor relationships | Bloqr is infrastructure that augments every vendor — never adversarial                    |
-| Privacy vs. anonymity    | Bloqr improves privacy (data exposure control), not anonymity (identity hiding)            |
-| AI opt-in                | Features using personal data must be explicitly opt-in — not buried in a privacy policy   |
+| Topic                    | Rule                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| AI vs. list makers       | AI complements human curation — never frames it as a replacement                             |
+| DNS vendor relationships | Bloqr is infrastructure that augments every vendor — never adversarial                       |
+| Privacy vs. anonymity    | Bloqr improves privacy (data exposure control), not anonymity (identity hiding)              |
+| AI opt-in                | Features using personal data must be explicitly opt-in — not buried in a privacy policy      |
 | Code on landing page     | Code blocks are intentional and accessible — always pair with "you never need to write this" |
 
 ---
