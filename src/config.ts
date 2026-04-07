@@ -4,11 +4,9 @@
  * SITE_URL is read from environment at build time.
  * Set it in your Cloudflare Pages dashboard under Settings → Environment variables,
  * or in a local .env file during development.
- *
- * Once bloqr.ai is confirmed, update SITE_URL here or in the env variable.
  */
 export const SITE_URL =
-  import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // ← update to bloqr.ai when confirmed
+  import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // TODO: update to https://bloqr.ai when domain is confirmed
 
 /** External URLs — one place to update if they ever change */
 export const LINKS = {
@@ -25,9 +23,13 @@ export const LINKS = {
   rss:       '/rss.xml',
 } as const;
 
-/** Site metadata */
+/**
+ * Static metadata — used at build time for static pages.
+ * For runtime updates (URLs, branding), use /admin/config after PR #4 merges.
+ * The tagline and product name here feed into <title>, OG tags, and the manifest.
+ */
 export const META = {
-  title:       'Bloqr — Good Internet Hygiene. Automated.',
-  description: 'AI-powered filter list compilation and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
+  title:       'Bloqr — Internet Hygiene: Automated.',
+  description: 'AI-powered adblock list management and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
   ogImage:     '/og-image.png', // regenerate once bloqr.ai brand assets are confirmed
 } as const;

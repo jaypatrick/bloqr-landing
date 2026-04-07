@@ -30,7 +30,7 @@
       </div>
       <div class="logo-text">
         <span class="logo-name">BLOQR</span>
-        <span class="logo-sub">Internet Hygiene. Automated.</span>
+        <span class="logo-sub">Internet Hygiene: Automated.</span>
       </div>
     </a>
 
