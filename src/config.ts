@@ -25,8 +25,8 @@ export const LINKS = {
 
 /**
  * Static metadata — used at build time for static pages.
- * For runtime updates (URLs, branding), use /admin/config after PR #4 merges.
- * The tagline and product name here feed into <title>, OG tags, and the manifest.
+ * Update branding, URLs, tagline, and product name here, then rebuild to apply changes.
+ * These values feed into <title>, OG tags, and the manifest.
  */
 export const META = {
   title:       'Bloqr — Internet Hygiene: Automated.',
