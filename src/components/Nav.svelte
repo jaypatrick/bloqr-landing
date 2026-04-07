@@ -93,9 +93,13 @@
 
   <!-- Mobile menu -->
   {#if menuOpen}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="mobile-backdrop" onclick={closeMenu} aria-hidden="true"></div>
+    <button
+      class="mobile-backdrop"
+      onclick={closeMenu}
+      onkeydown={(e) => e.key === 'Escape' && closeMenu()}
+      aria-label="Close navigation menu"
+      tabindex="-1"
+    ></button>
     <div id="mobile-menu" class="mobile-menu" role="dialog" aria-label="Navigation menu">
       <ul class="mobile-links" role="list">
         <li><a href="/#why"           onclick={closeMenu}>Why Bloqr</a></li>
@@ -325,6 +329,12 @@
     background: rgba(7, 11, 20, 0.6);
     backdrop-filter: blur(2px);
     z-index: 98;
+    /* button reset */
+    border: none;
+    padding: 0;
+    cursor: default;
+    display: block;
+    width: 100%;
   }
 
   .mobile-menu {
