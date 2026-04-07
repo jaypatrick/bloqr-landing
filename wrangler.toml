@@ -40,4 +40,5 @@ pages_build_output_dir = "./dist"
 [[d1_databases]]
 binding = "CONFIG_CACHE"
 database_name = "bloqr-config-cache"
+# ⚠️  REQUIRED before deployment: replace with the real ID from `wrangler d1 create bloqr-config-cache`
 database_id = "REPLACE_WITH_DATABASE_ID_AFTER_CREATION"
