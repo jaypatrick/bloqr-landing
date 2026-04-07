@@ -51,7 +51,7 @@
       </p>
     </div>
 
-    <div class="panels" role="img" aria-label="Side-by-side page load comparison: without Bloqr shows 4.2 seconds with 18 requests including trackers and ads; with Bloqr shows 1.1 seconds with only 6 legitimate content requests">
+    <div class="panels" role="img" aria-label="Side-by-side page load comparison: without Bloqr shows 18 requests including 5 trackers, 4 ad scripts, and 3 suspicious domains; with Bloqr shows only 6 legitimate content requests with 12 domains blocked">
       <!-- Without Bloqr -->
       <div class="panel panel--bad">
         <div class="panel-header">
@@ -74,13 +74,13 @@
           {/each}
         </div>
         <div class="panel-footer bad-footer">
-          <span>47 requests</span>
+          <span>18 requests</span>
           <span class="sep" aria-hidden="true">·</span>
-          <span>23 trackers</span>
+          <span>5 trackers</span>
           <span class="sep" aria-hidden="true">·</span>
-          <span>8 ad scripts</span>
+          <span>4 ad scripts</span>
           <span class="sep" aria-hidden="true">·</span>
-          <span class="muted">real content buried in noise</span>
+          <span class="muted">3 suspicious domains · real content buried in noise</span>
         </div>
       </div>
 
@@ -120,13 +120,13 @@
           {/each}
         </div>
         <div class="panel-footer good-footer">
-          <span>24 requests</span>
+          <span>6 requests</span>
           <span class="sep" aria-hidden="true">·</span>
           <span class="good-stat">0 trackers</span>
           <span class="sep" aria-hidden="true">·</span>
           <span class="good-stat">0 ads</span>
           <span class="sep" aria-hidden="true">·</span>
-          <span class="muted">23 domains blocked before your browser asked</span>
+          <span class="muted">12 domains blocked before your browser asked</span>
         </div>
       </div>
     </div>
