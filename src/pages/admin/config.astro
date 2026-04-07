@@ -1,0 +1,452 @@
+---
+/**
+ * src/pages/admin/config.astro — /admin/config
+ *
+ * Minimal admin UI for editing site_config rows.
+ * Password-gated by ?token= query param or session cookie (checked client-side).
+ * Real security is enforced by the POST /admin/config edge function (ADMIN_SECRET bearer check).
+ *
+ * NOTE: This is an internal tool — no fancy UI needed.
+ * After saving, trigger a Cloudflare Pages redeploy for static pages to pick up new values.
+ *
+ * This page is intentionally kept in version control.
+ * ADMIN_SECRET must be set in Cloudflare Pages environment variables (see wrangler.toml comments).
+ */
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Site Config Admin — Bloqr</title>
+  <style>
+    /* ── Base (reuse tokens from global.css — inlined here since this page is standalone) ── */
+    :root {
+      --bg-base:     #070B14;
+      --bg-surface:  #0E1829;
+      --bg-elevated: #162035;
+      --orange:      #FF5500;
+      --cyan:        #00D4FF;
+      --text-1:      #F1F5F9;
+      --text-2:      #94A3B8;
+      --text-3:      #475569;
+      --border:      #1E2D40;
+      --border-2:    #2A3F5A;
+      --font-display:system-ui, sans-serif;
+      --font-mono:   monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-1);
+      font-family: var(--font-display);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 24px;
+    }
+
+    .container { max-width: 840px; margin: 0 auto; }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .notice {
+      background: rgba(255,85,0,0.1);
+      border: 1px solid rgba(255,85,0,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      color: var(--text-2);
+      margin-bottom: 28px;
+    }
+    .notice strong { color: var(--orange); }
+
+    /* ── Auth gate ── */
+    #auth-gate {
+      max-width: 400px;
+      margin: 80px auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+    }
+    #auth-gate h2 { font-size: 1.1rem; margin-bottom: 20px; }
+    #auth-gate label { display: block; font-size: 0.8rem; color: var(--text-2); margin-bottom: 6px; }
+    #auth-gate input[type="password"] {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-2);
+      border-radius: 6px;
+      color: var(--text-1);
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    #auth-gate input[type="password"]:focus { border-color: var(--orange); }
+
+    /* ── Config table ── */
+    #config-app { display: none; }
+
+    .config-row {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    .config-row-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .config-key {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--cyan);
+    }
+    .config-label {
+      font-size: 0.78rem;
+      color: var(--text-3);
+    }
+    .config-row input[type="text"] {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-2);
+      border-radius: 6px;
+      color: var(--text-1);
+      font-size: 0.875rem;
+      padding: 9px 12px;
+      margin-bottom: 10px;
+      outline: none;
+      font-family: var(--font-mono);
+    }
+    .config-row input[type="text"]:focus { border-color: var(--orange); }
+
+    /* ── Buttons ── */
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 120ms;
+    }
+    .btn-primary {
+      background: var(--orange);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #ff7033; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent;
+      color: var(--text-1);
+      border: 1px solid var(--border-2);
+    }
+    .btn-outline:hover { border-color: var(--text-2); background: var(--bg-elevated); }
+
+    .save-all-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 0.875rem;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 250ms, transform 250ms;
+      pointer-events: none;
+      z-index: 999;
+      max-width: 340px;
+    }
+    #toast.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    #toast.success { border-color: #22c55e; color: #4ade80; }
+    #toast.error   { border-color: #ef4444; color: #f87171; }
+
+    #loading { color: var(--text-2); padding: 32px 0; }
+    #error-msg { color: #f87171; padding: 16px 0; display: none; }
+  </style>
+</head>
+<body>
+  <!-- ── Auth gate ── -->
+  <div id="auth-gate">
+    <h2>🔐 Admin — Site Config</h2>
+    <label for="token-input">Admin secret</label>
+    <input id="token-input" type="password" placeholder="Enter ADMIN_SECRET…" autocomplete="current-password" />
+    <button class="btn-primary" id="auth-btn" style="width:100%">Unlock</button>
+    <p id="auth-error" style="color:#f87171;font-size:0.8rem;margin-top:10px;display:none;">Incorrect secret — try again.</p>
+  </div>
+
+  <!-- ── Config editor (hidden until auth passes) ── -->
+  <div id="config-app" class="container">
+    <h1>Site Config</h1>
+    <div class="notice">
+      <strong>Reminder:</strong> After saving, trigger a <strong>Cloudflare Pages redeploy</strong>
+      for static pages to pick up the new values.
+    </div>
+
+    <div class="save-all-bar">
+      <button class="btn-outline" id="save-all-btn">Save all changed rows</button>
+    </div>
+
+    <div id="loading">Loading config…</div>
+    <p id="error-msg">Failed to load config. Check console for details.</p>
+    <div id="rows-container"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // ── Auth helpers ──────────────────────────────────────────────────────────
+    const COOKIE_NAME = 'admin_token';
+
+    function getStoredToken() {
+      // 1. Query param ?token=…
+      const urlToken = new URLSearchParams(window.location.search).get('token');
+      if (urlToken) {
+        // Persist in session cookie so reloads don't require re-entry
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict; Secure`;
+        // Strip from URL bar (cosmetic — real auth is server-side)
+        const url = new URL(window.location.href);
+        url.searchParams.delete('token');
+        window.history.replaceState({}, '', url.toString());
+        return urlToken;
+      }
+      // 2. Session cookie
+      const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    function storeToken(token) {
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, type = 'success') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `visible ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = ''; }, 3500);
+    }
+
+    // ── Config loader ─────────────────────────────────────────────────────────
+    let adminToken = '';
+
+    // Labels sourced from the migration seed — static metadata, no extra fetch needed
+    const CONFIG_LABELS = {
+      SITE_URL:        'Canonical site URL (update to https://bloqr.ai when domain is live)',
+      APP_URL:         'App URL (update to https://app.bloqr.ai)',
+      DOCS_URL:        'Docs URL (update to https://docs.bloqr.ai)',
+      API_URL:         'API URL (update to https://api.bloqr.ai when live)',
+      JSR_URL:         'JSR package URL',
+      GITHUB_URL:      'GitHub repo URL',
+      AUTHOR_URL:      'Author website',
+      PRODUCT_NAME:    'Product display name',
+      PRODUCT_TAGLINE: 'Product tagline',
+      OG_IMAGE_PATH:   'OG image path (relative to SITE_URL)',
+    };
+
+    async function loadConfig() {
+      const loading  = document.getElementById('loading');
+      const errorMsg = document.getElementById('error-msg');
+      const container = document.getElementById('rows-container');
+
+      try {
+        const res = await fetch('/config');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const config = await res.json();
+
+        loading.style.display = 'none';
+        container.innerHTML = '';
+
+        for (const [key, value] of Object.entries(config)) {
+          const label = CONFIG_LABELS[key] ?? '';
+          renderRow(container, key, value, label);
+        }
+      } catch (err) {
+        console.error('Failed to load config:', err);
+        loading.style.display = 'none';
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    function renderRow(container, key, value, label) {
+      const div = document.createElement('div');
+      div.className = 'config-row';
+      div.dataset.key = key;
+      div.innerHTML = `
+        <div class="config-row-header">
+          <span class="config-key">${escHtml(key)}</span>
+          ${label ? `<span class="config-label">${escHtml(label)}</span>` : ''}
+        </div>
+        <input type="text" class="value-input" value="${escAttr(value)}" data-original="${escAttr(value)}" />
+        <button class="btn-primary save-row-btn">Save</button>
+      `;
+      div.querySelector('.save-row-btn').addEventListener('click', () => saveRow(div));
+      container.appendChild(div);
+    }
+
+    async function saveRow(rowEl) {
+      const key   = rowEl.dataset.key;
+      const input = rowEl.querySelector('.value-input');
+      const value = input.value.trim();
+      const btn   = rowEl.querySelector('.save-row-btn');
+
+      if (!value) { showToast('Value cannot be empty.', 'error'); return false; }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const res = await fetch('/admin/config', {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify({ key, value }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          input.dataset.original = value;
+          showToast(`✓ ${key} saved.`);
+          return true;
+        } else if (res.status === 403) {
+          showToast('Access denied — check your admin secret.', 'error');
+          return false;
+        } else {
+          showToast(`Error: ${data.error ?? 'Unknown error'}`, 'error');
+          return false;
+        }
+      } catch (err) {
+        showToast('Network error — could not save.', 'error');
+        console.error('Save error:', err);
+        return false;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+      }
+    }
+
+    async function saveAllChanged() {
+      const rows = document.querySelectorAll('.config-row');
+      const changed = Array.from(rows).filter(row => {
+        const input = row.querySelector('.value-input');
+        return input && input.value.trim() !== input.dataset.original;
+      });
+
+      if (changed.length === 0) {
+        showToast('No changes to save.', 'success');
+        return;
+      }
+
+      const btn = document.getElementById('save-all-btn');
+      btn.disabled = true;
+      btn.textContent = `Saving ${changed.length} row(s)…`;
+
+      let errors = 0;
+      for (const row of changed) {
+        const ok = await saveRow(row);
+        if (!ok) errors++;
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Save all changed rows';
+
+      if (errors === 0) showToast(`✓ ${changed.length} row(s) saved.`);
+      else showToast(`Saved with ${errors} error(s) — check console.`, 'error');
+    }
+
+    // ── HTML escaping helpers ─────────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function escAttr(str) {
+      return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+    function unlockApp(token) {
+      adminToken = token;
+      document.getElementById('auth-gate').style.display = 'none';
+      document.getElementById('config-app').style.display = 'block';
+      loadConfig();
+    }
+
+    // Check for existing token on page load
+    const existingToken = getStoredToken();
+    if (existingToken) {
+      unlockApp(existingToken);
+    }
+
+    // Auth button handler
+    document.getElementById('auth-btn').addEventListener('click', () => {
+      const token = document.getElementById('token-input').value.trim();
+      if (!token) return;
+      // Validate by making a test POST — if 403, reject
+      fetch('/admin/config', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ key: '__ping__', value: '__ping__' }),
+      }).then(res => {
+        // 404 means auth passed but key not found — which is fine (token is valid)
+        // 403 means wrong token
+        if (res.status === 403) {
+          document.getElementById('auth-error').textContent = 'Incorrect secret — try again.';
+          document.getElementById('auth-error').style.display = 'block';
+        } else {
+          storeToken(token);
+          document.getElementById('auth-error').style.display = 'none';
+          unlockApp(token);
+        }
+      }).catch(() => {
+        // Network error — show error, do not unlock
+        document.getElementById('auth-error').textContent = 'Network error — check your connection and try again.';
+        document.getElementById('auth-error').style.display = 'block';
+      });
+    });
+
+    document.getElementById('token-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('auth-btn').click();
+    });
+
+    document.getElementById('save-all-btn').addEventListener('click', saveAllChanged);
+  </script>
+</body>
+</html>

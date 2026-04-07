@@ -1,87 +1,90 @@
 /**
- * Cloudflare Pages/Workers Function — POST /admin/config
+ * functions/admin/config.ts — POST /admin/config handler
  *
- * Updates a single key in site_config (Neon adblock-compiler DB),
- * then invalidates that key in the D1 cache so the next GET /config
- * fetches fresh data from Neon.
+ * Updates a single site_config row.
+ * Requires: Authorization: Bearer <ADMIN_SECRET>
  *
- * Body:  { key: string, value: string }
- * Auth:  Authorization: Bearer <ADMIN_SECRET>
- *
- * IMPORTANT: Uses @neondatabase/serverless with DATABASE_URL pointing to
- * the adblock-compiler Neon project. NOT neondb.
+ * Exported as plain functions for import by src/worker.ts.
  */
 
 import { neon } from '@neondatabase/serverless';
-import { invalidateD1Key } from '../config';
 
-interface Env {
+export interface Env {
   DATABASE_URL: string;
   ADMIN_SECRET: string;
-  CONFIG_CACHE?: D1Database;
+}
+
+interface ConfigUpdateBody {
+  key?:   string;
+  value?: string;
 }
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type':  'application/json',
+      'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
     },
   });
 
-export const onRequestOptions = () =>
-  new Response(null, {
+function isAuthorized(request: Request, env: Env): boolean {
+  const authHeader = request.headers.get('Authorization') ?? '';
+  const [scheme, token] = authHeader.split(' ');
+  return scheme === 'Bearer' && token === env.ADMIN_SECRET;
+}
+
+export function handleOptions(): Response {
+  return new Response(null, {
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin':  '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
+}
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  const auth = request.headers.get('Authorization') ?? '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!env.ADMIN_SECRET || token !== env.ADMIN_SECRET) {
-    return json({ error: 'Forbidden' }, 403);
+export async function handlePost(request: Request, env: Env): Promise<Response> {
+  if (!env.ADMIN_SECRET) {
+    return json({ error: 'Admin access is not configured.' }, 503);
+  }
+  if (!isAuthorized(request, env)) {
+    return json({ error: 'Forbidden.' }, 403);
+  }
+  if (!env.DATABASE_URL) {
+    return json({ error: 'Service unavailable.' }, 503);
   }
 
-  // ── Parse body ────────────────────────────────────────────────────────────
-  let body: { key?: string; value?: string };
+  let body: ConfigUpdateBody;
   try {
     body = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON' }, 400);
+    return json({ error: 'Invalid JSON.' }, 400);
   }
 
-  const key = body.key?.trim();
-  const { value } = body;
-  if (!key) return json({ error: 'key is required' }, 400);
-  if (value === undefined || typeof value !== 'string') return json({ error: 'value is required' }, 400);
-  if (!env.DATABASE_URL) return json({ error: 'Service unavailable.' }, 503);
+  const key   = (body.key   ?? '').trim();
+  const value = (body.value ?? '').trim();
 
-  // ── Write to Neon ─────────────────────────────────────────────────────────
+  if (!key)   return json({ error: 'key is required.' }, 400);
+  if (!value) return json({ error: 'value is required.' }, 400);
+
   const sql = neon(env.DATABASE_URL);
+
   try {
-    const rows = await sql`
+    const result = await sql`
       UPDATE site_config
-      SET value = ${value}, updated_at = now()
-      WHERE key   = ${key}
-      RETURNING key
+      SET    value      = ${value},
+             updated_at = now()
+      WHERE  key        = ${key}
     `;
-    if (!rows.length) return json({ error: `Unknown config key: ${key}` }, 404);
-
-    // ── Invalidate D1 cache for this key (non-blocking) ─────────────────────
-    if (env.CONFIG_CACHE) {
-      void invalidateD1Key(env.CONFIG_CACHE, key).catch((e) =>
-        console.warn('D1 invalidation failed:', e)
-      );
+    const rowCount = (result as { rowCount?: number | null }).rowCount ?? 0;
+    if (rowCount === 0) {
+      return json({ error: `No config row found for key: ${key}` }, 404);
     }
-
-    return json({ success: true, key });
-  } catch (err: unknown) {
-    console.error('Admin config error:', err instanceof Error ? err.message : err);
-    return json({ error: 'Something went wrong. Please try again.' }, 500);
+    return json({ success: true });
+  } catch (err) {
+    console.error('POST /admin/config error:', err);
+    return json({ error: 'Failed to update config.' }, 500);
   }
-};
+}
