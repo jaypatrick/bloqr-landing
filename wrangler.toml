@@ -7,9 +7,14 @@ pages_build_output_dir = "./dist"
 # config needed. Functions run at the edge alongside the static output.
 #
 # Functions in this project:
-#   functions/waitlist.ts  →  POST /waitlist
+#   functions/waitlist.ts       →  POST /waitlist
 #     Writes email signups to Neon (adblock-db / adblock-compiler.waitlist)
 #     and pushes contacts to Apollo.io (fire-and-forget, non-blocking).
+#   functions/config.ts         →  GET /config
+#     Returns all site_config rows as { [key]: value }.
+#     Read path: D1 cache (< 5 min old) → Neon (on miss/stale) → write back to D1.
+#   functions/admin/config.ts   →  POST /admin/config
+#     Updates a site_config row in Neon and invalidates the D1 cache for that key.
 #
 # ─── Neon branch → DATABASE_URL mapping ──────────────────────────────────────
 #   production  ep-winter-term-a8rxh2a9-pooler      → adblock-compiler (production CF secret)
@@ -21,7 +26,24 @@ pages_build_output_dir = "./dist"
 # Add both as type "Secret" (encrypted at rest):
 #
 #   DATABASE_URL   — Neon adblock-compiler connection string (branch-specific, see above)
+#   ADMIN_SECRET   — Bearer token for POST /admin/config
 #   APOLLO_API_KEY — Apollo.io API key for contact enrichment
+#   CONFIG_CACHE   — D1Database binding (see [[d1_databases]] below)
 #
 # Local dev: values live in .dev.vars (gitignored), then run:
 #   npm run preview   →  wrangler pages dev ./dist
+#
+# ─── D1 setup (one-time) ──────────────────────────────────────────────────────
+# 1. Run: wrangler d1 create bloqr-config-cache
+# 2. Copy the database_id into the [[d1_databases]] binding below
+# 3. Run: wrangler d1 execute bloqr-config-cache --command "CREATE TABLE IF NOT EXISTS config_cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, cached_at INTEGER NOT NULL)"
+
+# ─── D1 Cache (site_config read-through cache) ────────────────────────────────
+# Caches site_config rows from Neon for low-latency reads at the edge.
+# Create with: wrangler d1 create bloqr-config-cache
+# Then copy the database_id output into this binding.
+#
+[[d1_databases]]
+binding = "CONFIG_CACHE"
+database_name = "bloqr-config-cache"
+database_id = "REPLACE_WITH_DATABASE_ID_AFTER_CREATION"
