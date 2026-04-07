@@ -27,6 +27,9 @@
 
       if (res.ok) {
         status = 'success';
+        if (typeof window !== 'undefined' && window.__posthog) {
+          window.__posthog.capture('waitlist_signup', { source: 'landing_page' });
+        }
       } else if (res.status === 409) {
         status = 'duplicate';
       } else {
