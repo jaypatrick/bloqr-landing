@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { ViewTransitions } from 'astro:transitions';
 import Nav from '../components/Nav.svelte';
 import Footer from '../components/Footer.svelte';
 import { SITE_URL, META, LINKS } from '../config';
@@ -26,9 +27,15 @@ const meta = {
   <meta property="og:type"        content="website" />
   <link rel="canonical" href={meta.url} />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+
+  <!-- PWA / Theme -->
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#FF5500" />
+
+  <ViewTransitions />
 </head>
 <body>
-  <Nav client:load />
+  <Nav client:idle />
 
   <main class="about-page">
 
@@ -418,7 +425,7 @@ const meta = {
   /* ── Never section ── */
   .never-section {
     padding: 72px 0;
-    background: var(--surface);
+    background: var(--bg-surface);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
@@ -450,7 +457,7 @@ const meta = {
     padding: 14px 16px;
     border-radius: 8px;
     border: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--bg-base);
     font-size: 0.88rem;
     color: var(--text-2);
     line-height: 1.4;
