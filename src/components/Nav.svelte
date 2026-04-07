@@ -94,6 +94,7 @@
   <!-- Mobile menu -->
   {#if menuOpen}
     <button
+      type="button"
       class="mobile-backdrop"
       onclick={closeMenu}
       onkeydown={(e) => e.key === 'Escape' && closeMenu()}
