@@ -8,7 +8,11 @@
 export const SITE_URL =
   import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // TODO: update to https://bloqr.ai when domain is confirmed
 
-/** External URLs — one place to update if they ever change */
+/**
+ * External URLs — managed here for build-time static pages.
+ * To update for bloqr.ai launch: update these values (or the SITE_URL env var in
+ * Cloudflare Pages dashboard) and trigger a redeploy.
+ */
 export const LINKS = {
   app:       'https://adblock-frontend.jayson-knight.workers.dev',
   github:    'https://github.com/jaypatrick/adblock-compiler',
@@ -21,6 +25,8 @@ export const LINKS = {
   blog:      '/blog',
   changelog: '/changelog',
   rss:       '/rss.xml',
+  privacy:   '/privacy',
+  terms:     '/terms',
 } as const;
 
 /**

@@ -254,7 +254,7 @@
   }
 
   .claim-card {
-    background: var(--surface);
+    background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 24px;
