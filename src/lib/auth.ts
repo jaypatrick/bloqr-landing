@@ -20,9 +20,13 @@
 import { betterAuth } from 'better-auth';
 import { Pool } from '@neondatabase/serverless';
 
-export interface Env {
-  DATABASE_URL: string;
-  BETTER_AUTH_SECRET: string;
+/**
+ * Loose auth env — all fields optional so admin handlers don't need unsafe casts.
+ * Extend your handler's Env with this interface instead of duplicating fields.
+ */
+export interface AuthEnv {
+  DATABASE_URL?: string;
+  BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
@@ -31,6 +35,11 @@ export interface Env {
   /** Legacy — kept for backward compat during migration */
   ADMIN_SECRET?: string;
 }
+
+/** Full env required for the Worker entry point (handleAuth). */
+export interface Env
+  extends Required<Pick<AuthEnv, 'DATABASE_URL' | 'BETTER_AUTH_SECRET'>>,
+    Omit<AuthEnv, 'DATABASE_URL' | 'BETTER_AUTH_SECRET'> {}
 
 /**
  * Admin allowlist — only GitHub accounts in this list get admin access.
@@ -55,11 +64,29 @@ export function isAdminUser(githubLogin: string): boolean {
 const FALLBACK_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
 
 /**
- * Create the Better Auth instance.
- * Called once per Worker invocation (Workers are stateless, but Better Auth is cheap to init).
+ * Module-level cache of betterAuth instances, keyed by config fingerprint.
+ * Cloudflare Workers reuse the same isolate across requests in the same instance,
+ * so memoizing here avoids reconstructing a new Pool + auth on every request.
  */
-function createAuth(env: Env) {
-  const pool = new Pool({ connectionString: env.DATABASE_URL });
+const authInstanceCache = new Map<string, ReturnType<typeof betterAuth>>();
+
+/**
+ * Create (or reuse a cached) Better Auth instance for the given env.
+ * The cache key is the tuple of fields that affect auth behaviour.
+ */
+function getOrCreateAuth(env: Env) {
+  const cacheKey = [
+    env.DATABASE_URL,
+    env.BETTER_AUTH_SECRET,
+    env.BETTER_AUTH_URL ?? '',
+    env.GITHUB_CLIENT_ID ?? '',
+    env.BETTER_AUTH_TRUSTED_ORIGINS ?? '',
+  ].join('|');
+
+  const cached = authInstanceCache.get(cacheKey);
+  if (cached) return cached;
+
+  const pool    = new Pool({ connectionString: env.DATABASE_URL });
   const baseURL = env.BETTER_AUTH_URL ?? FALLBACK_BASE_URL;
 
   const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
@@ -69,7 +96,7 @@ function createAuth(env: Env) {
   const githubClientId     = env.GITHUB_CLIENT_ID ?? '';
   const githubClientSecret = env.GITHUB_CLIENT_SECRET ?? '';
 
-  return betterAuth({
+  const auth = betterAuth({
     baseURL,
     secret: env.BETTER_AUTH_SECRET,
 
@@ -99,12 +126,11 @@ function createAuth(env: Env) {
       },
     },
 
-    // Cross-app SSO — other Bloqr apps can validate sessions here
-    trustedOrigins: [
-      FALLBACK_BASE_URL,
-      'https://adblock-frontend.jayson-knight.workers.dev',
-      ...trustedOrigins,
-    ],
+    // Cross-app SSO — origins are supplied via BETTER_AUTH_TRUSTED_ORIGINS env var.
+    // The base URL is always trusted implicitly by Better Auth.
+    // Add other Bloqr app origins to BETTER_AUTH_TRUSTED_ORIGINS (comma-separated)
+    // rather than hard-coding them here.
+    trustedOrigins: [FALLBACK_BASE_URL, ...trustedOrigins],
 
     // Rate limiting (uses DB storage for Cloudflare Workers compatibility)
     rateLimit: {
@@ -114,6 +140,9 @@ function createAuth(env: Env) {
       storage: 'database',
     },
   });
+
+  authInstanceCache.set(cacheKey, auth);
+  return auth;
 }
 
 /**
@@ -128,13 +157,16 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
     });
   }
 
-  const auth = createAuth(env);
+  const auth = getOrCreateAuth(env);
   return auth.handler(request);
 }
 
 /**
  * Validate the session for an incoming admin request.
- * Returns the session user if valid, null otherwise.
+ * Accepts AuthEnv (all fields optional) so callers with partially-typed
+ * environments don't need unsafe casts — the function guards internally.
+ *
+ * Returns the session object if valid and configured, null otherwise.
  *
  * Usage in edge functions:
  *   const session = await getSession(request, env);
@@ -142,11 +174,13 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
  *     return new Response(JSON.stringify({ error: 'Forbidden.' }), { status: 403 });
  *   }
  */
-export async function getSession(request: Request, env: Env) {
+export async function getSession(request: Request, env: AuthEnv) {
   if (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET) return null;
 
   try {
-    const auth = createAuth(env);
+    const auth = getOrCreateAuth(
+      env as Required<Pick<AuthEnv, 'DATABASE_URL' | 'BETTER_AUTH_SECRET'>> & AuthEnv
+    );
     const session = await auth.api.getSession({ headers: request.headers });
     return session;
   } catch {

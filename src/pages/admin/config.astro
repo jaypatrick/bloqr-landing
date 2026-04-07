@@ -326,12 +326,14 @@
       btn.textContent = 'Saving…';
 
       try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        // Only send Bearer token for the legacy auth path.
+        // When Better Auth session is active, the session cookie authenticates the request.
+        if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
+
         const res = await fetch('/admin/config', {
           method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${adminToken}`,
-          },
+          headers,
           body: JSON.stringify({ key, value }),
         });
 
@@ -414,8 +416,10 @@
         if (res.ok) {
           const data = await res.json();
           if (data?.session) {
-            // Valid Better Auth session — unlock with a placeholder token value
-            unlockApp(data.session.token ?? '__better-auth__');
+            // Valid Better Auth session — unlock the UI without storing the token.
+            // Authentication for subsequent requests is handled by the session cookie;
+            // we do not echo the session token into JS or the Authorization header.
+            unlockApp('');
             return true;
           }
         }

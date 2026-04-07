@@ -236,7 +236,13 @@ const callbackUrl = '/admin/config';
           err.textContent = 'Incorrect secret — try again.';
           err.style.display = 'block';
         } else if (res.status === 404 || res.status === 200) {
-          document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
+          const cookieParts = [
+            `${COOKIE_NAME}=${encodeURIComponent(token)}`,
+            'path=/admin',
+            'SameSite=Strict',
+          ];
+          if (window.location.protocol === 'https:') cookieParts.push('Secure');
+          document.cookie = cookieParts.join('; ');
           window.location.href = CALLBACK;
         } else {
           const err = document.getElementById('legacy-error');

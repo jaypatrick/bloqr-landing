@@ -8,16 +8,10 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { getSession, isAdminUser } from '../../src/lib/auth';
+import { getSession, isAdminUser, type AuthEnv } from '../../src/lib/auth';
 
-export interface Env {
+export interface Env extends AuthEnv {
   DATABASE_URL: string;
-  ADMIN_SECRET?: string;
-  BETTER_AUTH_SECRET?: string;
-  BETTER_AUTH_URL?: string;
-  GITHUB_CLIENT_ID?: string;
-  GITHUB_CLIENT_SECRET?: string;
-  BETTER_AUTH_TRUSTED_ORIGINS?: string;
 }
 
 interface ConfigUpdateBody {
@@ -36,13 +30,21 @@ const json = (data: unknown, status = 200) =>
   });
 
 /**
+ * Returns true if at least one auth mechanism is configured.
+ * Used to distinguish "misconfigured server" (503) from "wrong credentials" (403).
+ */
+function isAuthConfigured(env: Env): boolean {
+  return !!(env.BETTER_AUTH_SECRET || env.ADMIN_SECRET);
+}
+
+/**
  * Dual-auth: Better Auth session first, legacy ADMIN_SECRET bearer as fallback.
  */
 async function isAuthorized(request: Request, env: Env): Promise<boolean> {
   // 1. Try Better Auth session (the new way)
   if (env.DATABASE_URL && env.BETTER_AUTH_SECRET) {
     try {
-      const session = await getSession(request, env as Parameters<typeof getSession>[1]);
+      const session = await getSession(request, env);
       if (session?.user && isAdminUser(session.user.name ?? '')) return true;
     } catch {
       // fall through to legacy check
@@ -70,6 +72,9 @@ export function handleOptions(): Response {
 export async function handlePost(request: Request, env: Env): Promise<Response> {
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
+  }
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
   }
   if (!(await isAuthorized(request, env))) {
     return json({ error: 'Forbidden.' }, 403);
