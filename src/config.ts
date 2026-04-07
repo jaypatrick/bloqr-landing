@@ -9,11 +9,11 @@
  *
  * • To flip a URL without a code change:
  *   1. Update the relevant row in `site_config` via /admin/config
- *   2. Trigger a Cloudflare Pages redeploy — static pages bake values at build time
- *      using getConfig() when DATABASE_URL is available, otherwise fall back here.
+ *   2. Trigger a Cloudflare Pages redeploy — static pages use the module-level
+ *      exports in this file, which are derived from the hardcoded defaults below.
  *
- * • Runtime edge functions (functions/*.ts) can call getConfig() directly and
- *   always get the live DB value without a redeploy.
+ * • Runtime edge functions (functions/*.ts) and other server-side callers can
+ *   call getConfig() directly to read the live DB value without a redeploy.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 

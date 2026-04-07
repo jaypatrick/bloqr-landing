@@ -33,7 +33,7 @@
       --text-3:      #475569;
       --border:      #1E2D40;
       --border-2:    #2A3F5A;
-      --font-display:'system-ui', sans-serif;
+      --font-display:system-ui, sans-serif;
       --font-mono:   monospace;
     }
 
@@ -230,7 +230,7 @@
       const urlToken = new URLSearchParams(window.location.search).get('token');
       if (urlToken) {
         // Persist in session cookie so reloads don't require re-entry
-        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict`;
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict; Secure`;
         // Strip from URL bar (cosmetic — real auth is server-side)
         const url = new URL(window.location.href);
         url.searchParams.delete('token');
@@ -243,7 +243,7 @@
     }
 
     function storeToken(token) {
-      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict`;
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
@@ -319,7 +319,7 @@
       const value = input.value.trim();
       const btn   = rowEl.querySelector('.save-row-btn');
 
-      if (!value) { showToast('Value cannot be empty.', 'error'); return; }
+      if (!value) { showToast('Value cannot be empty.', 'error'); return false; }
 
       btn.disabled = true;
       btn.textContent = 'Saving…';
@@ -339,14 +339,18 @@
         if (res.ok && data.success) {
           input.dataset.original = value;
           showToast(`✓ ${key} saved.`);
+          return true;
         } else if (res.status === 403) {
           showToast('Access denied — check your admin secret.', 'error');
+          return false;
         } else {
           showToast(`Error: ${data.error ?? 'Unknown error'}`, 'error');
+          return false;
         }
       } catch (err) {
         showToast('Network error — could not save.', 'error');
         console.error('Save error:', err);
+        return false;
       } finally {
         btn.disabled = false;
         btn.textContent = 'Save';
@@ -371,7 +375,8 @@
 
       let errors = 0;
       for (const row of changed) {
-        try { await saveRow(row); } catch { errors++; }
+        const ok = await saveRow(row);
+        if (!ok) errors++;
       }
 
       btn.disabled = false;

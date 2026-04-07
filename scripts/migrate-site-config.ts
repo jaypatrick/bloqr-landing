@@ -1,13 +1,13 @@
 /**
  * scripts/migrate-site-config.ts
  *
- * Deno-compatible migration script — creates and seeds the `site_config` table
- * in the Neon database.
+ * Migration script — creates and seeds the `site_config` table in Neon.
+ * Compatible with both Deno and Node.js (tsx / ts-node).
  *
  * Usage (Deno):
  *   DATABASE_URL=<neon-connection-string> deno run --allow-net --allow-env scripts/migrate-site-config.ts
  *
- * Usage (Node with tsx / ts-node):
+ * Usage (Node with tsx):
  *   DATABASE_URL=<neon-connection-string> npx tsx scripts/migrate-site-config.ts
  *
  * The script is idempotent — safe to run multiple times.
@@ -16,10 +16,28 @@
 
 import { neon } from '@neondatabase/serverless';
 
-const DATABASE_URL = Deno.env.get('DATABASE_URL');
+// Support both Deno and Node.js runtimes
+const isDeno = typeof globalThis.Deno !== 'undefined';
+
+function getEnv(key: string): string | undefined {
+  return isDeno
+    ? globalThis.Deno.env.get(key)
+    : process.env[key];
+}
+
+function exit(code: number): never {
+  if (isDeno) {
+    globalThis.Deno.exit(code);
+  } else {
+    process.exit(code);
+  }
+  throw new Error('unreachable'); // satisfy TypeScript's `never` return type
+}
+
+const DATABASE_URL = getEnv('DATABASE_URL');
 if (!DATABASE_URL) {
   console.error('Error: DATABASE_URL environment variable is required.');
-  Deno.exit(1);
+  exit(1);
 }
 
 const sql = neon(DATABASE_URL);
@@ -60,5 +78,5 @@ async function migrate(): Promise<void> {
 
 migrate().catch((err) => {
   console.error('Migration failed:', err);
-  Deno.exit(1);
+  exit(1);
 });
