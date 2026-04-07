@@ -213,7 +213,9 @@ const callbackUrl = '/admin/config';
 
     // Legacy ADMIN_SECRET gate — redirects to /admin/config on success
     const COOKIE_NAME = 'admin_token';
-    const CALLBACK    = new URLSearchParams(window.location.search).get('callbackURL') ?? '/admin/config';
+    // Validate callbackURL to prevent open redirect — only allow relative paths on this origin.
+    const rawCallback = new URLSearchParams(window.location.search).get('callbackURL') ?? '/admin/config';
+    const CALLBACK = rawCallback.startsWith('/') && !rawCallback.startsWith('//') ? rawCallback : '/admin/config';
 
     document.getElementById('legacy-btn').addEventListener('click', () => {
       const token = document.getElementById('legacy-token').value.trim();
