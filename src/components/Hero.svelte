@@ -9,7 +9,7 @@
   <div class="container">
     <div class="badge">
       <span class="badge-dot" aria-hidden="true"></span>
-      AI-Focused Internet Hygiene &mdash; Just Set It &amp; Forget It
+      Internet Hygiene: Automated &mdash; Just Set It &amp; Forget It
     </div>
 
     <p class="hygiene-def" aria-label="What is Internet Hygiene?">
@@ -23,7 +23,7 @@
       &nbsp;(n.) — the ongoing practices that keep your digital life clean, private, and safe.
     </p>
 
-    <h1>Good <span class="hygiene-inline">internet hygiene</span>.<br /><em>Automated.</em></h1>
+    <h1><span class="hygiene-inline">Internet Hygiene</span>:<br /><em>Automated.</em></h1>
 
     <p class="sub">
       Bloqr blocks ads, trackers, and malware at the network level — across every

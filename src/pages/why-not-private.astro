@@ -1,0 +1,771 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.svelte';
+import Footer from '../components/Footer.svelte';
+import { SITE_URL, LINKS } from '../config';
+
+const meta = {
+  title:       'Why Your Browsing Isn\'t as Private as You Think — Bloqr',
+  description: 'HTTPS encrypts your page content. But your DNS lookups — the "where is this website?" requests your device makes thousands of times a day — travel unencrypted. Here\'s what that means.',
+  url:         `${SITE_URL}/why-not-private`,
+  image:       `${SITE_URL}/og-image.png`,
+};
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name"    content="Bloqr" />
+  <meta property="og:title"        content={meta.title} />
+  <meta property="og:description"  content={meta.description} />
+  <meta property="og:url"          content={meta.url} />
+  <meta property="og:image"        content={meta.image} />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content="Why Your Browsing Isn't as Private as You Think — Bloqr" />
+  <meta property="og:type"         content="article" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={meta.title} />
+  <meta name="twitter:description" content={meta.description} />
+  <meta name="twitter:image"       content={meta.image} />
+  <meta name="twitter:image:alt"   content="Why Your Browsing Isn't as Private as You Think — Bloqr" />
+
+  <!-- Canonical -->
+  <link rel="canonical" href={meta.url} />
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
+</head>
+<body>
+  <Nav client:load />
+
+  <main class="wnp-page">
+
+    <!-- ── Page header ── -->
+    <section class="page-header">
+      <div class="container">
+        <a href="/" class="back-link">← Back to Bloqr</a>
+        <div class="header-badge">
+          <span class="badge-dot"></span>
+          Privacy Education
+        </div>
+        <h1>Your Browsing Is Less Private<br /><em>Than You Think.</em></h1>
+        <p class="page-sub">
+          HTTPS encrypts what you send. It doesn't hide where you're going.
+          Here's what that means — and why it matters.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Three-concept primer ── -->
+    <section class="primer">
+      <div class="container">
+        <p class="section-label">Three things worth understanding</p>
+        <div class="primer-grid" role="list">
+
+          <div class="primer-card" role="listitem">
+            <div class="primer-icon" aria-hidden="true">✉️</div>
+            <h3>HTTPS</h3>
+            <p class="primer-headline">Seals the envelope.</p>
+            <p>
+              Your bank details, passwords, and page content are encrypted in transit.
+              The good news: almost every website uses this now. The padlock in your
+              browser means your conversation with that site is private.
+            </p>
+          </div>
+
+          <div class="primer-divider" aria-hidden="true">+</div>
+
+          <div class="primer-card primer-card--problem" role="listitem">
+            <div class="primer-icon" aria-hidden="true">📬</div>
+            <h3>DNS</h3>
+            <p class="primer-headline">Shouts the address out loud.</p>
+            <p>
+              Before your browser opens that sealed envelope, it has to ask
+              "where does this website live?" That question travels unencrypted —
+              like a postcard, not a letter. Your router owner, your ISP, and your
+              DNS server all see it.
+            </p>
+          </div>
+
+          <div class="primer-divider" aria-hidden="true">→</div>
+
+          <div class="primer-card primer-card--solution" role="listitem">
+            <div class="primer-icon" aria-hidden="true">🔒</div>
+            <h3>DNS + Encryption</h3>
+            <p class="primer-headline">Seals both.</p>
+            <p>
+              Encrypted DNS wraps that address lookup in the same kind of protection
+              HTTPS gives your page content. This is what Bloqr enables — so your
+              router and ISP see that you made a request, but not what it was for.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── The postcard analogy + flow diagram ── -->
+    <section class="postcard-section">
+      <div class="container">
+        <p class="section-label">The postcard analogy</p>
+        <h2 class="section-title">Every website visit starts with an open postcard.</h2>
+        <p class="section-desc flow-desc">
+          HTTPS protects the letter inside the envelope. But before you can send that
+          letter, your device shouts the destination address to everyone within earshot.
+          Here's who hears it.
+        </p>
+
+        <!-- Without Bloqr flow -->
+        <div class="flow-diagram" aria-label="DNS lookup flow diagram — without encryption">
+          <div class="flow-label bad-flow-label">
+            <span class="flow-tag bad-tag">Without encrypted DNS</span>
+          </div>
+          <div class="flow-row" role="list">
+            <div class="flow-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">💻</span>
+              <span class="node-name">Your Device</span>
+            </div>
+            <div class="flow-arrow" aria-hidden="true">
+              <div class="arrow-line"></div>
+              <div class="arrow-tag bad-arrow-tag">📬 Plain text</div>
+            </div>
+            <div class="flow-node bad-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">📡</span>
+              <span class="node-name">Router<br /><small>(café / hotel / home)</small></span>
+              <div class="node-badge bad-badge">Can read it</div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true">
+              <div class="arrow-line"></div>
+              <div class="arrow-tag bad-arrow-tag">📬 Still plain text</div>
+            </div>
+            <div class="flow-node bad-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">🏢</span>
+              <span class="node-name">Your ISP</span>
+              <div class="node-badge bad-badge">Can read &amp; sell it</div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true">
+              <div class="arrow-line"></div>
+              <div class="arrow-tag bad-arrow-tag">📬 Still plain text</div>
+            </div>
+            <div class="flow-node bad-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">📖</span>
+              <span class="node-name">DNS Server</span>
+              <div class="node-badge bad-badge">Logs your queries</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- With Bloqr flow -->
+        <div class="flow-diagram flow-diagram--good" aria-label="DNS lookup flow diagram — with Bloqr encrypted DNS">
+          <div class="flow-label good-flow-label">
+            <span class="flow-tag good-tag">✓ With Bloqr</span>
+          </div>
+          <div class="flow-row" role="list">
+            <div class="flow-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">💻</span>
+              <span class="node-name">Your Device</span>
+            </div>
+            <div class="flow-arrow good-arrow" aria-hidden="true">
+              <div class="arrow-line good-line"></div>
+              <div class="arrow-tag good-arrow-tag">🔒 Encrypted</div>
+            </div>
+            <div class="flow-node good-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">📡</span>
+              <span class="node-name">Router<br /><small>(café / hotel / home)</small></span>
+              <div class="node-badge good-badge">✓ Can't read it</div>
+            </div>
+            <div class="flow-arrow good-arrow" aria-hidden="true">
+              <div class="arrow-line good-line"></div>
+              <div class="arrow-tag good-arrow-tag">🔒 Still encrypted</div>
+            </div>
+            <div class="flow-node good-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">🏢</span>
+              <span class="node-name">Your ISP</span>
+              <div class="node-badge good-badge">✓ Can't read it</div>
+            </div>
+            <div class="flow-arrow good-arrow" aria-hidden="true">
+              <div class="arrow-line good-line"></div>
+              <div class="arrow-tag good-arrow-tag">🔒 Still encrypted</div>
+            </div>
+            <div class="flow-node good-node" role="listitem">
+              <span class="node-icon" aria-hidden="true">🔐</span>
+              <span class="node-name">Encrypted DNS Server</span>
+              <div class="node-badge good-badge">✓ No logging</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="diagram-note">
+          HTTPS encrypts your actual browsing — the page content. Encrypted DNS hides
+          the address lookup that got you there. Both layers together are what Bloqr enables.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Who can see your DNS lookups ── -->
+    <section class="who-sees">
+      <div class="container">
+        <p class="section-label">Who can see your DNS lookups right now</p>
+        <h2 class="section-title">More people than you'd expect.</h2>
+        <p class="section-desc">
+          Unless you've changed your DNS settings — and most people haven't — here's
+          who can see every website your device looks up.
+        </p>
+
+        <div class="who-grid">
+          <article class="who-card">
+            <div class="who-icon" aria-hidden="true">📡</div>
+            <h3>Your router owner</h3>
+            <p>
+              Coffee shop, hotel, airport, home network admin — whoever runs the router
+              you're connected to can see every domain name your device looks up. The
+              WiFi password protects the network from outsiders. It doesn't hide your
+              traffic from the person who set it up.
+            </p>
+          </article>
+
+          <article class="who-card">
+            <div class="who-icon" aria-hidden="true">🏢</div>
+            <h3>Your ISP</h3>
+            <p>
+              Your internet provider sees every lookup your home network makes. In many
+              countries, ISPs are legally permitted to sell this data to advertisers —
+              and several major US providers have done exactly that. This data is a
+              detailed map of your household's interests, routines, and concerns.
+            </p>
+          </article>
+
+          <article class="who-card">
+            <div class="who-icon" aria-hidden="true">📖</div>
+            <h3>Your DNS server</h3>
+            <p>
+              Google's 8.8.8.8, Cloudflare's 1.1.1.1, or your ISP's default — whichever
+              server handles your lookups logs them. Most people have never changed their
+              DNS settings. That means their ISP's DNS server is handling every lookup
+              by default, and logging it.
+            </p>
+          </article>
+        </div>
+
+        <div class="reassurance-note" role="note">
+          <span class="note-icon" aria-hidden="true">💡</span>
+          <p>
+            Most people have never changed their DNS settings. That means their ISP's
+            DNS server is handling every lookup — and logging it. Changing this takes
+            about two minutes with Bloqr.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── What Bloqr does about it ── -->
+    <section class="what-bloqr-does">
+      <div class="container">
+        <p class="section-label">What Bloqr does about it</p>
+        <h2 class="section-title">Three things, plainly stated.</h2>
+
+        <div class="benefits-grid">
+          <div class="benefit-card">
+            <div class="benefit-icon" aria-hidden="true">🔒</div>
+            <h3>Encrypted DNS lookups</h3>
+            <p>
+              We send your address lookups over an encrypted channel, so your router
+              and ISP see that you made a request — not what it was for.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="benefit-icon" aria-hidden="true">🚫</div>
+            <h3>Blocks before they reach you</h3>
+            <p>
+              Domains that serve ads, trackers, and malware are blocked at the lookup
+              stage. Your browser never even makes the connection — which means it
+              never waits for them either.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="benefit-icon" aria-hidden="true">✓</div>
+            <h3>Works on every device</h3>
+            <p>
+              One account, one set of rules, every device on your network. Change a
+              rule once, it applies everywhere instantly — no per-device configuration.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CTA ── -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-inner">
+          <h2 class="cta-heading">Now you know why it matters.</h2>
+          <p class="cta-sub">
+            Encrypted DNS, network-wide blocking, and AI-curated filter lists —
+            set up in minutes, not a week.
+          </p>
+          <div class="cta-actions">
+            <a href="/#waitlist" class="btn btn-primary">
+              Join the waitlist — free tier available
+            </a>
+            <a href={LINKS.vpnMyths} class="btn btn-outline">
+              See how VPNs compare →
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <Footer />
+</body>
+</html>
+
+<style>
+  /* ── Page layout ── */
+  .wnp-page { padding-bottom: 0; }
+
+  /* ── Back link + header ── */
+  .page-header {
+    padding: 80px 0 64px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: -100px; left: 50%;
+    transform: translateX(-50%);
+    width: 800px; height: 500px;
+    background: radial-gradient(ellipse at center top, rgba(255,85,0,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-3);
+    text-decoration: none;
+    margin-bottom: 32px;
+    transition: color 150ms;
+  }
+  .back-link:hover { color: var(--text-2); }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 20px;
+  }
+
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    display: block;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    max-width: 760px;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--orange);
+  }
+
+  .page-sub {
+    font-size: 1.1rem;
+    color: var(--text-2);
+    max-width: 600px;
+    line-height: 1.65;
+  }
+
+  /* ── Shared section spacing ── */
+  .primer,
+  .postcard-section,
+  .who-sees,
+  .what-bloqr-does,
+  .cta-section {
+    padding: 72px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Primer ── */
+  .primer-grid {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 800px) {
+    .primer-grid {
+      flex-direction: column;
+    }
+    .primer-divider { display: none; }
+  }
+
+  .primer-card {
+    flex: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+  }
+
+  .primer-card--problem {
+    border-color: rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.03);
+  }
+
+  .primer-card--solution {
+    border-color: rgba(0, 212, 255, 0.25);
+    background: rgba(0, 212, 255, 0.03);
+  }
+
+  .primer-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    flex-shrink: 0;
+    font-size: 1.4rem;
+    color: var(--text-3);
+    font-weight: 700;
+  }
+
+  .primer-icon {
+    font-size: 1.6rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .primer-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text-1);
+  }
+
+  .primer-headline {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--orange);
+    margin-bottom: 10px;
+  }
+
+  .primer-card p:not(.primer-headline) {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ── Flow diagram ── */
+  .flow-desc { max-width: 560px; margin-bottom: 40px; }
+
+  .flow-diagram {
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    background: var(--bg-surface);
+    overflow-x: auto;
+  }
+
+  .flow-diagram--good {
+    border-color: rgba(0, 212, 255, 0.2);
+    background: rgba(0, 212, 255, 0.02);
+  }
+
+  .flow-label {
+    margin-bottom: 16px;
+  }
+
+  .flow-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+
+  .bad-tag {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+  }
+
+  .good-tag {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    color: var(--cyan);
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: 600px;
+  }
+
+  .flow-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 90px;
+    gap: 4px;
+  }
+
+  .node-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  .node-name {
+    font-size: 11px;
+    color: var(--text-2);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .node-name small {
+    font-size: 10px;
+    color: var(--text-3);
+    font-weight: 400;
+  }
+
+  .node-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-top: 4px;
+  }
+
+  .bad-badge {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  .good-badge {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--cyan);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+  }
+
+  .flow-arrow {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 60px;
+  }
+
+  .arrow-line {
+    width: 100%;
+    height: 2px;
+    background: rgba(239, 68, 68, 0.4);
+    border-radius: 1px;
+  }
+
+  .good-line {
+    background: rgba(0, 212, 255, 0.4);
+  }
+
+  .arrow-tag {
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .bad-arrow-tag { color: #f87171; }
+  .good-arrow-tag { color: var(--cyan); }
+
+  .diagram-note {
+    font-size: 0.825rem;
+    color: var(--text-3);
+    line-height: 1.6;
+    border-left: 2px solid var(--border);
+    padding-left: 14px;
+    margin-top: 24px;
+    max-width: 600px;
+  }
+
+  /* ── Who can see ── */
+  .who-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 40px 0 32px;
+  }
+
+  @media (max-width: 800px) {
+    .who-grid { grid-template-columns: 1fr; }
+  }
+
+  .who-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 150ms;
+  }
+
+  .who-card:hover { border-color: var(--border-2); }
+
+  .who-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .who-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin: 0;
+  }
+
+  .who-card p {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .reassurance-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 20px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    max-width: 700px;
+  }
+
+  .note-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+  .reassurance-note p {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ── What Bloqr does ── */
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 40px;
+  }
+
+  @media (max-width: 800px) {
+    .benefits-grid { grid-template-columns: 1fr; }
+  }
+
+  .benefit-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 150ms;
+  }
+
+  .benefit-card:hover { border-color: rgba(255,85,0,0.3); }
+
+  .benefit-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .benefit-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin: 0;
+  }
+
+  .benefit-card p {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ── CTA ── */
+  .cta-section {
+    background: linear-gradient(180deg, transparent 0%, rgba(255,85,0,0.03) 100%);
+  }
+
+  .cta-inner {
+    text-align: center;
+    max-width: 620px;
+    margin: 0 auto;
+  }
+
+  .cta-heading {
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  .cta-sub {
+    font-size: 1rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-bottom: 36px;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>

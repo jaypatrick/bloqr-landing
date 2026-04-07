@@ -4,11 +4,9 @@
  * SITE_URL is read from environment at build time.
  * Set it in your Cloudflare Pages dashboard under Settings → Environment variables,
  * or in a local .env file during development.
- *
- * Once bloqr.ai is confirmed, update SITE_URL here or in the env variable.
  */
 export const SITE_URL =
-  import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // ← update to https://bloqr.ai when domain confirmed (update env var in CF Pages dashboard and redeploy)
+  import.meta.env.SITE_URL ?? 'https://adblock-compiler-landing.pages.dev'; // TODO: update to https://bloqr.ai when domain is confirmed
 
 /**
  * External URLs — managed here for build-time static pages.
@@ -22,19 +20,24 @@ export const LINKS = {
   api:       'https://adblock-compiler-docs.pages.dev', // /api path not yet live — points to docs root
   jsr:       'https://jsr.io/@jk-com/adblock-compiler',
   author:    'https://jaysonknight.com',
-  vpnMyths:  '/vpn-myths',
-  about:     '/about',
-  blog:      '/blog',
-  changelog: '/changelog',
-  rss:       '/rss.xml',
-  privacy:   '/privacy',
-  terms:     '/terms',
+  vpnMyths:      '/vpn-myths',
+  whyNotPrivate: '/why-not-private',
+  about:         '/about',
+  blog:          '/blog',
+  changelog:     '/changelog',
+  rss:           '/rss.xml',
+  privacy:       '/privacy',
+  terms:         '/terms',
 } as const;
 
-/** Site metadata */
+/**
+ * Static metadata — used at build time for static pages.
+ * Update branding, URLs, tagline, and product name here, then rebuild to apply changes.
+ * These values feed into <title>, OG tags, and the manifest.
+ */
 export const META = {
-  title:       'Bloqr — Good Internet Hygiene. Automated.',
-  description: 'AI-powered filter list compilation and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
+  title:       'Bloqr — Internet Hygiene: Automated.',
+  description: 'AI-powered adblock list management and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
   ogImage:     '/og-image.png', // regenerate once bloqr.ai brand assets are confirmed
 } as const;
 
