@@ -1,0 +1,148 @@
+/**
+ * src/lib/auth.ts — Better Auth configuration
+ *
+ * Provides:
+ *   - betterAuth instance configured for Cloudflare Workers + Neon
+ *   - handleAuth(request, env) → routes all /api/auth/* requests
+ *   - getSession(request, env) → validates session for admin edge functions
+ *   - isAdminUser(login) → checks if GitHub user is allowed admin access
+ *
+ * SSO design:
+ *   This auth instance is the single source of truth for all Bloqr properties.
+ *   Other apps (app.bloqr.ai, docs.bloqr.ai) validate sessions by calling
+ *   GET /api/auth/session on this origin with the session cookie forwarded.
+ *   BETTER_AUTH_TRUSTED_ORIGINS controls which cross-origin requests are accepted.
+ *
+ * NOTE: This file must NOT be imported in any Astro page frontmatter
+ * (runs at build time). Import only from src/worker.ts and functions/*.
+ */
+
+import { betterAuth } from 'better-auth';
+import { Pool } from '@neondatabase/serverless';
+
+export interface Env {
+  DATABASE_URL: string;
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_URL?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  /** Optional: comma-separated list of trusted origins for cross-app SSO */
+  BETTER_AUTH_TRUSTED_ORIGINS?: string;
+  /** Legacy — kept for backward compat during migration */
+  ADMIN_SECRET?: string;
+}
+
+/**
+ * Admin allowlist — only GitHub accounts in this list get admin access.
+ * Checked against the GitHub OAuth account username.
+ * TODO: move to a DB table when the team grows beyond 1.
+ */
+const ADMIN_GITHUB_LOGINS = new Set([
+  'jaypatrick', // Jayson Knight — founder
+]);
+
+export function isAdminUser(githubLogin: string): boolean {
+  return ADMIN_GITHUB_LOGINS.has(githubLogin);
+}
+
+const DEFAULT_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
+
+/**
+ * Create the Better Auth instance.
+ * Called once per Worker invocation (Workers are stateless, but Better Auth is cheap to init).
+ */
+function createAuth(env: Env) {
+  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  const baseURL = env.BETTER_AUTH_URL ?? DEFAULT_BASE_URL;
+
+  const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
+    ? env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+    : [];
+
+  const githubClientId     = env.GITHUB_CLIENT_ID ?? '';
+  const githubClientSecret = env.GITHUB_CLIENT_SECRET ?? '';
+
+  return betterAuth({
+    baseURL,
+    secret: env.BETTER_AUTH_SECRET,
+
+    // Better Auth uses Kysely internally; Pool from @neondatabase/serverless
+    // is compatible with the PostgresPool interface Kysely expects.
+    database: pool,
+
+    // Social providers — GitHub OAuth only (admin use)
+    ...(githubClientId && githubClientSecret
+      ? {
+          socialProviders: {
+            github: {
+              clientId: githubClientId,
+              clientSecret: githubClientSecret,
+            },
+          },
+        }
+      : {}),
+
+    // Session config
+    session: {
+      expiresIn:  60 * 60 * 24 * 7,   // 7 days
+      updateAge:  60 * 60 * 24,        // refresh if older than 1 day
+      cookieCache: {
+        enabled: true,
+        maxAge:  60 * 5,              // 5 min client-side cache
+      },
+    },
+
+    // Cross-app SSO — other Bloqr apps can validate sessions here
+    trustedOrigins: [
+      DEFAULT_BASE_URL,
+      'https://adblock-frontend.jayson-knight.workers.dev',
+      ...trustedOrigins,
+    ],
+
+    // Rate limiting (uses DB storage for Cloudflare Workers compatibility)
+    rateLimit: {
+      enabled: true,
+      window:  60,  // seconds
+      max:     20,  // requests per window
+      storage: 'database',
+    },
+  });
+}
+
+/**
+ * Handle all /api/auth/* requests.
+ * Called from src/worker.ts for any request matching that path prefix.
+ */
+export async function handleAuth(request: Request, env: Env): Promise<Response> {
+  if (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET) {
+    return new Response(JSON.stringify({ error: 'Auth service not configured.' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const auth = createAuth(env);
+  return auth.handler(request);
+}
+
+/**
+ * Validate the session for an incoming admin request.
+ * Returns the session user if valid, null otherwise.
+ *
+ * Usage in edge functions:
+ *   const session = await getSession(request, env);
+ *   if (!session || !isAdminUser(session.user.name ?? '')) {
+ *     return new Response(JSON.stringify({ error: 'Forbidden.' }), { status: 403 });
+ *   }
+ */
+export async function getSession(request: Request, env: Env) {
+  if (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET) return null;
+
+  try {
+    const auth = createAuth(env);
+    const session = await auth.api.getSession({ headers: request.headers });
+    return session;
+  } catch {
+    return null;
+  }
+}
