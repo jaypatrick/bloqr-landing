@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-# TODO: update URL to https://bloqr.ai/sitemap-index.xml once the domain is live
+# TODO: update Sitemap URL to https://bloqr.ai/sitemap-index.xml when domain is confirmed
 Sitemap: https://adblock-compiler-landing.pages.dev/sitemap-index.xml
