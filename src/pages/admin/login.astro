@@ -213,7 +213,9 @@ const callbackUrl = '/admin/config';
 
     // Legacy ADMIN_SECRET gate — redirects to /admin/config on success
     const COOKIE_NAME = 'admin_token';
-    const CALLBACK    = new URLSearchParams(window.location.search).get('callbackURL') ?? '/admin/config';
+    const rawCallback = new URLSearchParams(window.location.search).get('callbackURL') ?? '/admin/config';
+    // Prevent open-redirect: only allow same-origin relative paths under /admin/
+    const CALLBACK = (rawCallback.startsWith('/admin/') && !rawCallback.startsWith('//')) ? rawCallback : '/admin/config';
 
     document.getElementById('legacy-btn').addEventListener('click', () => {
       const token = document.getElementById('legacy-token').value.trim();
@@ -236,7 +238,8 @@ const callbackUrl = '/admin/config';
           err.textContent = 'Incorrect secret — try again.';
           err.style.display = 'block';
         } else if (res.status === 404 || res.status === 200) {
-          document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict; Secure`;
+          const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict${secureAttr}`;
           window.location.href = CALLBACK;
         } else {
           const err = document.getElementById('legacy-error');

@@ -33,6 +33,20 @@ export interface Env {
 }
 
 /**
+ * Narrower shape accepted by getSession() — all fields optional so callers
+ * that only conditionally configure Better Auth don't need unsafe casts.
+ */
+export interface AuthEnv {
+  DATABASE_URL?: string;
+  BETTER_AUTH_SECRET?: string;
+  BETTER_AUTH_URL?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  BETTER_AUTH_TRUSTED_ORIGINS?: string;
+  ADMIN_SECRET?: string;
+}
+
+/**
  * Admin allowlist — only GitHub accounts in this list get admin access.
  * Checked against the GitHub OAuth account username. When a user authenticates
  * via the GitHub social provider, Better Auth stores the GitHub login (username)
@@ -54,11 +68,20 @@ export function isAdminUser(githubLogin: string): boolean {
  */
 const FALLBACK_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
 
+// Module-level cache — Cloudflare Worker isolates are long-lived; reusing the
+// auth instance and underlying connection pool avoids overhead on every request.
+let _authCache: ReturnType<typeof betterAuth> | null = null;
+let _authCacheKey = '';
+
 /**
- * Create the Better Auth instance.
- * Called once per Worker invocation (Workers are stateless, but Better Auth is cheap to init).
+ * Create (or return the cached) Better Auth instance.
+ * The instance is keyed on DATABASE_URL + BETTER_AUTH_SECRET so that if the
+ * env changes (e.g. during local dev with wrangler) a fresh instance is created.
  */
 function createAuth(env: Env) {
+  const cacheKey = `${env.DATABASE_URL}|${env.BETTER_AUTH_SECRET}`;
+  if (_authCache && _authCacheKey === cacheKey) return _authCache;
+
   const pool = new Pool({ connectionString: env.DATABASE_URL });
   const baseURL = env.BETTER_AUTH_URL ?? FALLBACK_BASE_URL;
 
@@ -69,7 +92,7 @@ function createAuth(env: Env) {
   const githubClientId     = env.GITHUB_CLIENT_ID ?? '';
   const githubClientSecret = env.GITHUB_CLIENT_SECRET ?? '';
 
-  return betterAuth({
+  const auth = betterAuth({
     baseURL,
     secret: env.BETTER_AUTH_SECRET,
 
@@ -114,6 +137,10 @@ function createAuth(env: Env) {
       storage: 'database',
     },
   });
+
+  _authCache    = auth;
+  _authCacheKey = cacheKey;
+  return _authCache;
 }
 
 /**
@@ -142,11 +169,11 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
  *     return new Response(JSON.stringify({ error: 'Forbidden.' }), { status: 403 });
  *   }
  */
-export async function getSession(request: Request, env: Env) {
+export async function getSession(request: Request, env: AuthEnv) {
   if (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET) return null;
 
   try {
-    const auth = createAuth(env);
+    const auth = createAuth(env as Env);
     const session = await auth.api.getSession({ headers: request.headers });
     return session;
   } catch {
