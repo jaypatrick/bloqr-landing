@@ -45,10 +45,15 @@ export function handleOptions(): Response {
   });
 }
 
-export async function handleGet(_request: Request, env: Env): Promise<Response> {
+export async function handleGet(request: Request, env: Env): Promise<Response> {
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
   }
+
+  // Future: add ?limit and ?offset query params for pagination
+  const url = new URL(request.url);
+  const limit  = Math.min(parseInt(url.searchParams.get('limit')  ?? '100', 10), 100);
+  const offset = Math.max(parseInt(url.searchParams.get('offset') ?? '0',   10), 0);
 
   const sql = neon(env.DATABASE_URL);
 
@@ -59,6 +64,7 @@ export async function handleGet(_request: Request, env: Env): Promise<Response> 
         author, category, tags, draft, og_image, created_at
       FROM blog_posts
       ORDER BY pub_date DESC
+      LIMIT ${limit} OFFSET ${offset}
     `;
     return json(rows);
   } catch (err) {

@@ -229,7 +229,7 @@ function truncateAtSentence(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
   const truncated = text.slice(0, maxChars);
   const lastPeriod = truncated.lastIndexOf('.');
-  return lastPeriod > 0 ? truncated.slice(0, lastPeriod + 1) : truncated;
+  return lastPeriod > 0 ? truncated.slice(0, lastPeriod + 1) : truncated.trimEnd() + '…';
 }
 
 const vpnMythsSchema = {

@@ -38,7 +38,9 @@ const meta = {
 };
 
 const ogImage = post.data.image
-  ? `${SITE_URL}${post.data.image}`
+  ? (post.data.image.startsWith('http://') || post.data.image.startsWith('https://')
+      ? post.data.image
+      : `${SITE_URL}${post.data.image}`)
   : `${SITE_URL}${META.ogImage}`;
 
 const blogPostSchema = {
