@@ -20,9 +20,13 @@
 import { betterAuth } from 'better-auth';
 import { Pool } from '@neondatabase/serverless';
 
-export interface Env {
-  DATABASE_URL: string;
-  BETTER_AUTH_SECRET: string;
+/**
+ * Loose auth env — all fields optional so admin handlers don't need unsafe casts.
+ * Extend your handler's Env with this interface instead of duplicating fields.
+ */
+export interface AuthEnv {
+  DATABASE_URL?: string;
+  BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
@@ -32,19 +36,10 @@ export interface Env {
   ADMIN_SECRET?: string;
 }
 
-/**
- * Narrower shape accepted by getSession() — all fields optional so callers
- * that only conditionally configure Better Auth don't need unsafe casts.
- */
-export interface AuthEnv {
-  DATABASE_URL?: string;
-  BETTER_AUTH_SECRET?: string;
-  BETTER_AUTH_URL?: string;
-  GITHUB_CLIENT_ID?: string;
-  GITHUB_CLIENT_SECRET?: string;
-  BETTER_AUTH_TRUSTED_ORIGINS?: string;
-  ADMIN_SECRET?: string;
-}
+/** Full env required for the Worker entry point (handleAuth). */
+export interface Env
+  extends Required<Pick<AuthEnv, 'DATABASE_URL' | 'BETTER_AUTH_SECRET'>>,
+    Omit<AuthEnv, 'DATABASE_URL' | 'BETTER_AUTH_SECRET'> {}
 
 /**
  * Admin allowlist — only GitHub accounts in this list get admin access.
@@ -68,21 +63,41 @@ export function isAdminUser(githubLogin: string): boolean {
  */
 const FALLBACK_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
 
-// Module-level cache — Cloudflare Worker isolates are long-lived; reusing the
-// auth instance and underlying connection pool avoids overhead on every request.
-let _authCache: ReturnType<typeof betterAuth> | null = null;
-let _authCacheKey = '';
+/**
+ * Module-level caches.
+ * - poolCache: reuses a single Pool per DATABASE_URL so we don't leak connections
+ *   when env values change across warm isolate requests (secret rotation, previews).
+ * - authInstanceCache: bounded to MAX_CACHE_ENTRIES betterAuth instances to prevent
+ *   unbounded growth when multiple env combinations are seen in the same isolate.
+ */
+const MAX_CACHE_ENTRIES = 4;
+const poolCache         = new Map<string, InstanceType<typeof Pool>>();
+const authInstanceCache = new Map<string, ReturnType<typeof betterAuth>>();
 
 /**
- * Create (or return the cached) Better Auth instance.
- * The instance is keyed on DATABASE_URL + BETTER_AUTH_SECRET so that if the
- * env changes (e.g. during local dev with wrangler) a fresh instance is created.
+ * Create (or reuse a cached) Better Auth instance for the given env.
+ * The cache key is the tuple of fields that affect auth behaviour.
  */
-function createAuth(env: Env) {
-  const cacheKey = `${env.DATABASE_URL}|${env.BETTER_AUTH_SECRET}`;
-  if (_authCache && _authCacheKey === cacheKey) return _authCache;
+function getOrCreateAuth(env: Env) {
+  const cacheKey = [
+    env.DATABASE_URL,
+    env.BETTER_AUTH_SECRET,
+    env.BETTER_AUTH_URL ?? '',
+    env.GITHUB_CLIENT_ID ?? '',
+    env.GITHUB_CLIENT_SECRET ?? '',
+    env.BETTER_AUTH_TRUSTED_ORIGINS ?? '',
+  ].join('|');
 
-  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  const cached = authInstanceCache.get(cacheKey);
+  if (cached) return cached;
+
+  // Reuse an existing Pool for this DATABASE_URL to avoid leaking connections
+  // across cache entries when env values change while an isolate stays warm.
+  let pool = poolCache.get(env.DATABASE_URL);
+  if (!pool) {
+    pool = new Pool({ connectionString: env.DATABASE_URL });
+    poolCache.set(env.DATABASE_URL, pool);
+  }
   const baseURL = env.BETTER_AUTH_URL ?? FALLBACK_BASE_URL;
 
   const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
@@ -122,12 +137,10 @@ function createAuth(env: Env) {
       },
     },
 
-    // Cross-app SSO — other Bloqr apps can validate sessions here
-    trustedOrigins: [
-      FALLBACK_BASE_URL,
-      'https://adblock-frontend.jayson-knight.workers.dev',
-      ...trustedOrigins,
-    ],
+    // Trust the resolved base URL for this environment, plus any explicitly
+    // configured cross-app origins. This avoids always trusting the fallback
+    // Pages domain when a different canonical BETTER_AUTH_URL is configured.
+    trustedOrigins: [...new Set([baseURL, ...trustedOrigins])],
 
     // Rate limiting (uses DB storage for Cloudflare Workers compatibility)
     rateLimit: {
@@ -138,9 +151,13 @@ function createAuth(env: Env) {
     },
   });
 
-  _authCache    = auth;
-  _authCacheKey = cacheKey;
-  return _authCache;
+  // Evict the oldest entry when the cache is full before inserting a new one.
+  if (authInstanceCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = authInstanceCache.keys().next().value!;
+    authInstanceCache.delete(oldestKey);
+  }
+  authInstanceCache.set(cacheKey, auth);
+  return auth;
 }
 
 /**
@@ -155,13 +172,16 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
     });
   }
 
-  const auth = createAuth(env);
+  const auth = getOrCreateAuth(env);
   return auth.handler(request);
 }
 
 /**
  * Validate the session for an incoming admin request.
- * Returns the session user if valid, null otherwise.
+ * Accepts AuthEnv (all fields optional) so callers with partially-typed
+ * environments don't need unsafe casts — the function guards internally.
+ *
+ * Returns the session object if valid and configured, null otherwise.
  *
  * Usage in edge functions:
  *   const session = await getSession(request, env);
@@ -173,7 +193,9 @@ export async function getSession(request: Request, env: AuthEnv) {
   if (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET) return null;
 
   try {
-    const auth = createAuth(env as Env);
+    const auth = getOrCreateAuth(
+      env as Required<Pick<AuthEnv, 'DATABASE_URL' | 'BETTER_AUTH_SECRET'>> & AuthEnv
+    );
     const session = await auth.api.getSession({ headers: request.headers });
     return session;
   } catch {

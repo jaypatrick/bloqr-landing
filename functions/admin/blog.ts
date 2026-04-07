@@ -2,28 +2,22 @@
  * functions/admin/blog.ts — GET/POST/PUT/OPTIONS /admin/blog handler
  *
  * Manages blog posts stored in Neon PostgreSQL.
- *
- * GET  /admin/blog  → list all posts
- * POST /admin/blog  → create new post (auth required)
- * PUT  /admin/blog  → update existing post by id (auth required)
- * OPTIONS /admin/blog → CORS preflight
- *
  * Auth: Better Auth session (primary) or legacy ADMIN_SECRET bearer token (fallback).
+ *
+ * GET     /admin/blog  → list all posts (requires auth)
+ * POST    /admin/blog  → create new post (requires auth)
+ * PUT     /admin/blog  → update existing post by id (requires auth)
+ * OPTIONS /admin/blog  → CORS preflight
+ *
  * Exported as plain functions for import by src/worker.ts.
  */
 
 import { neon } from '@neondatabase/serverless';
 import { BlogPostSchema } from '../../src/lib/blog-post-schema';
-import { getSession, isAdminUser } from '../../src/lib/auth';
+import { getSession, isAdminUser, type AuthEnv } from '../../src/lib/auth';
 
-export interface Env {
+export interface Env extends AuthEnv {
   DATABASE_URL: string;
-  ADMIN_SECRET?: string;
-  BETTER_AUTH_SECRET?: string;
-  BETTER_AUTH_URL?: string;
-  GITHUB_CLIENT_ID?: string;
-  GITHUB_CLIENT_SECRET?: string;
-  BETTER_AUTH_TRUSTED_ORIGINS?: string;
 }
 
 const json = (data: unknown, status = 200) =>
@@ -35,6 +29,14 @@ const json = (data: unknown, status = 200) =>
       'Access-Control-Allow-Origin': '*',
     },
   });
+
+/**
+ * Returns true if at least one auth mechanism is configured.
+ * Used to distinguish "misconfigured server" (503) from "wrong credentials" (403).
+ */
+function isAuthConfigured(env: Env): boolean {
+  return !!(env.BETTER_AUTH_SECRET || env.ADMIN_SECRET);
+}
 
 /**
  * Dual-auth: Better Auth session first, legacy ADMIN_SECRET bearer as fallback.
@@ -72,10 +74,14 @@ export async function handleGet(request: Request, env: Env): Promise<Response> {
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
   }
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
+  }
   if (!(await isAuthorized(request, env))) {
-    return json({ error: 'Unauthorized.' }, 401);
+    return json({ error: 'Forbidden.' }, 403);
   }
 
+  // Future: add ?limit and ?offset query params for pagination
   const url = new URL(request.url);
   const limit  = Math.min(parseInt(url.searchParams.get('limit')  ?? '100', 10), 100);
   const offset = Math.max(parseInt(url.searchParams.get('offset') ?? '0',   10), 0);
@@ -102,8 +108,8 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
   }
-  if (!env.BETTER_AUTH_SECRET && !env.ADMIN_SECRET) {
-    return json({ error: 'Admin access not configured.' }, 503);
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
   }
   if (!(await isAuthorized(request, env))) {
     return json({ error: 'Forbidden.' }, 403);
@@ -122,6 +128,11 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
   }
 
   const post = parsed.data;
+  const slug  = post.slug.trim();
+  const title = post.title.trim();
+  if (!slug)  return json({ error: 'slug is required.' },  400);
+  if (!title) return json({ error: 'title is required.' }, 400);
+
   const sql = neon(env.DATABASE_URL);
 
   try {
@@ -129,7 +140,7 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
       INSERT INTO blog_posts
         (slug, title, description, content, pub_date, updated_date, author, category, tags, draft, og_image)
       VALUES
-        (${post.slug}, ${post.title}, ${post.description}, ${post.content},
+        (${slug}, ${title}, ${post.description}, ${post.content},
          ${post.pubDate.toISOString()}, ${post.updatedDate?.toISOString() ?? null},
          ${post.author}, ${post.category}, ${post.tags}, ${post.draft}, ${post.image ?? null})
       RETURNING id, slug
@@ -137,8 +148,8 @@ export async function handlePost(request: Request, env: Env): Promise<Response> 
     return json({ success: true, id: rows[0].id, slug: rows[0].slug }, 201);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('unique')) {
-      return json({ error: `A post with slug "${post.slug}" already exists.` }, 409);
+    if (msg.includes('unique') || msg.includes('duplicate')) {
+      return json({ error: `A post with slug "${slug}" already exists.` }, 409);
     }
     console.error('POST /admin/blog error:', err);
     return json({ error: 'Failed to create post.' }, 500);
@@ -149,8 +160,8 @@ export async function handlePut(request: Request, env: Env): Promise<Response> {
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
   }
-  if (!env.BETTER_AUTH_SECRET && !env.ADMIN_SECRET) {
-    return json({ error: 'Admin access not configured.' }, 503);
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
   }
   if (!(await isAuthorized(request, env))) {
     return json({ error: 'Forbidden.' }, 403);
@@ -175,6 +186,19 @@ export async function handlePut(request: Request, env: Env): Promise<Response> {
   }
 
   const post = parsed.data;
+
+  // Validate that slug/title are not set to empty strings
+  if (post.slug !== undefined) {
+    const slug = post.slug.trim();
+    if (!slug) return json({ error: 'slug cannot be empty.' }, 400);
+    post.slug = slug;
+  }
+  if (post.title !== undefined) {
+    const title = post.title.trim();
+    if (!title) return json({ error: 'title cannot be empty.' }, 400);
+    post.title = title;
+  }
+
   const sql = neon(env.DATABASE_URL);
 
   try {
