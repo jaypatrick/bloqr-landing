@@ -81,7 +81,7 @@ list compiler and real-time threat intelligence service.
 - New API routes must be added to `src/worker.ts` — handler files in
   `functions/*.ts` are imported by the Worker, not auto-routed by Cloudflare.
 - Keep handlers thin: **validate input → call service → return Response**.
-- Read secrets from the `env` parameter (CF's binding) — never from
+- Read secrets from the `env` parameter (CF Workers binding) — never from
   `process.env`.
 - Always set `Content-Type: application/json` and return the correct
   HTTP status code.
