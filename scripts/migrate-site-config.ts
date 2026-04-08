@@ -59,7 +59,7 @@ async function migrate(): Promise<void> {
   // 2. Seed default values (adblock-compiler era — update rows via admin UI when bloqr.ai is live)
   await sql`
     INSERT INTO site_config (key, value, label) VALUES
-      ('SITE_URL',        'https://adblock-compiler-landing.pages.dev',        'Canonical site URL (update to https://bloqr.ai when domain is live)'),
+      ('SITE_URL',        'https://adblock-landing.jayson-knight.workers.dev',        'Canonical site URL (update to https://bloqr.ai when domain is live)'),
       ('APP_URL',         'https://adblock-frontend.jayson-knight.workers.dev', 'App URL (update to https://app.bloqr.ai)'),
       ('DOCS_URL',        'https://adblock-compiler-docs.pages.dev',            'Docs URL (update to https://docs.bloqr.ai)'),
       ('API_URL',         'https://adblock-compiler-docs.pages.dev',            'API URL (update to https://api.bloqr.ai when live)'),
