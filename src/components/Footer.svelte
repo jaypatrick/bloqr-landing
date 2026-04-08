@@ -1,5 +1,9 @@
 <script>
   import { LINKS } from '../config';
+
+  const HYGIENE_TERM = 'Internet Hygiene';
+  const HYGIENE_DEF  = `${HYGIENE_TERM} (n.) — the ongoing practices that keep your digital life clean, private, and safe.`;
+  const HYGIENE_FULL = `${HYGIENE_DEF} Think washing your hands, but for everything you do online.`;
 </script>
 <!-- Site footer -->
 
@@ -10,7 +14,12 @@
       Made by <a href={LINKS.author} rel="noopener">Jayson Knight</a>
     </span>
     <p class="hygiene-def">
-      <strong class="hygiene-term" title="Internet Hygiene (n.) — the ongoing practices that keep your digital life clean, private, and safe. Think washing your hands, but for everything you do online.">Internet Hygiene</strong> (n.) — the ongoing practices that keep your digital life clean, private, and safe.
+      <strong
+        class="hygiene-term"
+        tabindex="0"
+        aria-describedby="hygiene-tooltip"
+      >{HYGIENE_TERM}</strong>{HYGIENE_DEF.slice(HYGIENE_TERM.length)}
+      <span id="hygiene-tooltip" class="sr-only">{HYGIENE_FULL}</span>
     </p>
     <nav aria-label="Footer navigation">
       <ul>
@@ -54,8 +63,20 @@
     font-weight: 600;
     color: var(--orange);
     cursor: help;
-    border-bottom: 1px dotted rgba(255, 85, 0, 0.4);
+    border-bottom: 1px dotted color-mix(in srgb, var(--orange) 40%, transparent);
     font-style: normal;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .copy {
