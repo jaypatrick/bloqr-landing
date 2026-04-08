@@ -202,4 +202,4 @@ Never: "Stay tuned!" (same reason).
 ---
 
 *Last updated: April 2026*
-*Part of the Bloqr brand documentation suite in `jaypatrick/bloqr-landing/brand/`.
+*Part of the Bloqr brand documentation suite in `jaypatrick/bloqr-landing/brand/`.*
