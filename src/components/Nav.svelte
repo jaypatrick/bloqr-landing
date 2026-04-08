@@ -19,6 +19,7 @@
 </script>
 
 <nav class:scrolled class:menu-open={menuOpen} aria-label="Main navigation">
+  <a href="#main-content" class="skip-to-content">Skip to main content</a>
   <div class="inner container">
 
     <!-- Logo -->
@@ -30,7 +31,7 @@
       </div>
       <div class="logo-text">
         <span class="logo-name">BLOQR</span>
-        <span class="logo-sub">Internet Hygiene: Automated.</span>
+        <span class="logo-sub">Internet Hygiene:<br/><span class="logo-sub-auto">Automated</span></span>
       </div>
     </a>
 
@@ -59,7 +60,6 @@
             onclick={closeDropdown}
           ></button>
           <div class="dropdown-menu">
-            <a href={LINKS.blog} onclick={closeDropdown}>News</a>
             <a href={LINKS.changelog} onclick={closeDropdown}>Changelog</a>
             <a href={LINKS.about} onclick={closeDropdown}>About</a>
           </div>
@@ -70,6 +70,7 @@
 
     <!-- Desktop CTA -->
     <div class="nav-cta">
+      <a href={LINKS.blog} class="nav-news">News</a>
       <a href={LINKS.docs} class="btn btn-ghost btn-sm" rel="noopener noreferrer" target="_blank">Docs</a>
       <a href={LINKS.app} class="btn btn-primary btn-sm" rel="noopener noreferrer" target="_blank">
         Launch App <span aria-hidden="true">→</span>
@@ -132,6 +133,25 @@
     z-index: 100;
     border-bottom: 1px solid transparent;
     transition: border-color 200ms, background 200ms, backdrop-filter 200ms;
+  }
+
+  .skip-to-content {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    background: var(--orange);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 0 0 8px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    z-index: 9999;
+    transition: top 150ms;
+  }
+
+  .skip-to-content:focus {
+    top: 0;
   }
 
   nav.scrolled,
@@ -198,7 +218,6 @@
     letter-spacing: 0.08em;
     color: var(--text-3);
     text-transform: uppercase;
-    white-space: nowrap;
   }
 
   /* ── Desktop nav links ── */
@@ -406,5 +425,21 @@
 
   @media (max-width: 380px) {
     .logo-sub { display: none; }
+  }
+
+  .nav-news {
+    font-size: 14px;
+    color: var(--cyan);
+    text-decoration: none;
+    transition: opacity 150ms;
+    white-space: nowrap;
+  }
+  .nav-news:hover { opacity: 0.75; }
+
+  .logo-sub-auto {
+    color: var(--cyan);
+    display: block;
+    font-style: normal;
+    letter-spacing: 0.08em;
   }
 </style>

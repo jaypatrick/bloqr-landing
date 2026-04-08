@@ -1,0 +1,23 @@
+# Copy this to .dev.vars (gitignored) and fill in real values for local dev
+# Run: cp .dev.vars.example .dev.vars
+
+DATABASE_URL=postgresql://your-neon-connection-string-here
+APOLLO_API_KEY=your-apollo-api-key
+ADMIN_SECRET=any-strong-random-string-for-local-dev
+
+# Better Auth — required for /api/auth/* and /admin/* session validation
+# Generate BETTER_AUTH_SECRET with: openssl rand -base64 32
+BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
+# BETTER_AUTH_URL for local dev: http://localhost:4321
+BETTER_AUTH_URL=http://localhost:4321
+
+# GitHub OAuth — create an OAuth App at https://github.com/settings/developers
+# Callback URLs to add to your GitHub OAuth App:
+#   Local dev:                  http://localhost:4321/api/auth/callback/github
+#   Production (pre-migration): https://adblock-landing.jayson-knight.workers.dev/api/auth/callback/github
+GITHUB_CLIENT_ID=your-github-oauth-app-client-id
+GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
+
+# BETTER_AUTH_TRUSTED_ORIGINS — optional; comma-separated trusted origins for cross-app SSO
+# Not needed until app.bloqr.ai / docs.bloqr.ai are live
+# BETTER_AUTH_TRUSTED_ORIGINS=https://app.bloqr.ai,https://docs.bloqr.ai

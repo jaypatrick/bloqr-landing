@@ -2,6 +2,9 @@
 dist/
 .astro/
 
+# Generated assets
+public/icons/
+
 # Dependencies
 node_modules/
 
@@ -22,3 +25,4 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+

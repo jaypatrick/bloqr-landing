@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import { ViewTransitions } from 'astro:transitions';
 import Nav from '../components/Nav.svelte';
 import Hero from '../components/Hero.svelte';
 import SocialProof from '../components/SocialProof.svelte';
@@ -20,6 +19,8 @@ import FounderNote from '../components/FounderNote.svelte';
 import FAQ from '../components/FAQ.svelte';
 import CtaBanner from '../components/CtaBanner.svelte';
 import Footer from '../components/Footer.svelte';
+import BaseHead from '../components/BaseHead.astro';
+import SchemaOrg from '../components/SchemaOrg.astro';
 import { SITE_URL, META } from '../config';
 
 const meta = {
@@ -28,65 +29,130 @@ const meta = {
   url:         SITE_URL,
   image:       `${SITE_URL}${META.ogImage}`,  // absolute URL required by social crawlers
 };
+
+const homeSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "Bloqr",
+      "description": META.description,
+      "url": SITE_URL,
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Web, iOS, Android, macOS, Windows",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free tier available on waitlist"
+      },
+      "featureList": "DNS-level ad blocking, AI-powered filter lists, Encrypted DNS (DoH/DoT), Network-wide protection, Real-time threat intelligence, Bring-your-own DNS provider support"
+    },
+    {
+      "@type": "Organization",
+      "name": "Bloqr",
+      "url": SITE_URL,
+      "logo": `${SITE_URL}/og-image.png`,
+      "sameAs": ["https://twitter.com/bloqr_ai", "https://github.com/jaypatrick/adblock-compiler"],
+      "foundingDate": "2026",
+      "description": "Making internet hygiene that protects experts automatically work for everyone."
+    },
+    {
+      "@type": "WebSite",
+      "name": "Bloqr",
+      "url": SITE_URL,
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": `${SITE_URL}/blog?q={search_term_string}`,
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does Bloqr see my internet traffic?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Bloqr never proxies your connection, routes your traffic, or sits in the path between you and the internet. It compiles filter lists and pushes them to your DNS filtering service. What gets blocked is decided at the DNS level by your chosen vendor — not by Bloqr."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What's the difference between Bloqr and a VPN?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A VPN reroutes all your traffic through someone else's server — you're trusting them instead of your ISP. Bloqr doesn't touch your traffic at all. It builds and maintains the blocklists your DNS filtering service uses to stop ads and trackers before they even load. No tunnel. No rerouting. No new party to trust."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use my existing Pi-hole / AdGuard / NextDNS setup?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Bloqr is vendor-agnostic by design. Connect your existing setup and Bloqr manages the list updates, transformations, and deployments. Your filtering engine stays exactly where it is — Bloqr just makes it smarter. If you don't have one yet, we'll help you pick and set one up."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens to my data if I cancel?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You can export your full configuration (lists, rules, settings) as JSON at any time. If you cancel, your data is deleted within 30 days. No hostage data. The GPL-3.0 open-source version means you can always self-host and never be locked out."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the compiler itself open source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The adblock filter list compiler at the core of Bloqr is GPL-3.0 licensed and available on GitHub. The managed platform (AI features, vendor integrations, dashboard) is a paid product, but the engine is yours to run, fork, and audit."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does \"AI-powered\" actually mean here?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Two things: (1) natural language rule building — tell Bloqr what you want to block in plain English and it translates that into proper filter rules; (2) real-time threat intelligence — AI continuously monitors emerging malware domains and phishing campaigns and surfaces them as filter list updates. No magic. No vague claims."
+          }
+        }
+      ]
+    }
+  ]
+};
 ---
 
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{meta.title}</title>
-  <meta name="description" content={meta.description} />
-
-  <!-- Open Graph -->
-  <meta property="og:site_name"    content="Bloqr" />
-  <meta property="og:title"        content={meta.title} />
-  <meta property="og:description"  content={meta.description} />
-  <meta property="og:url"          content={meta.url} />
-  <meta property="og:image"        content={meta.image} />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt"    content="Bloqr — Internet Hygiene: Automated." />
-  <meta property="og:type"         content="website" />
-
-  <!-- Twitter / X -->
-  <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content={meta.title} />
-  <meta name="twitter:description" content={meta.description} />
-  <meta name="twitter:image"       content={meta.image} />
-  <meta name="twitter:image:alt"   content="Bloqr — Internet Hygiene: Automated." />
-  <meta name="twitter:site"        content="@bloqr_ai" />
-  <meta name="twitter:creator"     content="@jaysonknight" />
-
-  <!-- Canonical -->
-  <link rel="canonical" href={meta.url} />
-
-  <!-- Favicon (inline SVG data URI) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23070B14'/><rect x='6' y='6' width='20' height='3' rx='1.5' fill='%23F1F5F9'/><rect x='6' y='13' width='15' height='3' rx='1.5' fill='%23F1F5F9' opacity='.65'/><rect x='6' y='20' width='8' height='3' rx='1.5' fill='%23FF5500'/></svg>" />
-
-  <!-- PWA / Theme -->
-  <link rel="manifest" href="/site.webmanifest" />
-  <meta name="theme-color" content="#FF5500" />
-
-  <ViewTransitions />
+  <BaseHead
+    title={meta.title}
+    description={meta.description}
+    canonicalURL={meta.url}
+    ogImage={meta.image}
+  />
+  <SchemaOrg schema={homeSchema} />
+  <meta name="keywords" content="adblock, DNS filtering, ad blocking, tracker blocking, Pi-hole, AdGuard, NextDNS, DoH, DNS over HTTPS, internet privacy, network security" />
 </head>
 <body>
   <Nav client:idle />
-  <main>
+  <main id="main-content">
     <Hero client:idle />
     <ComingSoon client:visible />
     <div class="divider-glow"></div>
     <Problem />
     <BeforeAfter client:visible />
-    <HowItWorks />
-    <Audiences />
+    <HowItWorks client:visible />
+    <Audiences client:visible />
     <Features />
     <DynamicWorkers />
     <WhyCloudflare />
     <PrivacyCommitments />
     <Pricing />
     <FounderNote />
-    <FAQ />
+    <FAQ client:visible />
     <WaitlistSignup client:visible />
     <CodeDemo client:visible />
     <CtaBanner />

@@ -1,0 +1,632 @@
+---
+/**
+ * src/pages/admin/blog.astro — /admin/blog
+ *
+ * Admin UI for creating and editing blog posts.
+ * Posts are stored in Neon PostgreSQL via the /admin/blog edge function.
+ * The static site build reads from src/content/blog/*.md — use the
+ * sync-blog-from-db script to export DB posts to files before building.
+ *
+ * Auth: same password-gate pattern as admin/config.astro (ADMIN_SECRET bearer check).
+ */
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog Admin — Bloqr</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <style>
+    :root {
+      --bg-base:     #070B14;
+      --bg-surface:  #0E1829;
+      --bg-elevated: #162035;
+      --orange:      #FF5500;
+      --cyan:        #00D4FF;
+      --green:       #22c55e;
+      --red:         #ef4444;
+      --text-1:      #F1F5F9;
+      --text-2:      #94A3B8;
+      --text-3:      #475569;
+      --border:      #1E2D40;
+      --border-2:    #2A3F5A;
+      --font-display: system-ui, sans-serif;
+      --font-mono:    monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-1);
+      font-family: var(--font-display);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 24px;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+    h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-2); }
+
+    .notice {
+      background: rgba(255,85,0,0.1);
+      border: 1px solid rgba(255,85,0,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      color: var(--text-2);
+      margin-bottom: 28px;
+    }
+    .notice strong { color: var(--orange); }
+
+    /* ── Auth gate ── */
+    #auth-gate {
+      max-width: 400px;
+      margin: 80px auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+    }
+    #auth-gate h2 { font-size: 1.1rem; margin-bottom: 20px; color: var(--text-1); }
+    #auth-gate label { display: block; font-size: 0.8rem; color: var(--text-2); margin-bottom: 6px; }
+    #auth-gate input[type="password"] {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-2);
+      border-radius: 6px;
+      color: var(--text-1);
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    #auth-gate input[type="password"]:focus { border-color: var(--orange); }
+
+    /* ── App layout ── */
+    #blog-app { display: none; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* ── Posts list ── */
+    .posts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .post-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .post-item:hover { border-color: var(--border-2); }
+
+    .post-info { flex: 1; min-width: 0; }
+    .post-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .post-meta-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.75rem;
+      color: var(--text-3);
+    }
+    .post-slug { font-family: var(--font-mono); color: var(--cyan); }
+    .badge {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-draft { background: rgba(255,85,0,0.12); color: var(--orange); }
+    .badge-live  { background: rgba(34,197,94,0.12); color: var(--green); }
+    .badge-cat   { background: rgba(0,212,255,0.1);  color: var(--cyan); }
+
+    /* ── Form panel ── */
+    .form-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      position: sticky;
+      top: 24px;
+    }
+
+    .form-row { margin-bottom: 16px; }
+    .form-row label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-row input[type="text"],
+    .form-row input[type="date"],
+    .form-row select,
+    .form-row textarea {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-2);
+      border-radius: 6px;
+      color: var(--text-1);
+      font-size: 0.875rem;
+      padding: 9px 12px;
+      outline: none;
+      font-family: var(--font-display);
+    }
+    .form-row textarea { resize: vertical; min-height: 120px; font-family: var(--font-mono); }
+    .form-row input:focus,
+    .form-row select:focus,
+    .form-row textarea:focus { border-color: var(--orange); }
+    .form-row select option { background: var(--bg-elevated); }
+
+    .form-row-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .form-row-check label { font-size: 0.875rem; color: var(--text-2); margin: 0; }
+    .form-row-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--orange); }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+    /* ── Buttons ── */
+    button, .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 120ms;
+      font-family: var(--font-display);
+    }
+    .btn-primary { background: var(--orange); color: #fff; }
+    .btn-primary:hover { background: #ff7033; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent;
+      color: var(--text-1);
+      border: 1px solid var(--border-2);
+    }
+    .btn-outline:hover { border-color: var(--text-2); background: var(--bg-elevated); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* ── Deploy note ── */
+    .deploy-note {
+      background: rgba(0,212,255,0.05);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.8rem;
+      color: var(--text-2);
+      margin-top: 28px;
+    }
+    .deploy-note strong { color: var(--cyan); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 0.875rem;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 250ms, transform 250ms;
+      pointer-events: none;
+      z-index: 999;
+      max-width: 340px;
+    }
+    #toast.visible { opacity: 1; transform: translateY(0); }
+    #toast.success { border-color: var(--green); color: #4ade80; }
+    #toast.error   { border-color: var(--red); color: #f87171; }
+
+    #loading { color: var(--text-2); padding: 32px 0; }
+    #error-msg { color: #f87171; padding: 16px 0; display: none; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .form-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ── Auth gate ── -->
+  <div id="auth-gate">
+    <h2>🔐 Admin — Blog Posts</h2>
+    <label for="token-input">Admin secret</label>
+    <input id="token-input" type="password" placeholder="Enter ADMIN_SECRET…" autocomplete="current-password" />
+    <button class="btn-primary" id="auth-btn" style="width:100%">Unlock</button>
+    <p id="auth-error" style="color:#f87171;font-size:0.8rem;margin-top:10px;display:none;">Incorrect secret — try again.</p>
+  </div>
+
+  <!-- ── Blog admin app (hidden until auth) ── -->
+  <div id="blog-app" class="container">
+    <h1>Blog Posts</h1>
+    <div class="notice">
+      <strong>Note:</strong> Posts saved here are stored in Neon PostgreSQL. Run
+      <code style="font-family:monospace;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:4px;">npm run sync-blog</code>
+      then <code style="font-family:monospace;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:4px;">npm run deploy</code>
+      to publish changes to the static site.
+    </div>
+
+    <div class="layout">
+      <!-- Post list -->
+      <div>
+        <div class="posts-header">
+          <h2 style="margin:0">All posts</h2>
+          <button class="btn-outline btn-sm" id="new-post-btn">+ New Post</button>
+        </div>
+        <div id="loading">Loading posts…</div>
+        <p id="error-msg">Failed to load posts. Check console for details.</p>
+        <div id="posts-list"></div>
+      </div>
+
+      <!-- Editor form -->
+      <div class="form-panel">
+        <h2 id="form-title">New Post</h2>
+
+        <div class="form-row">
+          <label for="f-title">Title</label>
+          <input id="f-title" type="text" placeholder="Post title…" />
+        </div>
+        <div class="form-row">
+          <label for="f-slug">Slug</label>
+          <input id="f-slug" type="text" placeholder="post-url-slug" />
+        </div>
+        <div class="form-row">
+          <label for="f-description">Description (max 500 chars)</label>
+          <textarea id="f-description" rows="3" placeholder="Short description for meta tags and post cards…"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="f-content">Content (Markdown)</label>
+          <textarea id="f-content" rows="12" placeholder="Write post content in Markdown…"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="f-pubdate">Pub Date</label>
+          <input id="f-pubdate" type="date" />
+        </div>
+        <div class="form-row">
+          <label for="f-author">Author</label>
+          <input id="f-author" type="text" value="Jayson Knight" />
+        </div>
+        <div class="form-row">
+          <label for="f-category">Category</label>
+          <select id="f-category">
+            <option value="education">Education</option>
+            <option value="industry">Industry News</option>
+            <option value="release">Release</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="f-tags">Tags (comma-separated)</label>
+          <input id="f-tags" type="text" placeholder="dns, privacy, explainer" />
+        </div>
+        <div class="form-row">
+          <label for="f-image">OG Image path (optional)</label>
+          <input id="f-image" type="text" placeholder="/images/my-post.png" />
+        </div>
+        <div class="form-row-check">
+          <input id="f-draft" type="checkbox" checked />
+          <label for="f-draft">Save as draft</label>
+        </div>
+
+        <input type="hidden" id="f-id" value="" />
+
+        <div class="form-actions">
+          <button class="btn-primary" id="save-btn">Save Post</button>
+          <button class="btn-outline" id="clear-btn">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="deploy-note">
+      <strong>Publishing workflow:</strong>
+      After saving a post here, run <code>npm run sync-blog</code> to export it to
+      <code>src/content/blog/</code>, then <code>npm run deploy</code> to rebuild and
+      publish the static site. The admin is for drafting — the Astro build is the
+      source of truth for what's live.
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // ── Auth helpers ─────────────────────────────────────────────────────────
+    const COOKIE_NAME = 'admin_token';
+
+    function getStoredToken() {
+      const urlToken = new URLSearchParams(window.location.search).get('token');
+      if (urlToken) {
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(urlToken)}; path=/admin; SameSite=Strict${secure}`;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('token');
+        window.history.replaceState({}, '', url.toString());
+        return urlToken;
+      }
+      const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    function storeToken(token) {
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/admin; SameSite=Strict${secure}`;
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, type = 'success') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `visible ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = ''; }, 3500);
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let adminToken = '';
+    let posts = [];
+
+    // ── Data helpers ──────────────────────────────────────────────────────────
+    async function loadPosts() {
+      const loading   = document.getElementById('loading');
+      const errorMsg  = document.getElementById('error-msg');
+      const listEl    = document.getElementById('posts-list');
+
+      try {
+        const res = await fetch('/admin/blog', {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        posts = await res.json();
+        loading.style.display = 'none';
+        renderPosts(listEl, posts);
+      } catch (err) {
+        console.error('Failed to load posts:', err);
+        loading.style.display = 'none';
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    function renderPosts(container, posts) {
+      if (!posts.length) {
+        container.innerHTML = '<p style="color:var(--text-3);padding:16px 0">No posts yet. Create your first post →</p>';
+        return;
+      }
+      container.innerHTML = '';
+      for (const post of posts) {
+        const div = document.createElement('div');
+        div.className = 'post-item';
+        const date = post.pub_date ? new Date(post.pub_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'No date';
+        div.innerHTML = `
+          <div class="post-info">
+            <div class="post-title">${escHtml(post.title)}</div>
+            <div class="post-meta-row">
+              <span class="post-slug">${escHtml(post.slug)}</span>
+              <span class="badge badge-cat">${escHtml(post.category)}</span>
+              <span class="badge ${post.draft ? 'badge-draft' : 'badge-live'}">${post.draft ? 'Draft' : 'Live'}</span>
+              <span>${escHtml(date)}</span>
+            </div>
+          </div>
+          <button class="btn-outline btn-sm edit-btn" data-id="${escAttr(post.id)}">Edit</button>
+        `;
+        div.querySelector('.edit-btn').addEventListener('click', () => populateForm(post));
+        container.appendChild(div);
+      }
+    }
+
+    // ── Form helpers ──────────────────────────────────────────────────────────
+    function clearForm() {
+      document.getElementById('f-id').value = '';
+      document.getElementById('f-title').value = '';
+      document.getElementById('f-slug').value = '';
+      document.getElementById('f-description').value = '';
+      document.getElementById('f-content').value = '';
+      const today = new Date().toISOString().slice(0, 10);
+      document.getElementById('f-pubdate').value = today;
+      document.getElementById('f-author').value = 'Jayson Knight';
+      document.getElementById('f-category').value = 'education';
+      document.getElementById('f-tags').value = '';
+      document.getElementById('f-image').value = '';
+      document.getElementById('f-draft').checked = true;
+      document.getElementById('form-title').textContent = 'New Post';
+    }
+
+    function populateForm(post) {
+      document.getElementById('f-id').value       = post.id ?? '';
+      document.getElementById('f-title').value    = post.title ?? '';
+      document.getElementById('f-slug').value     = post.slug ?? '';
+      document.getElementById('f-description').value = post.description ?? '';
+      document.getElementById('f-content').value  = post.content ?? '';
+      document.getElementById('f-pubdate').value  = post.pub_date ? post.pub_date.slice(0, 10) : '';
+      document.getElementById('f-author').value   = post.author ?? 'Jayson Knight';
+      document.getElementById('f-category').value = post.category ?? 'education';
+      document.getElementById('f-tags').value     = (post.tags ?? []).join(', ');
+      document.getElementById('f-image').value    = post.og_image ?? '';
+      document.getElementById('f-draft').checked  = post.draft ?? true;
+      document.getElementById('form-title').textContent = 'Edit Post';
+      document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Auto-slug from title
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('f-title').addEventListener('input', (e) => {
+        const slugEl = document.getElementById('f-slug');
+        // Only auto-fill if slug is empty or was auto-generated
+        if (!document.getElementById('f-id').value) {
+          slugEl.value = e.target.value
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .slice(0, 200);
+        }
+      });
+    });
+
+    async function savePost() {
+      const id          = document.getElementById('f-id').value;
+      const title       = document.getElementById('f-title').value.trim();
+      const slug        = document.getElementById('f-slug').value.trim();
+      const description = document.getElementById('f-description').value.trim();
+      const content     = document.getElementById('f-content').value.trim();
+      const pubDate     = document.getElementById('f-pubdate').value;
+      const author      = document.getElementById('f-author').value.trim() || 'Jayson Knight';
+      const category    = document.getElementById('f-category').value;
+      const tags        = document.getElementById('f-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+      const image       = document.getElementById('f-image').value.trim() || undefined;
+      const draft       = document.getElementById('f-draft').checked;
+
+      if (!title || !slug || !description || !content || !pubDate) {
+        showToast('Title, slug, description, content, and pub date are required.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.textContent = id ? 'Updating…' : 'Saving…';
+
+      const payload = {
+        slug, title, description, content,
+        pubDate: new Date(pubDate).toISOString(),
+        author, category, tags, draft,
+        ...(image ? { image } : {}),
+        ...(id ? { id } : {}),
+      };
+
+      try {
+        const res = await fetch('/admin/blog', {
+          method: id ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showToast(id ? `✓ Post "${slug}" updated.` : `✓ Post "${slug}" created.`);
+          clearForm();
+          await loadPosts();
+        } else if (res.status === 403) {
+          // Distinguish session-cookie auth (adminToken is empty) from legacy bearer auth.
+          if (adminToken) {
+            showToast('Access denied — check your admin secret.', 'error');
+          } else {
+            showToast('Access denied — your session may have expired. Please log in again.', 'error');
+          }
+        } else {
+          showToast(`Error: ${data.error ?? 'Unknown error'}`, 'error');
+        }
+      } catch (err) {
+        showToast('Network error — could not save.', 'error');
+        console.error('Save error:', err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Post';
+      }
+    }
+
+    // ── HTML escaping helpers ─────────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function escAttr(str) {
+      return String(str ?? '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    function unlockApp(token) {
+      adminToken = token;
+      document.getElementById('auth-gate').style.display = 'none';
+      document.getElementById('blog-app').style.display = 'block';
+      clearForm();
+      loadPosts();
+    }
+
+    // Wire up buttons
+    document.getElementById('save-btn').addEventListener('click', savePost);
+    document.getElementById('clear-btn').addEventListener('click', clearForm);
+    document.getElementById('new-post-btn').addEventListener('click', clearForm);
+
+    document.getElementById('auth-btn').addEventListener('click', () => {
+      const token = document.getElementById('token-input').value.trim();
+      if (!token) return;
+      fetch('/admin/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ key: '__ping__', value: '__ping__' }),
+      }).then(res => {
+        if (res.status === 403) {
+          document.getElementById('auth-error').textContent = 'Incorrect secret — try again.';
+          document.getElementById('auth-error').style.display = 'block';
+        } else if (res.status === 404 || res.status === 200) {
+          storeToken(token);
+          document.getElementById('auth-error').style.display = 'none';
+          unlockApp(token);
+        } else {
+          document.getElementById('auth-error').textContent = `Server error (${res.status}) — check that ADMIN_SECRET and DATABASE_URL are configured.`;
+          document.getElementById('auth-error').style.display = 'block';
+        }
+      }).catch(() => {
+        document.getElementById('auth-error').textContent = 'Network error — check your connection.';
+        document.getElementById('auth-error').style.display = 'block';
+      });
+    });
+
+    document.getElementById('token-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('auth-btn').click();
+    });
+
+    const existingToken = getStoredToken();
+    if (existingToken) unlockApp(existingToken);
+  </script>
+</body>
+</html>

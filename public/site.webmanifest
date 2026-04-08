@@ -1,10 +1,18 @@
 {
+  "id": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "orientation": "any",
   "name": "Bloqr",
   "short_name": "Bloqr",
-  "description": "Internet Hygiene: Automated.",
+  "description": "Internet Hygiene: Automated. DNS-level ad blocking, AI-powered filter lists, and encrypted DNS for every device.",
   "start_url": "/",
-  "display": "browser",
+  "display": "standalone",
   "background_color": "#070B14",
   "theme_color": "#FF5500",
-  "icons": []
+  "categories": ["security", "utilities", "productivity"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
 }

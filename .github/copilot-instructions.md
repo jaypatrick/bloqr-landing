@@ -10,7 +10,7 @@ list compiler and real-time threat intelligence service.
 - Full brand strategy and personas: `brand/BLOQR_DESIGN_LANGUAGE.md`
 - Privacy philosophy and core promises: `brand/BLOQR_ETHOS.md`
 - Canonical URLs, links, and site metadata: `src/config.ts`
-- All CSS design tokens (runtime): `src/styles/global.css`
+- CSS design tokens (`:root` vars): `src/styles/global.css`
 
 ---
 
@@ -22,7 +22,7 @@ list compiler and real-time threat intelligence service.
 | Components     | Svelte 5 — runes syntax (`$state`, `$props`, `$derived`) |
 | Language       | TypeScript — strict mode                                 |
 | Styling        | Plain CSS + CSS custom properties (`src/styles/global.css`) |
-| Edge functions | Cloudflare Worker (`src/worker.ts`) + handlers in `functions/` |
+| Edge runtime   | Cloudflare Worker (`src/worker.ts`) + handlers in `functions/` |
 | Database       | Neon Postgres (waitlist)                                 |
 
 ---
@@ -56,8 +56,9 @@ list compiler and real-time threat intelligence service.
 
 ### CSS
 
-- All runtime design tokens are defined in `src/styles/global.css` (`:root` block).
-  `brand/tokens.css` is a design reference only — it is **not** imported at runtime.
+- Design tokens are defined as CSS custom properties in `src/styles/global.css`
+  (the `:root` block). The `brand/tokens.css` file is the design reference, but
+  the variables actually used by components come from `global.css`.
 - Class naming convention: BEM-adjacent, descriptive names
   (`.hero__subtitle`, `.features__card`, `.nav__link--active`).
 - Do **not** introduce Tailwind, UnoCSS, or any utility-class framework.
@@ -77,10 +78,8 @@ list compiler and real-time threat intelligence service.
 
 ### Cloudflare Worker Routing
 
-- Routes are defined in `src/worker.ts` — add a new `if (url.pathname === '/your-route')` block
-  and import the handler from `functions/`.
-- Handler files in `functions/` are **not** auto-routed; they must be explicitly wired in
-  `src/worker.ts` (Workers mode, not Pages Functions mode).
+- New API routes must be added to `src/worker.ts` — handler files in
+  `functions/*.ts` are imported by the Worker, not auto-routed by Cloudflare.
 - Keep handlers thin: **validate input → call service → return Response**.
 - Read secrets from the `env` parameter (CF Workers binding) — never from
   `process.env`.

@@ -1,6 +1,12 @@
 name = "adblock-landing"
 compatibility_date = "2026-01-01"
 
+# ─── Account Configuration ────────────────────────────────────────────────────
+# If your API token does not resolve the correct default account, uncomment
+# account_id and set it explicitly using the Cloudflare account ID from the
+# dashboard sidebar.
+# account_id = "your-account-id-here"
+
 # ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
 assets = { directory = "./dist" }
 
@@ -16,9 +22,35 @@ mode = "smart"
 # ─── Observability (logging + metrics) ───────────────────────────────────────
 # Enables Workers Trace Events / Logpush and built-in request metrics in the
 # Cloudflare dashboard. No extra code changes required.
+#
+# ⚠️  SAMPLING NOTE — these settings capture 100 % of telemetry (head_sampling_rate = 1)
+# with persistence enabled.  This is intentional for the initial Worker rollout so
+# that every request is visible while the deployment is stabilised.  Before this
+# Worker handles significant production traffic you SHOULD:
+#   • Lower head_sampling_rate to 0.1–0.25 (10–25 % sampling) in both
+#     [observability.logs] and [observability.traces].
+#   • Set persist = false unless long-term log retention is required — persisting
+#     at high volume will incur Logpush / R2 storage costs.
+#   • Consider disabling invocation_logs (or setting it false) once the Worker is
+#     confirmed stable, as it logs every invocation even for fast cache-hit requests.
+#   • Override these values per-environment by adding a [env.production] or
+#     [env.staging] block that narrows the sampling rate for each tier.
 [observability]
 enabled = true
-head_sampling_rate = 1   # 1 = 100 % of requests sampled (adjust for high traffic)
+head_sampling_rate = 1   # TODO: reduce to 0.1–0.25 before high-traffic production
+
+[observability.logs]
+enabled = true
+destinations = [ "sentry-logs" ]
+head_sampling_rate = 1   # TODO: reduce before high-traffic production
+persist = true            # TODO: disable if long-term log retention is not needed
+invocation_logs = true    # TODO: disable once Worker behaviour is confirmed stable
+
+[observability.traces]
+enabled = true
+destinations = [ "sentry-traces" ]
+persist = true            # TODO: disable if long-term trace retention is not needed
+head_sampling_rate = 1   # TODO: reduce before high-traffic production
 
 # ─── Browser Rendering ────────────────────────────────────────────────────────
 # Provides a headless Chromium instance at the edge for UI automation and
@@ -26,8 +58,13 @@ head_sampling_rate = 1   # 1 = 100 % of requests sampled (adjust for high traffi
 # Usage: import puppeteer from '@cloudflare/puppeteer'
 #        const browser = await puppeteer.launch(env.BROWSER)
 # Requires Cloudflare Workers paid plan.
-[[browser]]
+[browser]
 binding = "BROWSER"
+
+# ─── Tail Worker ───────────────────────────────────────────────────────────────
+# Tail worker binding for real-time log streaming and diagnostics
+[[tail_consumers]]
+service = "adblock-tail"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
 # Uncomment and fill in once the Worker is promoted to production:
@@ -46,20 +83,40 @@ binding = "BROWSER"
 #
 # ─── Required secrets (set in CF dashboard OR .dev.vars for local dev) ────────
 # Workers → adblock-landing → Settings → Environment variables
-# Add both as type "Secret" (encrypted at rest):
+# Add as type "Secret" (encrypted at rest):
 #
 #   DATABASE_URL   — Neon bloqr database connection string (branch-specific, see above; currently named adblock-compiler)
 #   APOLLO_API_KEY — Apollo.io API key for contact enrichment
 #   ADMIN_SECRET   — Password for /admin/config UI (any strong random string)
 #
+# ─── Better Auth secrets ──────────────────────────────────────────────────────
+#   BETTER_AUTH_SECRET          — Random 32+ char string; signs/validates sessions
+#                                  Generate with: openssl rand -base64 32  (REQUIRED)
+#   BETTER_AUTH_URL             — Canonical origin for auth callbacks  (REQUIRED)
+#                                  Pre-migration: https://adblock-landing.jayson-knight.workers.dev
+#                                  Update to https://bloqr.ai when the domain goes live
+#   GITHUB_CLIENT_ID            — GitHub OAuth App client ID
+#   GITHUB_CLIENT_SECRET        — GitHub OAuth App client secret
+#   BETTER_AUTH_TRUSTED_ORIGINS — Optional; comma-separated trusted origins for cross-app SSO
+#                                  Leave unset until app.bloqr.ai / docs.bloqr.ai are live
+#
+# GitHub OAuth App setup:  https://github.com/settings/developers
+# Callback URLs to register on your GitHub OAuth App:
+#   Production (pre-migration): https://adblock-landing.jayson-knight.workers.dev/api/auth/callback/github
+#   Local dev:                  http://localhost:4321/api/auth/callback/github
+#
+# Migration note: when bloqr.ai goes live —
+#   1. Update BETTER_AUTH_URL secret → https://bloqr.ai
+#   2. Add https://bloqr.ai/api/auth/callback/github to the GitHub OAuth App
+#
 # Local dev: values live in .dev.vars (gitignored), then run:
 #   npm run preview   →  wrangler pages dev ./dist
 
-# ─── D1 Cache (site_config read-through cache) ────────────────────────────────
-# Caches site_config rows from Neon (adblock-compiler DB) for fast edge reads.
-# Gracefully skipped only when the CONFIG_CACHE binding is not defined for the
-# active Wrangler environment (for example, if this [[d1_databases]] block is
-# removed or overridden for local dev).
+# ─── D1 Cache (site_config read-through cache) — RESERVED / FUTURE WORK ────────
+# Intended to cache site_config rows from Neon for fast edge reads.
+# The Worker does not yet read from or write to this binding; it is provisioned
+# here so the D1 database exists and the binding name is reserved for when the
+# implementation lands in src/worker.ts / functions/config.ts.
 #
 # One-time setup — see scripts/setup-d1-cache.sh, or run manually:
 #   1. wrangler d1 create bloqr-config-cache
@@ -67,11 +124,8 @@ binding = "BROWSER"
 #   3. wrangler d1 execute bloqr-config-cache --command \
 #        "CREATE TABLE IF NOT EXISTS config_cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, cached_at INTEGER NOT NULL)"
 #
-# Uncomment and replace REPLACE_WITH_DATABASE_ID_AFTER_CREATION with the real
-# D1 UUID output by `wrangler d1 create` before deploying. Keeping a placeholder
-# database_id causes Wrangler validation failures during local dev and CI.
-#
-# [[d1_databases]]
-# binding       = "CONFIG_CACHE"
-# database_name = "bloqr-config-cache"
-# database_id   = "REPLACE_WITH_DATABASE_ID_AFTER_CREATION"
+[[d1_databases]]
+binding = "bloqr_config_cache"
+database_name = "bloqr-config-cache"
+database_id = "8d6153e2-9be1-470a-980b-9532a1850378"
+

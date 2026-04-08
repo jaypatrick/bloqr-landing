@@ -2,16 +2,16 @@
  * functions/admin/config.ts — POST /admin/config handler
  *
  * Updates a single site_config row.
- * Requires: Authorization: Bearer <ADMIN_SECRET>
+ * Auth: Better Auth session (primary) or legacy ADMIN_SECRET bearer token (fallback).
  *
  * Exported as plain functions for import by src/worker.ts.
  */
 
 import { neon } from '@neondatabase/serverless';
+import { getSession, isAdminUser, type AuthEnv } from '../../src/lib/auth';
 
-export interface Env {
+export interface Env extends AuthEnv {
   DATABASE_URL: string;
-  ADMIN_SECRET: string;
 }
 
 interface ConfigUpdateBody {
@@ -29,10 +29,34 @@ const json = (data: unknown, status = 200) =>
     },
   });
 
-function isAuthorized(request: Request, env: Env): boolean {
+/**
+ * Returns true if at least one auth mechanism is configured.
+ * Used to distinguish "misconfigured server" (503) from "wrong credentials" (403).
+ */
+function isAuthConfigured(env: Env): boolean {
+  return !!(env.BETTER_AUTH_SECRET || env.ADMIN_SECRET);
+}
+
+/**
+ * Dual-auth: Better Auth session first, legacy ADMIN_SECRET bearer as fallback.
+ */
+async function isAuthorized(request: Request, env: Env): Promise<boolean> {
+  // 1. Try Better Auth session (the new way)
+  if (env.DATABASE_URL && env.BETTER_AUTH_SECRET) {
+    try {
+      const session = await getSession(request, env);
+      if (session?.user && isAdminUser(session.user.name ?? '')) return true;
+    } catch {
+      // fall through to legacy check
+    }
+  }
+
+  // 2. Fall back to legacy ADMIN_SECRET bearer token (backward compat)
   const authHeader = request.headers.get('Authorization') ?? '';
   const [scheme, token] = authHeader.split(' ');
-  return scheme === 'Bearer' && token === env.ADMIN_SECRET;
+  if (scheme === 'Bearer' && env.ADMIN_SECRET && token === env.ADMIN_SECRET) return true;
+
+  return false;
 }
 
 export function handleOptions(): Response {
@@ -46,14 +70,14 @@ export function handleOptions(): Response {
 }
 
 export async function handlePost(request: Request, env: Env): Promise<Response> {
-  if (!env.ADMIN_SECRET) {
-    return json({ error: 'Admin access is not configured.' }, 503);
-  }
-  if (!isAuthorized(request, env)) {
-    return json({ error: 'Forbidden.' }, 403);
-  }
   if (!env.DATABASE_URL) {
     return json({ error: 'Service unavailable.' }, 503);
+  }
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ error: 'Forbidden.' }, 403);
   }
 
   let body: ConfigUpdateBody;
