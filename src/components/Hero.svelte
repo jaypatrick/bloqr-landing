@@ -9,7 +9,7 @@
   <div class="container">
     <div class="badge">
       <span class="badge-dot" aria-hidden="true"></span>
-      Just Set It &amp; Forget It
+      Set it. Bloqr it. Forget it.
     </div>
 
     <h1>Internet Hygiene:<br /><em>Automated.</em></h1>
