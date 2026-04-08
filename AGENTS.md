@@ -18,7 +18,7 @@ Astro site served via a Cloudflare Worker with static assets.
 | Owner           | `jaypatrick`                                                  |
 | Default branch  | `main`                                                        |
 | Deploy target   | Cloudflare Workers with static assets                         |
-| Production URL  | `https://adblock-compiler-landing.pages.dev` → `bloqr.ai` TBD |
+| Production URL  | `https://adblock-landing.jayson-knight.workers.dev` → `bloqr.ai` TBD |
 
 ---
 

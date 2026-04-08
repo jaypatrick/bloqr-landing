@@ -61,7 +61,7 @@ export function isAdminUser(githubLogin: string): boolean {
  * Override this with the BETTER_AUTH_URL secret in Cloudflare Workers.
  * Update to https://bloqr.ai when the domain is live.
  */
-const FALLBACK_BASE_URL = 'https://adblock-compiler-landing.pages.dev';
+const FALLBACK_BASE_URL = 'https://adblock-landing.jayson-knight.workers.dev';
 
 /**
  * Module-level caches.

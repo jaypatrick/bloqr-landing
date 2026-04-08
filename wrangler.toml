@@ -20,6 +20,19 @@ mode = "smart"
 enabled = true
 head_sampling_rate = 1   # 1 = 100 % of requests sampled (adjust for high traffic)
 
+[observability.logs]
+enabled = true
+destinations = [ "sentry-logs" ]
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+destinations = [ "sentry-traces" ]
+persist = true
+head_sampling_rate = 1
+
 # ─── Browser Rendering ────────────────────────────────────────────────────────
 # Provides a headless Chromium instance at the edge for UI automation and
 # visual regression tests.
@@ -28,6 +41,11 @@ head_sampling_rate = 1   # 1 = 100 % of requests sampled (adjust for high traffi
 # Requires Cloudflare Workers paid plan.
 [browser]
 binding = "BROWSER"
+
+# ─── Tail Worker ───────────────────────────────────────────────────────────────
+# Tail worker binding for real-time log streaming and diagnostics
+[[tail_consumers]]
+service = "adblock-tail"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
 # Uncomment and fill in once the Worker is promoted to production:
