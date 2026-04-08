@@ -2,8 +2,9 @@ name = "adblock-landing"
 compatibility_date = "2026-01-01"
 
 # ─── Account Configuration ────────────────────────────────────────────────────
-# Replace with your Cloudflare account ID (found in dashboard sidebar)
-# or set CLOUDFLARE_ACCOUNT_ID environment variable in CI
+# If your API token does not resolve the correct default account, uncomment
+# account_id and set it explicitly using the Cloudflare account ID from the
+# dashboard sidebar.
 # account_id = "your-account-id-here"
 
 # ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
