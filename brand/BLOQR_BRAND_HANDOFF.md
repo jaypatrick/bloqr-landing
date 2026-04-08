@@ -9,7 +9,17 @@
 > - `BLOQR_COPY_PATTERNS.md` — copy templates and forbidden phrases
 > - `BLOQR_DESIGN_LANGUAGE.md` — product strategy, personas, and voice
 > - `BLOQR_ETHOS.md` — mission, philosophy, and user promise
-> - `tokens.css` — canonical CSS custom properties (import this file directly)
+> - `tokens.css` — canonical design-reference CSS custom properties
+>
+> **Implementation note for this repo:** the landing site runtime tokens come from
+> `src/styles/global.css`, which uses abbreviated aliases rather than the full
+> `--color-*` names in `brand/tokens.css`. When styling this repo, use the
+> `global.css` variables that exist at runtime. Quick mapping:
+> - `--color-bg` / `--color-surface-0` → `--bg-base`
+> - `--color-accent` / primary orange accent → `--orange`
+> - `--color-text` / primary foreground text → `--text-1`
+> - If a property needs a token that only exists in `brand/tokens.css`, import or
+>   mirror it explicitly instead of assuming the `--color-*` name already exists.
 
 ---
 
