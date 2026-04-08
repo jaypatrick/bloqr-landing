@@ -9,6 +9,9 @@
       © 2026 Bloqr ·
       Made by <a href={LINKS.author} rel="noopener">Jayson Knight</a>
     </span>
+    <p class="hygiene-def">
+      <strong class="hygiene-term" title="Internet Hygiene (n.) — the ongoing practices that keep your digital life clean, private, and safe. Think washing your hands, but for everything you do online.">Internet Hygiene</strong> (n.) — the ongoing practices that keep your digital life clean, private, and safe.
+    </p>
     <nav aria-label="Footer navigation">
       <ul>
         <li><a href={LINKS.app}      rel="noopener noreferrer" target="_blank">Launch App</a></li>
@@ -35,6 +38,24 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 24px;
+  }
+
+  .hygiene-def {
+    font-size: 12px;
+    color: var(--text-3);
+    font-style: italic;
+    margin: 0;
+    flex-basis: 100%;
+    text-align: center;
+    order: 2;
+  }
+
+  .hygiene-term {
+    font-weight: 600;
+    color: var(--orange);
+    cursor: help;
+    border-bottom: 1px dotted rgba(255, 85, 0, 0.4);
+    font-style: normal;
   }
 
   .copy {
