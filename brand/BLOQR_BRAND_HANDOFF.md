@@ -627,7 +627,7 @@ Max content width: 800px centered
 
 ## 13. Canonical CSS `:root` Block
 
-Copy this entire block into any Bloqr-suite project's root stylesheet. It is identical to `brand/tokens.css`.
+Copy this entire block into any Bloqr-suite project's root stylesheet as a reference implementation. For the canonical source of truth, use `brand/tokens.css`; this block is equivalent in purpose but may differ in how some values are expressed.
 
 ```css
 :root {
