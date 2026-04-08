@@ -113,7 +113,7 @@ service = "adblock-tail"
 
 # ─── D1 Cache (site_config read-through cache) ────────────────────────────────
 # Caches site_config rows from Neon (adblock-compiler DB) for fast edge reads.
-# Gracefully skipped only when the CONFIG_CACHE binding is not defined for the
+# Gracefully skipped only when the bloqr_config_cache binding is not defined for the
 # active Wrangler environment (for example, if this [[d1_databases]] block is
 # removed or overridden for local dev).
 #
@@ -122,10 +122,6 @@ service = "adblock-tail"
 #   2. Copy the database_id output below
 #   3. wrangler d1 execute bloqr-config-cache --command \
 #        "CREATE TABLE IF NOT EXISTS config_cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, cached_at INTEGER NOT NULL)"
-#
-# Uncomment and replace REPLACE_WITH_DATABASE_ID_AFTER_CREATION with the real
-# D1 UUID output by `wrangler d1 create` before deploying. Keeping a placeholder
-# database_id causes Wrangler validation failures during local dev and CI.
 #
 [[d1_databases]]
 binding = "bloqr_config_cache"
