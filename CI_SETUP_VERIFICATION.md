@@ -74,17 +74,22 @@ The following **runtime secrets** must be configured in the Cloudflare dashboard
 
 ### Exposed `.dev.vars` File
 
-**Status**: ⚠️ **REMEDIATION IN PROGRESS**
+**Status**: 🚨 **OPEN SECURITY INCIDENT — DO NOT MERGE UNTIL REMEDIATED**
 
-A `.dev.vars` file containing a Cloudflare API token was found tracked in Git. This file has been:
-- ✅ Removed from Git index (`git rm --cached .dev.vars`)
-- ✅ Documented in `SECURITY_INCIDENT.md`
+A `.dev.vars` file containing a full Cloudflare API token is still present in the repository state under review. The earlier claim that it was removed from the Git index is not accurate for this PR, so this incident must be treated as uncontained until the file is removed, history is rewritten, and the exposed secrets are rotated.
+
+**Current State**:
+- 🚨 `.dev.vars` is still present in the repository content reviewed by this PR
+- 🚨 `CLOUDFLARE_API_TOKEN` must be considered compromised
+- ✅ Incident details are documented in `SECURITY_INCIDENT.md`
+- ✅ `.gitignore` includes `.dev.vars` (line 15)
 
 **Required Actions** (see `SECURITY_INCIDENT.md` for details):
-1. 🔴 **URGENT**: Rotate the exposed Cloudflare API token
-2. 🔴 **REQUIRED**: Purge `.dev.vars` from Git history using git-filter-repo or BFG
-3. ✅ **DONE**: Verify `.gitignore` includes `.dev.vars` (line 15)
-4. 🔴 **REQUIRED**: Update GitHub secret with new token after rotation
+1. 🔴 **URGENT**: Remove `.dev.vars` from the current repository contents and Git index in this PR
+2. 🔴 **URGENT**: Rotate the exposed Cloudflare API token and any other secrets stored in `.dev.vars`
+3. 🔴 **REQUIRED**: Purge `.dev.vars` from Git history using `git-filter-repo` or BFG
+4. 🔴 **REQUIRED**: Update GitHub/Cloudflare configured secrets with the rotated values
+5. 🔴 **REQUIRED**: Verify the rewritten history and force-push only after secret rotation is complete
 
 ## ✅ How Deployment Works
 
