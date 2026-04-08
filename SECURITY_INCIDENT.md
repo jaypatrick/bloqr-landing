@@ -9,7 +9,8 @@ The `.dev.vars` file containing a Cloudflare API token was committed to the repo
 
 ### Exposed Credential
 - **File**: `.dev.vars`
-- **Exposed Token**: `CLOUDFLARE_API_TOKEN=cfat_KHKF9JpAHnb0IZHLG93gDh57CBzz6xPku3lYYcM00342745e`
+- **Exposed Token**: `CLOUDFLARE_API_TOKEN=cfat_KHKF...2745e`
+- **Full Token Record**: Available in Cloudflare audit logs and the internal incident tracker only
 - **Token Type**: Cloudflare API Token
 - **Scope**: Workers Scripts:Edit + Account:Read permissions
 

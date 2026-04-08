@@ -16,10 +16,9 @@ Pushes to `main` trigger `.github/workflows/ci.yml` (deploy job), which:
 3. Runs `astro build`
 4. Runs `wrangler deploy`
 
-**Account Configuration**: The deployment uses `wrangler deploy` which reads authentication from:
-- `CLOUDFLARE_API_TOKEN` environment variable (set in GitHub secrets)
+**Account Configuration**: The deployment uses `wrangler deploy`, which authenticates using the `CLOUDFLARE_API_TOKEN` environment variable (set in GitHub secrets). The target account is selected from:
 - `account_id` in `wrangler.toml` (if configured)
-- Default account associated with the API token (if `account_id` not set)
+- The default account associated with the API token (if `account_id` is not set)
 
 ## Required GitHub Secrets
 

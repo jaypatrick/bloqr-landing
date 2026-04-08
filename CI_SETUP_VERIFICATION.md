@@ -1,7 +1,7 @@
 # CI Setup Verification for Cloudflare Deployment
 
 **Date**: 2026-04-08
-**Status**: ✅ **CONFIGURED** (with critical security issue addressed)
+**Status**: ⚠️ **CONFIGURED BUT BLOCKED** (pending critical security remediation: token rotation/history purge)
 
 ## Summary
 
@@ -164,7 +164,7 @@ Current workflow configuration:
 - **Triggers**: PRs and pushes to `main`
 - **Build**: Runs on all triggers
 - **Deploy**: Only on push to `main` (not PRs)
-- **Concurrency**: Deploy jobs are queued (no parallel deploys)
+- **Concurrency**: Deploy jobs do not run in parallel; a new push cancels any in-progress deploy
 - **Node version**: 22 (matches engine requirement >=20.18.1)
 
 ## ✅ Conclusion
