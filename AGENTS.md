@@ -9,16 +9,16 @@ making changes, running commands, or generating content.
 
 **Bloqr** is an AI-powered DNS filter list compiler and real-time threat
 intelligence service. This repo is the **marketing landing site** — a static
-Astro site deployed to Cloudflare Pages.
+Astro site served via a Cloudflare Worker with static asset binding.
 
-| Field           | Value                                                         |
-| --------------- | ------------------------------------------------------------- |
-| Product tagline | "Good Internet Hygiene. Automated."                           |
-| Repo            | `adblock-compiler.landing` (`bloqr-landing`)                  |
-| Owner           | `jaypatrick`                                                  |
-| Default branch  | `main`                                                        |
-| Deploy target   | Cloudflare Pages (static)                                     |
-| Production URL  | `https://adblock-compiler-landing.pages.dev` → `bloqr.ai` TBD |
+| Field           | Value                                                           |
+| --------------- | --------------------------------------------------------------- |
+| Product tagline | "Good internet habits. Automated."                              |
+| Repo            | `adblock-compiler.landing` (`bloqr-landing`)                    |
+| Owner           | `jaypatrick`                                                    |
+| Default branch  | `main`                                                          |
+| Deploy target   | Cloudflare Worker with static assets (`src/worker.ts`)          |
+| Production URL  | `https://adblock-compiler-landing.pages.dev` → `bloqr.ai` TBD  |
 
 ---
 
@@ -29,8 +29,8 @@ Astro site deployed to Cloudflare Pages.
 | Framework      | Astro 5 (`output: 'static'`)                           |
 | Components     | Svelte 5 (runes syntax)                                |
 | Language       | TypeScript (strict mode)                               |
-| Styling        | Plain CSS + CSS custom properties (`brand/tokens.css`) |
-| Edge functions | Cloudflare Pages Functions (`functions/`)              |
+| Styling        | Plain CSS + CSS custom properties (`src/styles/global.css`) |
+| Edge functions | Cloudflare Worker (`src/worker.ts`) + handlers in `functions/` |
 | Database       | Neon Postgres (waitlist signups)                       |
 | CRM            | Apollo.io (contact enrichment, fire-and-forget)        |
 | Fonts          | JetBrains Mono (code) + Space Grotesk (UI)             |
@@ -42,7 +42,7 @@ Astro site deployed to Cloudflare Pages.
 ```
 .
 ├── astro.config.mjs          # Astro + Svelte integration, CSP headers, static output
-├── wrangler.toml             # Cloudflare Pages project: name, build dir, DB branch map
+├── wrangler.toml             # Cloudflare Worker config: name, assets dir, worker entry, secrets
 ├── tsconfig.json
 ├── package.json
 │
@@ -53,7 +53,12 @@ Astro site deployed to Cloudflare Pages.
 │   └── BLOQR_ETHOS.md            # Core promises, privacy philosophy, origin story
 │
 ├── functions/
-│   └── waitlist.ts           # POST /waitlist — writes to Neon, enriches via Apollo.io
+│   ├── admin/
+│   │   └── config.ts         # POST /admin/config — site_config writer (requires ADMIN_SECRET)
+│   ├── config.ts             # GET /config — site_config reader (public, cached)
+│   ├── waitlist.ts           # POST /waitlist — writes to Neon, enriches via Apollo.io
+│   └── waitlist/
+│       └── count.ts          # GET /waitlist/count — waitlist count handler
 │
 ├── public/                   # Static assets copied verbatim to dist/
 │
@@ -80,6 +85,11 @@ Astro site deployed to Cloudflare Pages.
     │   ├── ComingSoon.svelte
     │   ├── DynamicWorkers.svelte
     │   ├── WhyCloudflare.svelte
+    │   ├── SocialProof.svelte
+    │   ├── FAQ.svelte
+    │   ├── FounderNote.svelte
+    │   ├── PrivacyCommitments.svelte
+    │   ├── BeforeAfter.svelte
     │   ├── Nav.svelte
     │   └── Footer.svelte
     │
@@ -98,22 +108,22 @@ Astro site deployed to Cloudflare Pages.
     │       └── [slug].astro
     │
     └── styles/
-        └── global.css        # Imports brand/tokens.css; global resets + base styles
+        └── global.css        # Design tokens (:root), global resets + base styles
 ```
 
 ---
 
 ## Commands
 
-| Command             | Description                                                |
-| ------------------- | ---------------------------------------------------------- |
-| `npm install`       | Install dependencies                                       |
-| `npm run dev`       | Astro dev server (HMR, no edge functions)                  |
-| `npm run build`     | Build static output to `dist/`                             |
-| `npm run preview`   | Wrangler Pages dev against `dist/` — includes CF Functions |
-| `npm run astro ...` | Astro CLI passthrough                                      |
+| Command             | Description                                                            |
+| ------------------- | ---------------------------------------------------------------------- |
+| `npm install`       | Install dependencies                                                   |
+| `npm run dev`       | Astro dev server (HMR, no edge functions)                              |
+| `npm run build`     | Build static output to `dist/`                                         |
+| `npm run preview`   | Wrangler dev using `wrangler.toml` + `dist/` assets — includes Worker routes/functions |
+| `npm run astro ...` | Astro CLI passthrough                                                  |
 
-> **CF Functions require `npm run preview`**, not `npm run dev`. Local secrets
+> **Worker routes require `npm run preview`**, not `npm run dev`. Local secrets
 > must be in `.dev.vars` (gitignored). See below.
 
 ---
@@ -156,12 +166,13 @@ internal page paths.
 - Svelte 5 runes only: `$props()`, `$state()`, `$derived()`, `$effect()`.
 - Do **not** use Svelte 4 `export let` syntax.
 - Scoped `<style>` block per component.
-- Use `var(--token-name)` from `brand/tokens.css` for all design values —
+- Use `var(--token-name)` from `src/styles/global.css` for all design values —
   never hardcode colours, spacing, or font sizes.
 
 ### CSS
 
-- All design tokens live in `brand/tokens.css`.
+- All design tokens live in `src/styles/global.css` (`:root` block).
+  `brand/tokens.css` is a reference/design source but is **not** imported at runtime.
 - Class names: BEM-adjacent descriptive names (`.hero__title`, `.features__grid`).
 - Do **not** introduce Tailwind, UnoCSS, or any utility-class framework.
 
@@ -171,11 +182,13 @@ internal page paths.
 - Prefer `const`; use explicit type annotations for function parameters.
 - Use `unknown` + type narrowing instead of `any`.
 
-### Cloudflare Pages Functions
+### Cloudflare Worker Routing
 
-- One function file per route: `functions/waitlist.ts` → `POST /waitlist`.
-- Keep functions thin: validate input → write to service → return `Response`.
-- Read secrets from the `env` binding passed by CF, **not** `process.env`.
+- Routes are defined in `src/worker.ts` — add a new `if (url.pathname === '/your-route')` block there.
+- Handler files live in `functions/` and are imported by `src/worker.ts`; they are **not**
+  automatically routed (this is Workers mode, not Pages Functions mode).
+- Keep handlers thin: validate input → write to service → return `Response`.
+- Read secrets from the `env` binding passed by the Worker, **not** `process.env`.
 - Always set `Content-Type: application/json` and return correct HTTP status codes.
 
 ### Blog / Content Collections
@@ -240,7 +253,7 @@ Full persona profiles are in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 
 ## Deployment
 
-Merging to `main` triggers a Cloudflare Pages deployment automatically.
+Merging to `main` triggers a Cloudflare Worker deployment automatically via CI.
 
 Wrangler project name: `adblock-landing`  
 Build output: `./dist`  
@@ -249,8 +262,7 @@ Build command: `npm run build`
 To deploy manually:
 
 ```bash
-npm run build
-npx wrangler pages deploy ./dist
+npm run deploy   # astro build && wrangler deploy
 ```
 
 ---
@@ -259,5 +271,6 @@ npx wrangler pages deploy ./dist
 
 - `brand/BLOQR_DESIGN_LANGUAGE.md` — product strategy, personas, page architecture, voice
 - `brand/BLOQR_ETHOS.md` — privacy philosophy, core promises, origin story
-- `brand/tokens.css` — all CSS design tokens
+- `brand/tokens.css` — design token reference (values are mirrored in `src/styles/global.css`)
+- `src/styles/global.css` — runtime CSS custom properties used by all components
 - `src/config.ts` — canonical URLs, links, and site metadata
