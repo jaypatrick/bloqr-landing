@@ -11,13 +11,13 @@ making changes, running commands, or generating content.
 intelligence service. This repo is the **marketing landing site** — a static
 Astro site served via a Cloudflare Worker with static assets.
 
-| Field           | Value                                                         |
-| --------------- | ------------------------------------------------------------- |
-| Product tagline | "Good Internet Hygiene. Automated."                           |
-| Repo            | `adblock-compiler.landing` (`bloqr-landing`)                  |
-| Owner           | `jaypatrick`                                                  |
-| Default branch  | `main`                                                        |
-| Deploy target   | Cloudflare Workers with static assets                         |
+| Field           | Value                                                               |
+| --------------- | ------------------------------------------------------------------- |
+| Product tagline | "Good internet habits. Automated."                                  |
+| Repo            | `adblock-compiler.landing` (`bloqr-landing`)                        |
+| Owner           | `jaypatrick`                                                        |
+| Default branch  | `main`                                                              |
+| Deploy target   | Cloudflare Worker with static assets (`src/worker.ts`)              |
 | Production URL  | `https://adblock-landing.jayson-knight.workers.dev` → `bloqr.ai` TBD |
 
 ---
@@ -42,7 +42,7 @@ Astro site served via a Cloudflare Worker with static assets.
 ```
 .
 ├── astro.config.mjs          # Astro + Svelte integration, CSP headers, static output
-├── wrangler.toml             # Cloudflare Worker config: name, assets dir, entry point
+├── wrangler.toml             # Cloudflare Worker config: name, assets dir, worker entry, secrets
 ├── tsconfig.json
 ├── package.json
 │
@@ -53,11 +53,13 @@ Astro site served via a Cloudflare Worker with static assets.
 │   └── BLOQR_ETHOS.md            # Core promises, privacy philosophy, origin story
 │
 ├── functions/                # Handler modules imported by src/worker.ts (not auto-routed)
-│   ├── waitlist.ts           # handlePost/handleOptions for POST /waitlist
-│   ├── config.ts             # handleGet for GET /config
+│   ├── waitlist.ts           # POST /waitlist — writes to Neon, enriches via Apollo.io
+│   ├── config.ts             # GET /config — site_config reader (public, cached)
+│   ├── waitlist/
+│   │   └── count.ts          # GET /waitlist/count — waitlist count handler
 │   └── admin/
-│       ├── config.ts         # handlePost for POST /admin/config
-│       └── blog.ts           # handleGet/handlePost/handlePut for /admin/blog
+│       ├── config.ts         # POST /admin/config — site_config writer (requires ADMIN_SECRET)
+│       └── blog.ts           # /admin/blog — blog post CRUD handler
 │
 ├── public/                   # Static assets copied verbatim to dist/
 │
@@ -85,6 +87,11 @@ Astro site served via a Cloudflare Worker with static assets.
     │   ├── ComingSoon.svelte
     │   ├── DynamicWorkers.svelte
     │   ├── WhyCloudflare.svelte
+    │   ├── SocialProof.svelte
+    │   ├── FAQ.svelte
+    │   ├── FounderNote.svelte
+    │   ├── PrivacyCommitments.svelte
+    │   ├── BeforeAfter.svelte
     │   ├── Nav.svelte
     │   └── Footer.svelte
     │
@@ -103,20 +110,20 @@ Astro site served via a Cloudflare Worker with static assets.
     │       └── [slug].astro
     │
     └── styles/
-        └── global.css        # Global resets, base styles, and shared :root design tokens
+        └── global.css        # Design tokens (:root), global resets + base styles
 ```
 
 ---
 
 ## Commands
 
-| Command             | Description                                                               |
-| ------------------- | ------------------------------------------------------------------------- |
-| `npm install`       | Install dependencies                                                      |
-| `npm run dev`       | Astro dev server (HMR for the static site; does not emulate CF runtime)   |
-| `npm run build`     | Build static output to `dist/`                                            |
-| `npm run preview`   | Wrangler dev server for local Cloudflare runtime/functions testing        |
-| `npm run astro ...` | Astro CLI passthrough                                                     |
+| Command             | Description                                                            |
+| ------------------- | ---------------------------------------------------------------------- |
+| `npm install`       | Install dependencies                                                   |
+| `npm run dev`       | Astro dev server (HMR for the static site; does not emulate CF runtime) |
+| `npm run build`     | Build static output to `dist/`                                         |
+| `npm run preview`   | Wrangler dev using `wrangler.toml` + `dist/` assets — includes Worker routes/functions |
+| `npm run astro ...` | Astro CLI passthrough                                                  |
 
 > Use `npm run dev` for normal Astro UI work and fast HMR. Use
 > `npm run preview` when you need Cloudflare Worker runtime behaviour or
@@ -197,7 +204,7 @@ internal page paths.
   them reachable. Handler files in `functions/*.ts` are imported by the Worker,
   not auto-routed by Cloudflare.
 - Keep handlers thin: validate input → write to service → return `Response`.
-- Read secrets from the `env` binding passed by CF, **not** `process.env`.
+- Read secrets from the `env` binding passed by the Worker, **not** `process.env`.
 - Always set `Content-Type: application/json` and return correct HTTP status codes.
 
 ### Blog / Content Collections
@@ -262,16 +269,17 @@ Full persona profiles are in `brand/BLOQR_DESIGN_LANGUAGE.md`.
 
 ## Deployment
 
-Merging to `main` triggers a Cloudflare Worker deployment automatically.
+Merging to `main` triggers a Cloudflare Worker deployment automatically via CI.
 
 Worker entrypoint: `src/worker.ts`  
 Deploy command: `npm run deploy`  
+Build output: `./dist`  
 Build command: `npm run build`
 
 To deploy manually:
 
 ```bash
-npm run deploy
+npm run deploy   # astro build && wrangler deploy
 ```
 
 ---
@@ -281,5 +289,5 @@ npm run deploy
 - `brand/BLOQR_DESIGN_LANGUAGE.md` — product strategy, personas, page architecture, voice
 - `brand/BLOQR_ETHOS.md` — privacy philosophy, core promises, origin story
 - `brand/tokens.css` — design token reference (values are mirrored in `src/styles/global.css`)
-- `src/styles/global.css` — active CSS custom properties used by all components
+- `src/styles/global.css` — runtime CSS custom properties used by all components
 - `src/config.ts` — canonical URLs, links, and site metadata
