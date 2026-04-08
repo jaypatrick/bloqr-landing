@@ -132,5 +132,4 @@ binding = "bloqr_config_cache"
 database_name = "bloqr-config-cache"
 database_id = "8d6153e2-9be1-470a-980b-9532a1850378"
 
-[browser]
-binding = "BROWSER"
+browser = { binding = "BROWSER" }
