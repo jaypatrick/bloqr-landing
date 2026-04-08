@@ -1,6 +1,11 @@
 name = "adblock-landing"
 compatibility_date = "2026-01-01"
 
+# ─── Account Configuration ────────────────────────────────────────────────────
+# Replace with your Cloudflare account ID (found in dashboard sidebar)
+# or set CLOUDFLARE_ACCOUNT_ID environment variable in CI
+# account_id = "your-account-id-here"
+
 # ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
 assets = { directory = "./dist" }
 

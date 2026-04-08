@@ -16,16 +16,28 @@ Pushes to `main` trigger `.github/workflows/ci.yml` (deploy job), which:
 3. Runs `astro build`
 4. Runs `wrangler deploy`
 
+**Account Configuration**: The deployment uses `wrangler deploy` which reads authentication from:
+- `CLOUDFLARE_API_TOKEN` environment variable (set in GitHub secrets)
+- `account_id` in `wrangler.toml` (if configured)
+- Default account associated with the API token (if `account_id` not set)
+
 ## Required GitHub Secrets
 
 Set in **GitHub → Repository → Settings → Secrets and variables → Actions**:
 
 | Secret | Description |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token — needs **Workers Scripts:Edit** + **Account:Read** permissions. Create at https://dash.cloudflare.com/profile/api-tokens |
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID (found in the Cloudflare dashboard sidebar) |
-| `DATABASE_URL` | Neon PostgreSQL connection string (production branch). Used at build time and as runtime secret. |
-| `BETTER_AUTH_SECRET` | Random 32+ character string for Better Auth JWT signing. Generate with: `openssl rand -base64 32` |
+| `CLOUDFLARE_API_TOKEN` | **Required for deployment**. Cloudflare API token with **Workers Scripts:Edit** + **Account:Read** permissions. Create at https://dash.cloudflare.com/profile/api-tokens |
+
+**Note**: `CLOUDFLARE_ACCOUNT_ID` is **optional** if:
+- `account_id` is set in `wrangler.toml`, OR
+- Your API token has access to only one account (Wrangler will use the default)
+
+**Build-time secrets** (only needed for build validation in CI):
+| Secret | Description |
+|---|---|
+| `DATABASE_URL` | Neon PostgreSQL connection string. Used for build-time type checking. Placeholder is acceptable for CI builds. |
+| `BETTER_AUTH_SECRET` | Random 32+ character string for Better Auth JWT signing. Generate with: `openssl rand -base64 32`. Placeholder is acceptable for CI builds. |
 
 ## Required Cloudflare Workers Secrets (Runtime)
 
