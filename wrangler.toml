@@ -128,7 +128,7 @@ service = "adblock-tail"
 # D1 UUID output by `wrangler d1 create` before deploying. Keeping a placeholder
 # database_id causes Wrangler validation failures during local dev and CI.
 #
-# [[d1_databases]]
-# binding       = "CONFIG_CACHE"
-# database_name = "bloqr-config-cache"
-# database_id   = "REPLACE_WITH_DATABASE_ID_AFTER_CREATION"
+[[d1_databases]]
+binding = "bloqr_config_cache"
+database_name = "bloqr-config-cache"
+database_id = "8d6153e2-9be1-470a-980b-9532a1850378"
