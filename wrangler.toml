@@ -83,11 +83,31 @@ service = "adblock-tail"
 #
 # ─── Required secrets (set in CF dashboard OR .dev.vars for local dev) ────────
 # Workers → adblock-landing → Settings → Environment variables
-# Add both as type "Secret" (encrypted at rest):
+# Add as type "Secret" (encrypted at rest):
 #
 #   DATABASE_URL   — Neon bloqr database connection string (branch-specific, see above; currently named adblock-compiler)
 #   APOLLO_API_KEY — Apollo.io API key for contact enrichment
 #   ADMIN_SECRET   — Password for /admin/config UI (any strong random string)
+#
+# ─── Better Auth secrets ──────────────────────────────────────────────────────
+#   BETTER_AUTH_SECRET          — Random 32+ char string; signs/validates sessions
+#                                  Generate with: openssl rand -base64 32  (REQUIRED)
+#   BETTER_AUTH_URL             — Canonical origin for auth callbacks  (REQUIRED)
+#                                  Pre-migration: https://adblock-landing.jayson-knight.workers.dev
+#                                  Update to https://bloqr.ai when the domain goes live
+#   GITHUB_CLIENT_ID            — GitHub OAuth App client ID
+#   GITHUB_CLIENT_SECRET        — GitHub OAuth App client secret
+#   BETTER_AUTH_TRUSTED_ORIGINS — Optional; comma-separated trusted origins for cross-app SSO
+#                                  Leave unset until app.bloqr.ai / docs.bloqr.ai are live
+#
+# GitHub OAuth App setup:  https://github.com/settings/developers
+# Callback URLs to register on your GitHub OAuth App:
+#   Production (pre-migration): https://adblock-landing.jayson-knight.workers.dev/api/auth/callback/github
+#   Local dev:                  http://localhost:4321/api/auth/callback/github
+#
+# Migration note: when bloqr.ai goes live —
+#   1. Update BETTER_AUTH_URL secret → https://bloqr.ai
+#   2. Add https://bloqr.ai/api/auth/callback/github to the GitHub OAuth App
 #
 # Local dev: values live in .dev.vars (gitignored), then run:
 #   npm run preview   →  wrangler pages dev ./dist
