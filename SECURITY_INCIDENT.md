@@ -62,11 +62,11 @@ Confirmed: `.dev.vars` is correctly listed in `.gitignore` line 15.
 The file was likely committed before `.gitignore` was updated, or was force-added.
 
 ## Actions Taken
-- [x] Removed `.dev.vars` from git index (`git rm --cached .dev.vars`)
 - [x] Created this security incident report
-- [ ] **PENDING**: Token rotation by repository owner
-- [ ] **PENDING**: Git history purge by repository owner
-- [ ] **PENDING**: Verification that no other secrets are exposed
+- [ ] **PENDING**: Remove `.dev.vars` from the repository and ensure it is no longer present in the current tree
+- [ ] **PENDING**: Rotate the exposed Cloudflare token and all other credentials referenced in `.dev.vars`
+- [ ] **PENDING**: Purge `.dev.vars` from Git history by repository owner
+- [ ] **PENDING**: Verify that no credentials from `.dev.vars` remain exposed anywhere in the repository, history, or deployment configuration
 
 ## Prevention
 - **Never use `git add -f .dev.vars`** or force-add files that are gitignored
