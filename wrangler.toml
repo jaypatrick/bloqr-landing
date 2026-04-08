@@ -16,22 +16,35 @@ mode = "smart"
 # ─── Observability (logging + metrics) ───────────────────────────────────────
 # Enables Workers Trace Events / Logpush and built-in request metrics in the
 # Cloudflare dashboard. No extra code changes required.
+#
+# ⚠️  SAMPLING NOTE — these settings capture 100 % of telemetry (head_sampling_rate = 1)
+# with persistence enabled.  This is intentional for the initial Worker rollout so
+# that every request is visible while the deployment is stabilised.  Before this
+# Worker handles significant production traffic you SHOULD:
+#   • Lower head_sampling_rate to 0.1–0.25 (10–25 % sampling) in both
+#     [observability.logs] and [observability.traces].
+#   • Set persist = false unless long-term log retention is required — persisting
+#     at high volume will incur Logpush / R2 storage costs.
+#   • Consider disabling invocation_logs (or setting it false) once the Worker is
+#     confirmed stable, as it logs every invocation even for fast cache-hit requests.
+#   • Override these values per-environment by adding a [env.production] or
+#     [env.staging] block that narrows the sampling rate for each tier.
 [observability]
 enabled = true
-head_sampling_rate = 1   # 1 = 100 % of requests sampled (adjust for high traffic)
+head_sampling_rate = 1   # TODO: reduce to 0.1–0.25 before high-traffic production
 
 [observability.logs]
 enabled = true
 destinations = [ "sentry-logs" ]
-head_sampling_rate = 1
-persist = true
-invocation_logs = true
+head_sampling_rate = 1   # TODO: reduce before high-traffic production
+persist = true            # TODO: disable if long-term log retention is not needed
+invocation_logs = true    # TODO: disable once Worker behaviour is confirmed stable
 
 [observability.traces]
 enabled = true
 destinations = [ "sentry-traces" ]
-persist = true
-head_sampling_rate = 1
+persist = true            # TODO: disable if long-term trace retention is not needed
+head_sampling_rate = 1   # TODO: reduce before high-traffic production
 
 # ─── Browser Rendering ────────────────────────────────────────────────────────
 # Provides a headless Chromium instance at the edge for UI automation and
