@@ -1,7 +1,7 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
-// ── Blog ─────────────────────────────────────────────────────────────────────
+// ── Blog ──────────────────────────────────────────────────────────────────────
 // Content Layer API with glob() loader — reads markdown from src/content/blog/
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
@@ -65,9 +65,9 @@ function parseChangelog(raw: string): ChangeSection[] {
     sections.push(current);
   }
 
-  const filtered = sections.filter(s => !(s.version === 'Unreleased' && s.content.trim() === ''));
-  // Mark the first remaining section (first real release) as isLatest.
-  // Done after filtering so an empty [Unreleased] header doesn't claim the flag.
+  // Always exclude [Unreleased] — it has no date and its content is work-in-progress.
+  // isLatest is assigned after filtering so the first real versioned release gets the flag.
+  const filtered = sections.filter(s => s.version !== 'Unreleased');
   if (filtered.length > 0) filtered[0].isLatest = true;
   return filtered;
 }
