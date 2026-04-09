@@ -13,7 +13,7 @@
   function showAllUI() {
     showCode = [false, false, false];
   }
-  const allShowingCode = $derived(showCode.every(v => v));
+  let allShowingCode = $derived(showCode.every(v => v));
 </script>
 
 <!-- How it works: 3-step walkthrough with UI mockup / code toggle -->
