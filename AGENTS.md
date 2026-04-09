@@ -224,16 +224,11 @@ internal page paths.
 - `BaseHead.astro` includes these `<Font>` tags. Pages with a **custom `<head>`** (currently `blog/index.astro` and `blog/[slug].astro`) must include the `Font` import and tags directly.
 - `src/styles/global.css` defines `--font-display: system-ui, sans-serif` and `--font-mono: monospace` as fallbacks in `:root`. The Fonts API overrides these with the hashed font stacks. Never hardcode a font family; always use `var(--font-display)` or `var(--font-mono)`.
 
-### Astro 6 Experimental Features
+### Astro Compiler and Caching
 
-The following experimental features are enabled in `astro.config.mjs`:
-
-| Feature | Config key | Purpose |
-|---|---|---|
-| Rust compiler | `experimental.rustCompiler: true` | Faster `.astro` file transformation via `@astrojs/compiler-rs`. Drop-in replacement. |
-| Queued rendering | `experimental.queuedRendering: { enabled: true, contentCache: true }` | Serialises concurrent prerender jobs; caches HTML across incremental builds. |
-| Route rules | `experimental.routeRules` | Per-route `maxAge`/`swr` TTL hints — the CF adapter emits `Cache-Control` headers accordingly. |
-
+- `astro.config.mjs` does **not** enable any `experimental.*` flags. Do not add or document `experimental.rustCompiler`, `experimental.queuedRendering`, or `experimental.routeRules` here.
+- Faster `.astro` compilation comes from the installed `@astrojs/compiler-rs` dependency, not from an `experimental` config key.
+- Route caching is handled in the Cloudflare Worker layer, not via Astro route rules. If caching behaviour changes, update the Worker implementation and its documentation rather than `astro.config.mjs`.
 ### Blog / Content Collections
 
 - The content config is at `src/content.config.ts` (project root) — **not** `src/content/config.ts`.
