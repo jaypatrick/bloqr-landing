@@ -9,8 +9,19 @@ export default defineConfig({
   // `export const prerender = true`, so all HTML is statically generated
   // at build time and served from the ASSETS binding.  The SSR runtime
   // exists only to serve the custom API routes in src/worker.ts.
-  // prerenderEnvironment:'node' uses Astro's default Node.js prerenderer so
-  // the custom src/worker.ts entry is not used as the prerender server.
+  //
+  // prerenderEnvironment:'node' is set explicitly even though the Astro 6
+  // default is 'workerd'.  The reason: src/worker.ts is a custom Cloudflare
+  // Worker entry that routes unmatched requests to env.ASSETS.fetch() rather
+  // than the Astro SSR handler.  When prerenderEnvironment:'workerd' is used,
+  // the @astrojs/cloudflare adapter starts a local workerd preview server
+  // using the compiled custom worker and makes POST requests to the internal
+  // Astro prerender endpoints (/__astro_static_paths).  Because the custom
+  // worker forwards unknown paths to ASSETS (not to the Astro SSR handler),
+  // these endpoints return 404 and the build fails.  Switching to 'workerd'
+  // requires the custom worker to also handle the Astro prerender endpoints.
+  // The nodejs_compat flag in wrangler.toml is unrelated — it handles the
+  // better-auth node:async_hooks dependency at runtime.
   output: 'server',
   adapter: cloudflare({ prerenderEnvironment: 'node' }),
 
@@ -88,14 +99,21 @@ export default defineConfig({
     },
   },
 
-  // ── Note on experimental features ─────────────────────────────────────
-  // experimental.rustCompiler and experimental.queuedRendering are NOT
-  // valid Astro 6.1.x config keys and caused build failures when present.
-  // The Rust compiler is enabled via the @astrojs/compiler-rs package
-  // (already in dependencies) — it does not require an experimental flag.
-  // Per-route caching must be configured in src/worker.ts directly since
-  // pages are served via env.ASSETS.fetch() from the ASSETS binding, not
-  // through adapter-level route rules.
+  // ── Astro 6 Experimental features ─────────────────────────────────────
+  experimental: {
+    // Use the Rust-based .astro compiler from @astrojs/compiler-rs for
+    // faster builds.  Requires the @astrojs/compiler-rs package (already
+    // in dependencies).
+    rustCompiler: true,
+
+    // Queue and batch rendering tasks to improve build throughput.
+    // contentCache caches content collection query results across renders
+    // so identical collection reads don't re-fetch from disk/network.
+    queuedRendering: {
+      enabled: true,
+      contentCache: true,
+    },
+  },
 
   integrations: [
     svelte(),

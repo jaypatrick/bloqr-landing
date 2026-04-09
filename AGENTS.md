@@ -226,8 +226,7 @@ internal page paths.
 
 ### Astro Compiler and Caching
 
-- `astro.config.mjs` does **not** enable any `experimental.*` flags. Do not add or document `experimental.rustCompiler`, `experimental.queuedRendering`, or `experimental.routeRules` here.
-- Faster `.astro` compilation comes from the installed `@astrojs/compiler-rs` dependency, not from an `experimental` config key.
+- `astro.config.mjs` enables `experimental.rustCompiler: true` (uses `@astrojs/compiler-rs` for faster `.astro` compilation) and `experimental.queuedRendering: { enabled: true, contentCache: true }` (batches rendering tasks and caches content collection queries). Do **not** add `experimental.routeRules` — it has no effect since pages are served via `env.ASSETS.fetch()` in `src/worker.ts`, bypassing adapter route rule evaluation.
 - Route caching is handled in the Cloudflare Worker layer, not via Astro route rules. If caching behaviour changes, update the Worker implementation and its documentation rather than `astro.config.mjs`.
 ### Blog / Content Collections
 
