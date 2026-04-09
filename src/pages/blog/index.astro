@@ -3,6 +3,7 @@ export const prerender = true;
 
 import '../../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
+import Font from 'astro/components/Font.astro';
 import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import SchemaOrg from '../../components/SchemaOrg.astro';
@@ -94,6 +95,10 @@ function formatDate(d: Date) {
   <!-- PWA / Theme -->
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#FF5500" />
+
+  <!-- Astro 6 Fonts API — self-hosted via fontsource, with preload links -->
+  <Font cssVariable="--font-display" preload />
+  <Font cssVariable="--font-mono" preload />
 
   <ClientRouter />
   <SchemaOrg schema={blogIndexSchema} />

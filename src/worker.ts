@@ -41,6 +41,45 @@ function applyRobotsTag(response: Response, hostname: string, canonicalDomain: s
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+/**
+ * Injects a Content-Security-Policy header on all HTML responses.
+ *
+ * Astro 6 `security.csp: { algorithm: 'SHA-256' }` auto-hashes every inline
+ * script and style at build time and embeds the hash values in a `<meta
+ * http-equiv="content-security-policy">` tag in the generated HTML.  However,
+ * header-based CSP takes precedence over meta-tag CSP for many directives, so
+ * we also set the header here for defence-in-depth and to cover API/error
+ * responses that don't go through the static ASSETS binding.
+ *
+ * `style-src` includes `'unsafe-inline'` because Shiki's dual-theme output
+ * emits inline `style` attributes (e.g. `style="--shiki-dark:#..."`).  CSS
+ * hashes and nonces only cover `<style>` tags — not inline style attributes —
+ * so `'unsafe-inline'` is the only standards-compliant way to permit them.
+ * Removing it would break all syntax-highlighted code blocks.
+ *
+ * `connect-src` allows Plausible and PostHog analytics endpoints.
+ */
+function applyCSP(response: Response): Response {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.startsWith('text/html')) return response;
+
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",  // required: Shiki emits inline style attributes
+    "font-src 'self'",
+    "img-src 'self' data: https:",
+    "connect-src 'self' https://app.posthog.com https://plausible.io https://eu.i.posthog.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
+
+  const headers = new Headers(response.headers);
+  headers.set('Content-Security-Policy', csp);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -71,6 +110,7 @@ export default {
       response = await env.ASSETS.fetch(request);
     }
 
+    response = applyCSP(response);
     return applyRobotsTag(response, url.hostname, env.CANONICAL_DOMAIN);
   },
 } satisfies ExportedHandler<Env>;

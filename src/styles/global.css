@@ -14,6 +14,12 @@
   --border:       #1E2D40;
   --border-2:     #2A3F5A;
   --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  /* Font fallbacks — the Astro 6 Fonts API (BaseHead <Font> tags) injects the
+     actual @font-face + CSS custom property values at build time.  These
+     fallbacks ensure body text renders correctly on any page that doesn't
+     include BaseHead (e.g. custom-head blog pages during SSR hydration). */
+  --font-display: system-ui, sans-serif;
+  --font-mono:    monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
