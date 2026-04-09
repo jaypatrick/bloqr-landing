@@ -6,7 +6,7 @@
  * Target (production):  bloqr.ai subdomain scheme
  *
  * To migrate to bloqr.ai when the domain is secured:
- *   1. Update the URL constants in EXTERNAL_URLS below (5 values)
+ *   1. Update the URL constants in EXTERNAL_URLS below (4 values)
  *   2. Update CANONICAL_DOMAIN below
  *   3. Update wrangler.toml [[routes]] pattern
  *   4. Run `npm run build && wrangler deploy`

@@ -67,29 +67,21 @@ binding = "BROWSER"
 service = "adblock-tail"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
-# Custom domain for the landing page worker.
-# Cloudflare provisions TLS automatically when workers_dev = true is also set.
+# This route is configured for the current custom domain.
 # Update pattern to "bloqr.ai/*" when the domain is secured.
 [[routes]]
 pattern = "bloqr.jaysonknight.com/*"
 custom_domain = true
 
 # ─── Environment Variables ───────────────────────────────────────────────────
-# Non-secret build/runtime vars. Secrets (DATABASE_URL, APOLLO_API_KEY, etc.)
+# Non-secret Worker runtime vars. Secrets (DATABASE_URL, APOLLO_API_KEY, etc.)
 # are set in the Cloudflare dashboard or .dev.vars for local dev.
-#
-# ⚠️  URL SYNC NOTE — these URL vars mirror the EXTERNAL_URLS const in
-# src/config.ts (used at build time for static pages) and must be kept in sync.
-# When migrating to bloqr.ai, update BOTH this [vars] block AND EXTERNAL_URLS
-# in src/config.ts. The CANONICAL_DOMAIN var is used by the Worker at runtime
-# to gate X-Robots-Tag noindex headers on non-canonical hosts.
 [vars]
 ENVIRONMENT      = "production"
+# CANONICAL_DOMAIN is read by the Worker at runtime (src/worker.ts) to gate
+# X-Robots-Tag: noindex, nofollow on responses from non-canonical hosts.
+# Update to "bloqr.ai" when that domain is secured.
 CANONICAL_DOMAIN = "bloqr.jaysonknight.com"
-URL_APP          = "https://app.bloqr.jaysonknight.com"
-URL_API          = "https://api.bloqr.jaysonknight.com"
-URL_DOCS         = "https://docs.bloqr.jaysonknight.com"
-URL_LANDING      = "https://bloqr.jaysonknight.com"
 
 # ─── Functions / Waitlist edge handler ───────────────────────────────────────
 # Routing is handled in src/worker.ts:

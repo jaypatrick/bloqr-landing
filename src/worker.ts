@@ -25,43 +25,52 @@ import { handleAuth, type Env as AuthEnv } from './lib/auth';
 
 interface Env extends WaitlistEnv, ConfigGetEnv, ConfigPostEnv, BlogEnv, AuthEnv {
   ASSETS: Fetcher;
+  /** Set in wrangler.toml [vars]. Used to gate X-Robots-Tag noindex on non-canonical hosts. */
+  CANONICAL_DOMAIN?: string;
+}
+
+/**
+ * Returns the response unchanged if the request host matches the canonical domain.
+ * Otherwise appends `X-Robots-Tag: noindex, nofollow` to prevent crawlers from
+ * indexing temporary / workers.dev URLs.
+ */
+function applyRobotsTag(response: Response, hostname: string, canonicalDomain: string | undefined): Response {
+  if (!canonicalDomain || hostname === canonicalDomain) return response;
+  const headers = new Headers(response.headers);
+  headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    let response: Response;
 
     // Better Auth — handles all /api/auth/* routes (login, logout, session, OAuth callbacks)
     if (url.pathname.startsWith('/api/auth/')) {
-      return handleAuth(request, env);
+      response = await handleAuth(request, env);
+    } else if (url.pathname === '/waitlist') {
+      if (request.method === 'OPTIONS') response = waitlistOptions();
+      else if (request.method === 'POST') response = await waitlistPost(request, env, ctx);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/config') {
+      if (request.method === 'OPTIONS') response = configGetOptions();
+      else if (request.method === 'GET') response = await configGet(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/admin/config') {
+      if (request.method === 'OPTIONS') response = configPostOptions();
+      else if (request.method === 'POST') response = await configPost(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/admin/blog') {
+      if (request.method === 'OPTIONS') response = blogOptions();
+      else if (request.method === 'GET') response = await blogGet(request, env);
+      else if (request.method === 'POST') response = await blogPost(request, env);
+      else if (request.method === 'PUT') response = await blogPut(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else {
+      response = await env.ASSETS.fetch(request);
     }
 
-    if (url.pathname === '/waitlist') {
-      if (request.method === 'OPTIONS') return waitlistOptions();
-      if (request.method === 'POST')    return waitlistPost(request, env, ctx);
-      return new Response('Method Not Allowed', { status: 405 });
-    }
-
-    if (url.pathname === '/config') {
-      if (request.method === 'OPTIONS') return configGetOptions();
-      if (request.method === 'GET')     return configGet(request, env);
-      return new Response('Method Not Allowed', { status: 405 });
-    }
-
-    if (url.pathname === '/admin/config') {
-      if (request.method === 'OPTIONS') return configPostOptions();
-      if (request.method === 'POST')    return configPost(request, env);
-      return new Response('Method Not Allowed', { status: 405 });
-    }
-
-    if (url.pathname === '/admin/blog') {
-      if (request.method === 'OPTIONS') return blogOptions();
-      if (request.method === 'GET')     return blogGet(request, env);
-      if (request.method === 'POST')    return blogPost(request, env);
-      if (request.method === 'PUT')     return blogPut(request, env);
-      return new Response('Method Not Allowed', { status: 405 });
-    }
-
-    return env.ASSETS.fetch(request);
+    return applyRobotsTag(response, url.hostname, env.CANONICAL_DOMAIN);
   },
 } satisfies ExportedHandler<Env>;
