@@ -38,8 +38,10 @@
 ### Domain
 
 - Primary: `https://bloqr.ai`
-- App: `https://adblock-frontend.jayson-knight.workers.dev` (transitioning to `app.bloqr.ai`)
-- Docs: `https://adblock-compiler-docs.pages.dev`
+- App: `https://app.bloqr.jaysonknight.com` (transitioning to `app.bloqr.ai`)
+- Docs: `https://docs.bloqr.jaysonknight.com` (transitioning to `docs.bloqr.ai`)
+- API: `https://api.bloqr.jaysonknight.com` (transitioning to `api.bloqr.ai`)
+- Landing: `https://bloqr.jaysonknight.com` (transitioning to `bloqr.ai`)
 - JSR package: `https://jsr.io/@jk-com/adblock-compiler` (transitioning to `@bloqr/compiler`)
 
 ### Logo

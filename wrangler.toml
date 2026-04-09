@@ -67,8 +67,21 @@ binding = "BROWSER"
 service = "adblock-tail"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
-# Uncomment and fill in once the Worker is promoted to production:
-# routes = [{ pattern = "yourdomain.com/*", zone_name = "yourdomain.com" }]
+# This route is configured for the current custom domain.
+# Update pattern to "bloqr.ai/*" when the domain is secured.
+[[routes]]
+pattern = "bloqr.jaysonknight.com/*"
+custom_domain = true
+
+# ─── Environment Variables ───────────────────────────────────────────────────
+# Non-secret Worker runtime vars. Secrets (DATABASE_URL, APOLLO_API_KEY, etc.)
+# are set in the Cloudflare dashboard or .dev.vars for local dev.
+[vars]
+ENVIRONMENT      = "production"
+# CANONICAL_DOMAIN is read by the Worker at runtime (src/worker.ts) to gate
+# X-Robots-Tag: noindex, nofollow on responses from non-canonical hosts.
+# Update to "bloqr.ai" when that domain is secured.
+CANONICAL_DOMAIN = "bloqr.jaysonknight.com"
 
 # ─── Functions / Waitlist edge handler ───────────────────────────────────────
 # Routing is handled in src/worker.ts:
@@ -93,7 +106,7 @@ service = "adblock-tail"
 #   BETTER_AUTH_SECRET          — Random 32+ char string; signs/validates sessions
 #                                  Generate with: openssl rand -base64 32  (REQUIRED)
 #   BETTER_AUTH_URL             — Canonical origin for auth callbacks  (REQUIRED)
-#                                  Pre-migration: https://adblock-landing.jayson-knight.workers.dev
+#                                  Pre-migration: https://bloqr.jaysonknight.com
 #                                  Update to https://bloqr.ai when the domain goes live
 #   GITHUB_CLIENT_ID            — GitHub OAuth App client ID
 #   GITHUB_CLIENT_SECRET        — GitHub OAuth App client secret
@@ -102,7 +115,7 @@ service = "adblock-tail"
 #
 # GitHub OAuth App setup:  https://github.com/settings/developers
 # Callback URLs to register on your GitHub OAuth App:
-#   Production (pre-migration): https://adblock-landing.jayson-knight.workers.dev/api/auth/callback/github
+#   Production (pre-migration): https://bloqr.jaysonknight.com/api/auth/callback/github
 #   Local dev:                  http://localhost:4321/api/auth/callback/github
 #
 # Migration note: when bloqr.ai goes live —
