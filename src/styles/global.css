@@ -142,10 +142,13 @@ body {
 
 /* ─── SHIKI DUAL-THEME CODE HIGHLIGHTING ─── */
 /* Astro 6 Shiki config uses `themes:{dark:'houston',light:'vitesse-light'}`   */
-/* with `defaultColor:false`, which outputs CSS custom properties instead of  */
-/* inline styles — making syntax highlighting fully CSP-compatible.           */
-/* Dark theme colours are shown by default; light theme activates via        */
-/* @media (prefers-color-scheme:light) or the [data-theme="light"] selector. */
+/* with `defaultColor:false`, so this stylesheet switches between the         */
+/* generated `--shiki-*` custom properties for dark and light themes.         */
+/* Shiki still emits those `--shiki-*` values via inline `style` attributes   */
+/* on the rendered code elements, so syntax highlighting is not fully         */
+/* CSP-independent and may still require `style-src` to allow inline styles.  */
+/* Dark theme colours are shown by default; light theme activates via         */
+/* `@media (prefers-color-scheme: light)`.                                    */
 
 /* Default: dark theme (houston) */
 .astro-code,
