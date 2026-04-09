@@ -8,8 +8,9 @@ ADMIN_SECRET=any-strong-random-string-for-local-dev
 # Better Auth — required for /api/auth/* and /admin/* session validation
 # Generate BETTER_AUTH_SECRET with: openssl rand -base64 32
 BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
-# Pre-migration: https://bloqr.jaysonknight.com
-# Update to https://bloqr.ai when the domain goes live
+# Local dev value shown below. For production, set in the Cloudflare dashboard:
+#   Pre-migration: https://bloqr.jaysonknight.com
+#   Update to https://bloqr.ai when the domain goes live
 BETTER_AUTH_URL=http://localhost:4321
 
 # GitHub OAuth — create an OAuth App at https://github.com/settings/developers

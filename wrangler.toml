@@ -77,6 +77,12 @@ custom_domain = true
 # ─── Environment Variables ───────────────────────────────────────────────────
 # Non-secret build/runtime vars. Secrets (DATABASE_URL, APOLLO_API_KEY, etc.)
 # are set in the Cloudflare dashboard or .dev.vars for local dev.
+#
+# ⚠️  URL SYNC NOTE — these URL vars mirror the EXTERNAL_URLS const in
+# src/config.ts (used at build time for static pages) and must be kept in sync.
+# When migrating to bloqr.ai, update BOTH this [vars] block AND EXTERNAL_URLS
+# in src/config.ts. The CANONICAL_DOMAIN var is used by the Worker at runtime
+# to gate X-Robots-Tag noindex headers on non-canonical hosts.
 [vars]
 ENVIRONMENT      = "production"
 CANONICAL_DOMAIN = "bloqr.jaysonknight.com"
