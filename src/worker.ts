@@ -42,34 +42,23 @@ function applyRobotsTag(response: Response, hostname: string, canonicalDomain: s
 }
 
 /**
- * Injects a Content-Security-Policy header on all HTML responses.
+ * Injects a Content-Security-Policy header on HTML responses.
  *
- * Astro 6 `security.csp: { algorithm: 'SHA-256' }` auto-hashes every inline
- * script and style at build time and embeds the hash values in a `<meta
- * http-equiv="content-security-policy">` tag in the generated HTML.  However,
- * header-based CSP takes precedence over meta-tag CSP for many directives, so
- * we also set the header here for defence-in-depth and to cover API/error
- * responses that don't go through the static ASSETS binding.
+ * Astro's generated HTML already includes a hash-based CSP meta tag for the
+ * scripts and styles it emits at build time. Header and meta CSP are enforced
+ * together, so defining fetch/script/style directives here can unintentionally
+ * block valid runtime behaviour such as external analytics scripts, analytics
+ * beacons, and inline scripts that Astro has already hashed.
  *
- * `style-src` includes `'unsafe-inline'` because Shiki's dual-theme output
- * emits inline `style` attributes (e.g. `style="--shiki-dark:#..."`).  CSS
- * hashes and nonces only cover `<style>` tags — not inline style attributes —
- * so `'unsafe-inline'` is the only standards-compliant way to permit them.
- * Removing it would break all syntax-highlighted code blocks.
- *
- * `connect-src` allows Plausible and PostHog analytics endpoints.
+ * To avoid conflicting with Astro's generated CSP, the worker only sets
+ * non-conflicting hardening directives here and leaves script/style/fetch
+ * directives to the document-level CSP.
  */
 function applyCSP(response: Response): Response {
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.startsWith('text/html')) return response;
 
   const csp = [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self' 'unsafe-inline'",  // required: Shiki emits inline style attributes
-    "font-src 'self'",
-    "img-src 'self' data: https:",
-    "connect-src 'self' https://app.posthog.com https://plausible.io https://eu.i.posthog.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
