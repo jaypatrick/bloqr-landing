@@ -70,7 +70,7 @@ service = "adblock-tail"
 # This route is configured for the current custom domain.
 # Update pattern to "bloqr.ai/*" when the domain is secured.
 [[routes]]
-pattern = "bloqr.jaysonknight.com/*"
+pattern = "bloqr.jaysonknight.com"
 custom_domain = true
 
 # ─── Environment Variables ───────────────────────────────────────────────────
