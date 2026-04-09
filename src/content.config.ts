@@ -17,7 +17,7 @@ const blog = defineCollection({
   }),
 });
 
-// ── Changelog ──────────────────────────────────────────────────────────────���──
+// -- Changelog ---------------------------------------------------------------
 // Fetches CHANGELOG.md from adblock-compiler at build time and parses it into
 // typed entries via the Astro 6 Content Layer API loader object signature.
 // Uses the { load(ctx) } object form so Astro treats it as a custom loader
