@@ -26,10 +26,13 @@ export default defineConfig({
   adapter: cloudflare({
     prerenderEnvironment: 'node',
     // Use the Cloudflare Images Worker Binding (env.IMAGES) for image
-    // optimization at the edge.  The binding is provisioned automatically
-    // by Wrangler when the account has Cloudflare Images enabled.
-    // Making this explicit (rather than relying on the default) ensures
-    // the intent is clear and avoids surprises if the adapter default changes.
+    // optimization at the edge.  This image service expects an IMAGES
+    // binding to be configured for every environment that runs the Worker
+    // (for example via Wrangler and/or the Cloudflare dashboard).  If
+    // Astro's <Image /> component is introduced without that binding,
+    // local preview and deploys can fail at runtime.  Making this explicit
+    // keeps the dependency clear and avoids surprises if the adapter
+    // default changes.
     imageService: 'cloudflare-binding',
   }),
 
