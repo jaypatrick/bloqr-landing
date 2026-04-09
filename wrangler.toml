@@ -15,7 +15,12 @@ compatibility_flags = ["nodejs_compat"]
 # account_id = "your-account-id-here"
 
 # ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
-assets = { directory = "./dist" }
+# binding = "ASSETS" is required so that env.ASSETS is injected into the Worker
+# environment. The shorthand `assets = { directory = "..." }` does NOT create the
+# named binding, causing env.ASSETS.fetch() to throw at runtime.
+[assets]
+binding = "ASSETS"
+directory = "./dist"
 
 # ─── Worker Entry Point ───────────────────────────────────────────────────────
 main = "src/worker.ts"
