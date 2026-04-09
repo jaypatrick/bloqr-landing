@@ -52,7 +52,7 @@ function parseChangelog(raw: string): ChangeSection[] {
       current = {
         version:  match[1],
         date:     match[2] ?? null,
-        isLatest: sections.length === 0,
+        isLatest: false,
         content:  '',
       };
       bodyLines = [];
@@ -65,7 +65,11 @@ function parseChangelog(raw: string): ChangeSection[] {
     sections.push(current);
   }
 
-  return sections.filter(s => !(s.version === 'Unreleased' && s.content.trim() === ''));
+  const filtered = sections.filter(s => !(s.version === 'Unreleased' && s.content.trim() === ''));
+  // Mark the first remaining section (first real release) as isLatest.
+  // Done after filtering so an empty [Unreleased] header doesn't claim the flag.
+  if (filtered.length > 0) filtered[0].isLatest = true;
+  return filtered;
 }
 
 const changelog = defineCollection({

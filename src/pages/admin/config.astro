@@ -8,10 +8,12 @@ export const prerender = true;
  * Real security is enforced by the POST /admin/config edge function (ADMIN_SECRET bearer check).
  *
  * NOTE: This is an internal tool — no fancy UI needed.
- * After saving, trigger a Cloudflare Pages redeploy for static pages to pick up new values.
+ * After saving, trigger a Worker redeploy (push to `main` or run `npm run deploy`)
+ * for static pages to pick up new values.
  *
  * This page is intentionally kept in version control.
- * ADMIN_SECRET must be set in Cloudflare Pages environment variables (see wrangler.toml comments).
+ * ADMIN_SECRET must be set as a Cloudflare Worker secret (`wrangler secret put ADMIN_SECRET`
+ * or via the Cloudflare dashboard — see wrangler.toml comments).
  */
 ---
 
@@ -207,8 +209,8 @@ export const prerender = true;
   <div id="config-app" class="container">
     <h1>Site Config</h1>
     <div class="notice">
-      <strong>Reminder:</strong> After saving, trigger a <strong>Cloudflare Pages redeploy</strong>
-      for static pages to pick up the new values.
+      <strong>Reminder:</strong> After saving, trigger a <strong>Worker redeploy</strong>
+      (push to <code>main</code> or run <code>npm run deploy</code>) for static pages to pick up the new values.
     </div>
 
     <div class="save-all-bar">

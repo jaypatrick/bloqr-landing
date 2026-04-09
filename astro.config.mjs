@@ -98,20 +98,12 @@ export default defineConfig({
       contentCache: true,
     },
 
-    // Per-route cache hints — tells the adapter how long to cache each route.
-    // All landing pages are fully static (prerendered), so long TTLs are safe.
-    // API / admin routes are omitted (they require fresh responses).
-    routeRules: {
-      '/':              { maxAge: 3600,  swr: 86400 },
-      '/blog':          { maxAge: 3600,  swr: 86400 },
-      '/blog/**':       { maxAge: 86400, swr: 604800 },
-      '/changelog':     { maxAge: 3600,  swr: 86400 },
-      '/about':         { maxAge: 86400, swr: 604800 },
-      '/vpn-myths':     { maxAge: 86400, swr: 604800 },
-      '/why-not-private': { maxAge: 86400, swr: 604800 },
-      '/privacy':       { maxAge: 86400, swr: 604800 },
-      '/terms':         { maxAge: 86400, swr: 604800 },
-    },
+    // Do not set experimental.routeRules here. In production this project
+    // serves prerendered pages from the ASSETS binding via src/worker.ts,
+    // so adapter-level route rules do not control the live Cache-Control
+    // headers for those responses. Per-route caching must be configured in
+    // the custom Worker (src/worker.ts) if different TTL/SWR behaviour is
+    // required.
   },
 
   integrations: [
