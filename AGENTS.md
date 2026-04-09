@@ -214,7 +214,7 @@ internal page paths.
 - Keep handlers thin: validate input → write to service → return `Response`.
 - Read secrets from the `env` binding passed by the Worker, **not** `process.env`.
 - Always set `Content-Type: application/json` and return correct HTTP status codes.
-- `applyCSP()` in `src/worker.ts` injects a `Content-Security-Policy` header on every `text/html` response. `style-src` includes `'unsafe-inline'` because Shiki emits inline `style` attributes which cannot be hash-whitelisted.
+- `applyCSP()` in `src/worker.ts` injects a `Content-Security-Policy` header on every `text/html` response. It sets `frame-ancestors 'none'`, `base-uri 'self'`, and `form-action 'self'`, and deliberately does **not** set `style-src` or `script-src` — those are left to Astro's auto-generated hash-based meta CSP (`security.csp`). Inline style allowances for Shiki are handled at the document level, not in the Worker header.
 - `wrangler.toml` sets `compatibility_flags = ["nodejs_compat"]` — required by `better-auth`'s `node:async_hooks` import. Do not remove this flag.
 
 ### Astro 6 Fonts API

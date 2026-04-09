@@ -9,7 +9,7 @@ Astro 6 + Svelte 5 marketing landing site, deployed as a Cloudflare Worker with 
 - **Deployment**: [Cloudflare Workers](https://workers.cloudflare.com) via `wrangler deploy`
 - **Fonts**: Space Grotesk + JetBrains Mono — self-hosted via the [Astro 6 Fonts API](https://docs.astro.build/en/guides/fonts/) (`fontProviders.fontsource()`)
 - **CSP**: Inline scripts/styles auto-hashed (SHA-256) by `security.csp`; enforced at the edge by `applyCSP()` in `src/worker.ts`
-- **Code highlighting**: Shiki 4 dual themes (`houston` dark / `vitesse-light` light) with `defaultColor: false` — CSP-safe CSS custom property output
+- **Code highlighting**: Shiki 4 dual themes (`houston` dark / `vitesse-light` light) with `defaultColor: false` — outputs CSS custom properties via inline `style` attributes; `style-src` must allow inline styles for code blocks to render
 
 ## Requirements
 
