@@ -3,10 +3,12 @@
  * BaseHead.astro — shared <head> block for all pages.
  *
  * Renders charset, viewport, title, description, Open Graph, Twitter/X card,
- * canonical link, RSS link, favicon, PWA manifest, theme-color, font preconnects,
- * OG image preload, ViewTransitions, Plausible analytics, and PostHog analytics.
+ * canonical link, RSS link, favicon, PWA manifest, theme-color, font preloads
+ * (via Astro 6 Fonts API), OG image preload, ClientRouter (View Transitions),
+ * Plausible analytics, and PostHog analytics.
  */
-import { ViewTransitions } from 'astro:transitions';
+import { ClientRouter } from 'astro:transitions'; // Astro 6 replacement for ViewTransitions
+import Font from 'astro/components/Font.astro';
 import { SITE_URL } from '../config';
 import Analytics from './Analytics.astro';
 import PostHog from './PostHog.astro';
@@ -77,17 +79,12 @@ const canonical = canonicalURL.toString();
 <link rel="manifest" href="/site.webmanifest" />
 <meta name="theme-color" content="#FF5500" />
 
-<!-- Preconnect for Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-<link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-
-<!-- TODO: Extract Space Grotesk to public/fonts/ for preloading;
-     currently loaded via CSS @import from node_modules — not preloadable this way. -->
+<!-- Astro 6 Fonts API — self-hosted via fontsource, with preload links -->
+<Font cssVariable="--font-display" preload />
+<Font cssVariable="--font-mono" preload />
 
 {noindex && <meta name="robots" content="noindex, nofollow" />}
 
-<ViewTransitions />
+<ClientRouter />
 <Analytics />
 <PostHog />

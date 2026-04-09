@@ -3,6 +3,8 @@ import { getCollection } from 'astro:content';
 import { SITE_URL, META } from '../config';
 import type { APIContext } from 'astro';
 
+export const prerender = true;
+
 export async function GET(context: APIContext) {
   const posts = await getCollection('blog', ({ data }) => !data.draft);
   posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
@@ -15,7 +17,7 @@ export async function GET(context: APIContext) {
       title:       post.data.title,
       description: post.data.description,
       pubDate:     post.data.pubDate,
-      link:        `/blog/${post.slug}/`,
+      link:        `/blog/${post.id}`,
       categories:  [post.data.category, ...post.data.tags],
       author:      post.data.author,
     })),

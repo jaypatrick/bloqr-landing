@@ -1,72 +1,85 @@
-# AdBlock Compiler — Landing Page
+# Bloqr — Landing Page
 
-Astro + Svelte landing page, deployed to Cloudflare Pages.
+Astro 6 + Svelte 5 marketing landing site, deployed as a Cloudflare Worker with static assets.
 
 ## Stack
 
-- **Framework**: [Astro 5](https://astro.build) (static output)
-- **Components**: [Svelte 5](https://svelte.dev) (runes syntax)
-- **Deployment**: [Cloudflare Pages](https://pages.cloudflare.com)
-- **Fonts**: Space Grotesk + JetBrains Mono (Google Fonts)
+- **Framework**: [Astro 6](https://astro.build) (`output: 'server'` + `@astrojs/cloudflare` adapter; all pages prerendered)
+- **Components**: [Svelte 5](https://svelte.dev) (runes syntax — `$state`, `$props`, `$derived`)
+- **Deployment**: [Cloudflare Workers](https://workers.cloudflare.com) via `wrangler deploy`
+- **Fonts**: Space Grotesk + JetBrains Mono — self-hosted via the [Astro 6 Fonts API](https://docs.astro.build/en/guides/fonts/) (`fontProviders.fontsource()`)
+- **CSP**: Inline scripts/styles auto-hashed (SHA-256) by Astro's `security.csp` (meta CSP); `applyCSP()` in `src/worker.ts` adds `frame-ancestors`/`base-uri`/`form-action` hardening headers on every HTML response
+- **Code highlighting**: Shiki 4 dual themes (`houston` dark / `vitesse-light` light) with `defaultColor: false` — outputs CSS custom properties via inline `style` attributes; `style-src` must allow inline styles for code blocks to render
 
 ## Requirements
 
-- **Node.js ≥ 20.18.1** — required by Wrangler v4 and its `undici`/`miniflare` transitive dependencies. Node.js 22 LTS is recommended and used in CI.
+- **Node.js ≥ 22.12.0** — required by Astro 6 and Wrangler v4. Node.js 22 LTS is used in CI.
 
 ## Quick start
 
 ```bash
 npm install
-npm run dev          # http://localhost:4321
-npm run build        # ./dist/
-npm run preview      # preview via wrangler pages dev
-npm run deploy       # build + deploy to Cloudflare Pages
+npm run dev          # Astro dev server — http://localhost:4321
+npm run build        # Produces ./dist/
+npm run preview      # wrangler dev (full Worker + static assets, requires .dev.vars)
+npm run deploy       # astro build && wrangler deploy
 ```
+
+> `npm run dev` is best for fast UI iteration with HMR.  
+> `npm run preview` emulates the full Cloudflare Worker runtime and is required for testing API routes and auth flows. Copy `.dev.vars.example` → `.dev.vars` and fill in your local secrets before running preview.
 
 ## Structure
 
 ```
 src/
+├── worker.ts             # Cloudflare Worker entry point — routes all requests + injects CSP headers
+├── config.ts             # SITE_URL, LINKS, META — single source of truth for all URLs
+├── content.config.ts     # Astro 6 Content Layer API — blog (glob loader) + changelog (live loader)
 ├── pages/
-│   └── index.astro          # Root page, assembles all components
+│   ├── index.astro       # Main landing page
+│   ├── about.astro
+│   ├── blog/
+│   │   ├── index.astro   # Blog listing (Font API tags included directly — no BaseHead)
+│   │   └── [slug].astro  # Blog post (Font API tags included directly — no BaseHead)
+│   ├── changelog.astro   # Renders live `changelog` collection (fetched from GitHub at build time)
+│   └── ...
 ├── components/
-│   ├── Nav.svelte            # Sticky nav with scroll-aware styling
-│   ├── Hero.svelte           # Hero section + stats bar
-│   ├── Problem.svelte        # VPN vs AdBlock Compiler comparison
-│   ├── HowItWorks.svelte     # 3-step guide (TODO)
-│   ├── Audiences.svelte      # Consumer / Developer / Vendor cards (TODO)
-│   ├── Features.svelte       # 6-cell feature grid
-│   ├── CodeDemo.svelte       # Code window + get started CTA (TODO)
-│   ├── CtaBanner.svelte      # Final CTA section
-│   └── Footer.svelte         # Site footer
+│   ├── BaseHead.astro    # Shared <head> block — includes Fonts API <Font> tags, CSP meta, analytics
+│   ├── Nav.svelte
+│   ├── Hero.svelte
+│   └── ...
 └── styles/
-    └── global.css            # Brand tokens + base styles
+    └── global.css        # Design tokens (:root), global resets, Shiki CSS variable mappings
+                          # --font-display / --font-mono fallbacks defined here; Fonts API overrides them
 
 brand/
-├── logo.svg                  # SVG wordmark + icon
-└── tokens.css                # Full design token reference
+├── logo.svg
+├── tokens.css            # Design token reference (values mirrored in src/styles/global.css)
+├── BLOQR_DESIGN_LANGUAGE.md
+└── BLOQR_ETHOS.md
 ```
 
-## Cloudflare deployment
+## Cloudflare Worker deployment
 
-The project is configured for **static output** (`output: 'static'` in `astro.config.mjs`).
-This means it deploys as a fully static site to Cloudflare Pages — no Workers runtime needed.
+The site uses `output: 'server'` with the `@astrojs/cloudflare` adapter. Every page has `export const prerender = true`, so all HTML is statically generated at build time. The Worker serves static HTML from the ASSETS binding and handles dynamic API routes:
 
-To enable **SSR / edge functions** (e.g., for a contact form or email capture):
-1. Change `output: 'static'` to `output: 'server'` in `astro.config.mjs`
-2. Uncomment the `adapter: cloudflare()` line
-3. Re-run `npm run deploy`
+| Route | Handler |
+|---|---|
+| `POST /waitlist` | Neon insert + Apollo.io contact sync |
+| `GET /config` | Public site config reader |
+| `POST /admin/config` | Site config writer (auth required) |
+| `GET/POST/PUT /admin/blog` | Blog post CRUD (auth required) |
+| `GET/POST /api/auth/*` | Better Auth (GitHub OAuth SSO) |
+| `*` | `env.ASSETS.fetch(request)` — static site |
 
-## Components still to build
+All HTML responses get a `Content-Security-Policy` header injected by `applyCSP()` in `src/worker.ts`. This header sets only hardening directives (`frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`); script and style policies come from Astro's hash-based meta CSP.
 
-Three components are imported in `index.astro` but not yet implemented:
-- `HowItWorks.svelte` — 3-step code walkthrough
-- `Audiences.svelte` — consumer / developer / vendor audience cards
-- `CodeDemo.svelte` — interactive code window with copy button
+## Content Layer API
 
-The reference HTML (`/brand/landing-page.html`) shows the complete design for all sections.
+Blog posts live in `src/content/blog/` as Markdown. The `changelog` collection uses a custom async loader that fetches `CHANGELOG.md` from the upstream GitHub repo at build time and parses it into structured, typed entries. See `src/content.config.ts`.
 
 ## Brand reference
 
-See `/brand/tokens.css` for the full design token spec and `/brand/logo.svg` for the wordmark.
-Brand voice guidelines are in the project root at `.claude/brand-voice-guidelines.md`.
+See `brand/BLOQR_DESIGN_LANGUAGE.md` for voice, personas, and page architecture.  
+See `brand/tokens.css` for the full design token spec.  
+The authoritative guide for AI agents working in this repo is `AGENTS.md`.

@@ -41,6 +41,34 @@ function applyRobotsTag(response: Response, hostname: string, canonicalDomain: s
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+/**
+ * Injects a Content-Security-Policy header on HTML responses.
+ *
+ * Astro's generated HTML already includes a hash-based CSP meta tag for the
+ * scripts and styles it emits at build time. Header and meta CSP are enforced
+ * together, so defining fetch/script/style directives here can unintentionally
+ * block valid runtime behaviour such as external analytics scripts, analytics
+ * beacons, and inline scripts that Astro has already hashed.
+ *
+ * To avoid conflicting with Astro's generated CSP, the worker only sets
+ * non-conflicting hardening directives here and leaves script/style/fetch
+ * directives to the document-level CSP.
+ */
+function applyCSP(response: Response): Response {
+  const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
+  if (!contentType.startsWith('text/html')) return response;
+
+  const csp = [
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
+
+  const headers = new Headers(response.headers);
+  headers.set('Content-Security-Policy', csp);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -71,6 +99,7 @@ export default {
       response = await env.ASSETS.fetch(request);
     }
 
+    response = applyCSP(response);
     return applyRobotsTag(response, url.hostname, env.CANONICAL_DOMAIN);
   },
 } satisfies ExportedHandler<Env>;
