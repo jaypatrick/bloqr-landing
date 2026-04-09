@@ -26,7 +26,7 @@ export default defineConfig({
   adapter: cloudflare({
     prerenderEnvironment: 'node',
     // Use the Cloudflare Images Worker Binding (env.IMAGES) for image
-    // optimisation at the edge.  The binding is provisioned automatically
+    // optimization at the edge.  The binding is provisioned automatically
     // by Wrangler when the account has Cloudflare Images enabled.
     // Making this explicit (rather than relying on the default) ensures
     // the intent is clear and avoids surprises if the adapter default changes.
