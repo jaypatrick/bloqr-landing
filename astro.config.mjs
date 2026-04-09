@@ -23,7 +23,18 @@ export default defineConfig({
   // The nodejs_compat flag in wrangler.toml is unrelated — it handles the
   // better-auth node:async_hooks dependency at runtime.
   output: 'server',
-  adapter: cloudflare({ prerenderEnvironment: 'node' }),
+  adapter: cloudflare({
+    prerenderEnvironment: 'node',
+    // Use the Cloudflare Images Worker Binding (env.IMAGES) for image
+    // optimization at the edge.  This image service expects an IMAGES
+    // binding to be configured for every environment that runs the Worker
+    // (for example via Wrangler and/or the Cloudflare dashboard).  If
+    // Astro's <Image /> component is introduced without that binding,
+    // local preview and deploys can fail at runtime.  Making this explicit
+    // keeps the dependency clear and avoids surprises if the adapter
+    // default changes.
+    imageService: 'cloudflare-binding',
+  }),
 
   // Derived from the SITE_URL env var so the sitemap and RSS context.site stay
   // consistent with the rest of the codebase (src/config.ts SITE_URL, wrangler.toml
