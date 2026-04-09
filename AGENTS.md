@@ -26,14 +26,16 @@ Astro site served via a Cloudflare Worker with static assets.
 
 | Layer          | Technology                                             |
 | -------------- | ------------------------------------------------------ |
-| Framework      | Astro 5 (`output: 'static'`)                           |
+| Framework      | Astro 6 (`output: 'server'` + `@astrojs/cloudflare` adapter; all pages prerendered via `export const prerender = true`) |
 | Components     | Svelte 5 (runes syntax)                                |
 | Language       | TypeScript (strict mode)                               |
 | Styling        | Plain CSS + CSS custom properties (`src/styles/global.css`) |
 | Edge runtime   | Cloudflare Worker (`src/worker.ts`) + handler modules in `functions/` |
 | Database       | Neon Postgres (waitlist signups)                       |
 | CRM            | Apollo.io (contact enrichment, fire-and-forget)        |
-| Fonts          | JetBrains Mono (code) + Space Grotesk (UI)             |
+| Fonts          | Space Grotesk + JetBrains Mono — self-hosted via Astro 6 Fonts API (`fontProviders.fontsource()`) |
+| CSP            | SHA-256 auto-hashing via `security.csp`; enforced at edge by `applyCSP()` in `src/worker.ts` |
+| Code highlighting | Shiki 4 dual themes (`houston`/`vitesse-light`), `defaultColor:false` — CSP-safe CSS variable output |
 
 ---
 
@@ -41,8 +43,8 @@ Astro site served via a Cloudflare Worker with static assets.
 
 ```
 .
-├── astro.config.mjs          # Astro + Svelte integration, CSP headers, static output
-├── wrangler.toml             # Cloudflare Worker config: name, assets dir, worker entry, secrets
+├── astro.config.mjs          # Astro 6 config: SSR adapter, Fonts API, CSP, Shiki dual themes, experimental features
+├── wrangler.toml             # Cloudflare Worker config: name, assets dir, worker entry, nodejs_compat, secrets
 ├── tsconfig.json
 ├── package.json
 │
@@ -70,11 +72,13 @@ Astro site served via a Cloudflare Worker with static assets.
 ├── sessions/                 # Agent/conversation session artifacts (reference only)
 │
 └── src/
-    ├── worker.ts             # Cloudflare Worker entry point — routes all requests
+    ├── worker.ts             # Cloudflare Worker entry point — routes requests + injects CSP headers
     ├── config.ts             # SITE_URL, LINKS, META — single source of truth
+    ├── content.config.ts     # Astro 6 Content Layer API: blog (glob loader) + changelog (live loader)
     ├── env.d.ts              # Astro environment type declarations
     │
     ├── components/           # Svelte 5 components, one per landing page section
+    │   ├── BaseHead.astro    # Shared <head>: Fonts API <Font> tags, analytics, ClientRouter
     │   ├── Hero.svelte
     │   ├── Problem.svelte
     │   ├── Features.svelte
@@ -96,21 +100,25 @@ Astro site served via a Cloudflare Worker with static assets.
     │   └── Footer.svelte
     │
     ├── content/
-    │   ├── config.ts         # Astro content collection schema
-    │   └── blog/             # Blog posts as Markdown (slug = filename)
+    │   └── blog/             # Blog posts as Markdown (post ID = filename without extension)
     │
-    ├── pages/                # File-based routing
+    ├── pages/                # File-based routing — all pages have `export const prerender = true`
     │   ├── index.astro       # Main landing page
     │   ├── about.astro
-    │   ├── changelog.astro
+    │   ├── changelog.astro   # Renders live `changelog` Content Layer collection
     │   ├── vpn-myths.astro
+    │   ├── why-not-private.astro
+    │   ├── privacy.astro
+    │   ├── terms.astro
     │   ├── rss.xml.ts        # RSS feed
+    │   ├── admin/            # Protected admin pages (Better Auth SSO required)
     │   └── blog/
-    │       ├── index.astro
-    │       └── [slug].astro
+    │       ├── index.astro   # Blog listing (includes <Font> tags — no BaseHead)
+    │       └── [slug].astro  # Blog post (includes <Font> tags — no BaseHead)
     │
     └── styles/
-        └── global.css        # Design tokens (:root), global resets + base styles
+        └── global.css        # Design tokens (:root), global resets, Shiki CSS variable mappings
+                              # --font-display / --font-mono fallbacks set here; Fonts API overrides at build time
 ```
 
 ---
@@ -120,7 +128,7 @@ Astro site served via a Cloudflare Worker with static assets.
 | Command             | Description                                                            |
 | ------------------- | ---------------------------------------------------------------------- |
 | `npm install`       | Install dependencies                                                   |
-| `npm run dev`       | Astro dev server (HMR for the static site; does not emulate CF runtime) |
+| `npm run dev`       | Astro dev server (HMR; uses Node.js adapter locally — does not emulate CF Worker runtime) |
 | `npm run build`     | Build static output to `dist/`                                         |
 | `npm run preview`   | Wrangler dev using `wrangler.toml` + `dist/` assets — includes Worker routes/functions |
 | `npm run astro ...` | Astro CLI passthrough                                                  |
@@ -206,12 +214,33 @@ internal page paths.
 - Keep handlers thin: validate input → write to service → return `Response`.
 - Read secrets from the `env` binding passed by the Worker, **not** `process.env`.
 - Always set `Content-Type: application/json` and return correct HTTP status codes.
+- `applyCSP()` in `src/worker.ts` injects a `Content-Security-Policy` header on every `text/html` response. `style-src` includes `'unsafe-inline'` because Shiki emits inline `style` attributes which cannot be hash-whitelisted.
+- `wrangler.toml` sets `compatibility_flags = ["nodejs_compat"]` — required by `better-auth`'s `node:async_hooks` import. Do not remove this flag.
+
+### Astro 6 Fonts API
+
+- Fonts are declared in `astro.config.mjs` (`fonts: [...]`) using `fontProviders.fontsource()`.
+- The `<Font cssVariable="--font-display" preload />` and `<Font cssVariable="--font-mono" preload />` components (from `astro/components/Font.astro`) inject `@font-face` rules, `<link rel="preload">` tags, and the CSS custom property assignments at build time.
+- `BaseHead.astro` includes these `<Font>` tags. Pages with a **custom `<head>`** (currently `blog/index.astro` and `blog/[slug].astro`) must include the `Font` import and tags directly.
+- `src/styles/global.css` defines `--font-display: system-ui, sans-serif` and `--font-mono: monospace` as fallbacks in `:root`. The Fonts API overrides these with the hashed font stacks. Never hardcode a font family; always use `var(--font-display)` or `var(--font-mono)`.
+
+### Astro 6 Experimental Features
+
+The following experimental features are enabled in `astro.config.mjs`:
+
+| Feature | Config key | Purpose |
+|---|---|---|
+| Rust compiler | `experimental.rustCompiler: true` | Faster `.astro` file transformation via `@astrojs/compiler-rs`. Drop-in replacement. |
+| Queued rendering | `experimental.queuedRendering: { enabled: true, contentCache: true }` | Serialises concurrent prerender jobs; caches HTML across incremental builds. |
+| Route rules | `experimental.routeRules` | Per-route `maxAge`/`swr` TTL hints — the CF adapter emits `Cache-Control` headers accordingly. |
 
 ### Blog / Content Collections
 
-- Posts live in `src/content/blog/` as Markdown.
-- Frontmatter must match the schema defined in `src/content/config.ts`.
-- Slug is derived automatically from the filename.
+- The content config is at `src/content.config.ts` (project root) — **not** `src/content/config.ts`.
+- Blog posts live in `src/content/blog/` as Markdown files. Frontmatter must match the schema defined in `src/content.config.ts`.
+- In Astro 6, blog post identifiers use `post.id` (not `post.slug`). The ID is the filename without the `.md` extension.
+- The `changelog` collection uses a custom async loader that fetches `CHANGELOG.md` from the upstream GitHub repo at build time. It is an Astro 6 **live content collection** — external data consumed through the Content Layer API with full type-safety and Astro's content cache.
+- Use `getCollection('blog')` / `getCollection('changelog')` to query collections in page frontmatter.
 
 ---
 
