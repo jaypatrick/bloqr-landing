@@ -10,6 +10,10 @@
   function showAll() {
     showCode = [true, true, true];
   }
+  function showAllUI() {
+    showCode = [false, false, false];
+  }
+  let allShowingCode = $derived(showCode.every(v => v));
 </script>
 
 <!-- How it works: 3-step walkthrough with UI mockup / code toggle -->
@@ -22,8 +26,8 @@
         <p class="no-code-note">
           No code required — ever. The UI builds everything for you.
           Curious what's under the hood?
-          <button class="reveal-all" onclick={showAll}>
-            Show all code →
+          <button class="reveal-all" onclick={allShowingCode ? showAllUI : showAll}>
+            {allShowingCode ? '← Show all UI' : 'Show all code →'}
           </button>
         </p>
       </div>
