@@ -84,27 +84,14 @@ export default defineConfig({
     },
   },
 
-  // ── Astro 6 Experimental Features ─────────────────────────────────────
-  experimental: {
-    // Rust-based Astro compiler — faster .astro file transformation.
-    // Drop-in replacement; no API changes required.
-    rustCompiler: true,
-
-    // Queued rendering — serialises concurrent SSR renders so the Node.js
-    // event loop is never overwhelmed during prerendering.  contentCache
-    // caches rendered HTML across rebuilds to speed up incremental builds.
-    queuedRendering: {
-      enabled:      true,
-      contentCache: true,
-    },
-
-    // Do not set experimental.routeRules here. In production this project
-    // serves prerendered pages from the ASSETS binding via src/worker.ts,
-    // so adapter-level route rules do not control the live Cache-Control
-    // headers for those responses. Per-route caching must be configured in
-    // the custom Worker (src/worker.ts) if different TTL/SWR behaviour is
-    // required.
-  },
+  // ── Note on experimental features ─────────────────────────────────────
+  // experimental.rustCompiler and experimental.queuedRendering are NOT
+  // valid Astro 6.1.x config keys and caused build failures when present.
+  // The Rust compiler is enabled via the @astrojs/compiler-rs package
+  // (already in dependencies) — it does not require an experimental flag.
+  // Per-route caching must be configured in src/worker.ts directly since
+  // pages are served via env.ASSETS.fetch() from the ASSETS binding, not
+  // through adapter-level route rules.
 
   integrations: [
     svelte(),
