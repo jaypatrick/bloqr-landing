@@ -18,9 +18,9 @@ compatibility_flags = ["nodejs_compat"]
 main = "src/worker.ts"
 
 # ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
-# For Workers with a custom entry point (main), assets must be configured using
-# a Service Binding to the ASSETS namespace. The directory field specifies where
-# the static files are located after build.
+# For Workers with a custom entry point (main), static assets must be configured
+# using an ASSETS asset binding, which is available in the Worker as env.ASSETS.
+# The directory field specifies where the static files are located after build.
 assets = { directory = "./dist", binding = "ASSETS" }
 
 # ─── Smart Placement ─────────────────────────────────────────────────────────
