@@ -34,8 +34,8 @@ Astro site served via a Cloudflare Worker with static assets.
 | Database       | Neon Postgres (waitlist signups)                       |
 | CRM            | Apollo.io (contact enrichment, fire-and-forget)        |
 | Fonts          | Space Grotesk + JetBrains Mono — self-hosted via Astro 6 Fonts API (`fontProviders.fontsource()`) |
-| CSP            | SHA-256 auto-hashing via `security.csp`; enforced at edge by `applyCSP()` in `src/worker.ts` |
-| Code highlighting | Shiki 4 dual themes (`houston`/`vitesse-light`), `defaultColor:false` — CSP-safe CSS variable output |
+| CSP            | SHA-256 auto-hashing via `security.csp` (meta CSP); `applyCSP()` in `src/worker.ts` adds `frame-ancestors`/`base-uri`/`form-action` hardening headers |
+| Code highlighting | Shiki 4 dual themes (`houston`/`vitesse-light`), `defaultColor:false` — CSS variable output via inline `style` attributes; style policy handled by Astro's meta CSP |
 
 ---
 

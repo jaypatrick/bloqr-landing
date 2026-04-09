@@ -78,12 +78,14 @@ const changelog = defineCollection({
       // Graceful fallback — page still renders with empty collection
     }
     return parseChangelog(raw).slice(0, 20).map((section, idx) => ({
-      id:        section.version.replace(/[^a-z0-9]/gi, '-').toLowerCase(),
-      version:   section.version,
-      date:      section.date,
-      isLatest:  section.isLatest,
-      order:     idx,
-      content:   section.content,
+      id:   section.version.replace(/[^a-z0-9]/gi, '-').toLowerCase(),
+      data: {
+        version:  section.version,
+        date:     section.date,
+        isLatest: section.isLatest,
+        order:    idx,
+        content:  section.content,
+      },
     }));
   },
   schema: z.object({

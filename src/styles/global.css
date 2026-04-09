@@ -14,10 +14,10 @@
   --border:       #1E2D40;
   --border-2:     #2A3F5A;
   --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
-  /* Font fallbacks — the Astro 6 Fonts API (BaseHead <Font> tags) injects the
-     actual @font-face + CSS custom property values at build time.  These
-     fallbacks ensure body text renders correctly on any page that doesn't
-     include BaseHead (e.g. custom-head blog pages during SSR hydration). */
+  /* Font fallbacks — the Astro Fonts API (<Font> tags, typically via
+     BaseHead) injects the actual @font-face rules and CSS custom property
+     values at build time. These fallbacks ensure text still renders
+     correctly on any future custom-head page that omits those <Font> tags. */
   --font-display: system-ui, sans-serif;
   --font-mono:    monospace;
 }
@@ -151,24 +151,28 @@ body {
 /* `@media (prefers-color-scheme: light)`.                                    */
 
 /* Default: dark theme (houston) */
+.astro-code {
+  background-color: var(--shiki-dark-bg) !important;
+}
 .astro-code,
 .astro-code span {
   color: var(--shiki-dark) !important;
   font-style: var(--shiki-dark-font-style) !important;
   font-weight: var(--shiki-dark-font-weight) !important;
   text-decoration: var(--shiki-dark-text-decoration) !important;
-  background-color: var(--shiki-dark-bg) !important;
 }
 
 /* Light theme override */
 @media (prefers-color-scheme: light) {
+  .astro-code {
+    background-color: var(--shiki-light-bg) !important;
+  }
   .astro-code,
   .astro-code span {
     color: var(--shiki-light) !important;
     font-style: var(--shiki-light-font-style) !important;
     font-weight: var(--shiki-light-font-weight) !important;
     text-decoration: var(--shiki-light-text-decoration) !important;
-    background-color: var(--shiki-light-bg) !important;
   }
 }
 

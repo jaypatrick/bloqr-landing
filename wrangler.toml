@@ -1,4 +1,8 @@
 name = "adblock-landing"
+# NOTE: The worker name is intentionally kept as "adblock-landing" for deployment
+# continuity (existing CF dashboard bindings, secrets, and routes reference this name).
+# The product is branded as Bloqr — rename the worker only when ready to migrate CF
+# secrets, custom domains, and any monitoring alerts that reference this worker name.
 compatibility_date = "2026-01-01"
 # Node.js API compatibility — required by better-auth (node:async_hooks) and
 # other packages that use Node.js built-in modules in the Worker runtime.
