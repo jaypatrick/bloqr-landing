@@ -2,7 +2,6 @@ import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
 // ── Blog ──────────────────────────────────────────────────────────────────────
-// Content Layer API with glob() loader — reads markdown from src/content/blog/
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
   schema: z.object({
@@ -18,27 +17,18 @@ const blog = defineCollection({
   }),
 });
 
-// ── Changelog (Live Content Collection) ──────────────────────────────────────
-// Custom loader that fetches CHANGELOG.md from the adblock-compiler repo at
-// build time and parses it into structured entries — one per release section.
-// This is an Astro 6 "Live Content Collection" pattern: an external data
-// source (GitHub raw) consumed through the Content Layer API so that the
-// collection benefits from type-safety, IDE intellisense, and Astro's
-// content cache layer.
+// ── Changelog ──────────────────────────────────────────────────────────────���──
+// Fetches CHANGELOG.md from adblock-compiler at build time and parses it into
+// typed entries via the Astro 6 Content Layer API loader object signature.
+// Uses the { load(ctx) } object form so Astro treats it as a custom loader
+// (not the simpleLoader/glob path) and calls store.set() directly.
 const CHANGELOG_URL =
   'https://raw.githubusercontent.com/jaypatrick/adblock-compiler/main/CHANGELOG.md';
 
-interface ChangeSection {
-  version:  string;
-  date:     string | null;
-  isLatest: boolean;
-  content:  string;
-}
-
-function parseChangelog(raw: string): ChangeSection[] {
-  const lines   = raw.split('\n');
-  const sections: ChangeSection[] = [];
-  let current:   ChangeSection | null = null;
+function parseChangelog(raw: string) {
+  const lines = raw.split('\n');
+  const sections: Array<{ version: string; date: string | null; content: string }> = [];
+  let current: { version: string; date: string | null; content: string } | null = null;
   let bodyLines: string[] = [];
   const versionRe = /^## \[(.+?)\](?:\s+-\s+(\d{4}-\d{2}-\d{2}))?/;
 
@@ -49,12 +39,7 @@ function parseChangelog(raw: string): ChangeSection[] {
         current.content = bodyLines.join('\n').trim();
         sections.push(current);
       }
-      current = {
-        version:  match[1],
-        date:     match[2] ?? null,
-        isLatest: false,
-        content:  '',
-      };
+      current = { version: match[1], date: match[2] ?? null, content: '' };
       bodyLines = [];
     } else if (current) {
       bodyLines.push(line);
@@ -65,32 +50,43 @@ function parseChangelog(raw: string): ChangeSection[] {
     sections.push(current);
   }
 
-  // Always exclude [Unreleased] — it has no date and its content is work-in-progress.
-  // isLatest is assigned after filtering so the first real versioned release gets the flag.
-  const filtered = sections.filter(s => s.version !== 'Unreleased');
-  if (filtered.length > 0) filtered[0].isLatest = true;
-  return filtered;
+  // Exclude [Unreleased] entirely — no date, work-in-progress content.
+  return sections.filter(s => s.version !== 'Unreleased');
 }
 
 const changelog = defineCollection({
-  loader: async () => {
-    let raw = '';
-    try {
-      const res = await fetch(CHANGELOG_URL);
-      if (res.ok) raw = await res.text();
-    } catch {
-      // Graceful fallback — page still renders with empty collection
-    }
-    return parseChangelog(raw).slice(0, 20).map((section, idx) => ({
-      id:   section.version.replace(/[^a-z0-9]/gi, '-').toLowerCase(),
-      data: {
-        version:  section.version,
-        date:     section.date,
-        isLatest: section.isLatest,
-        order:    idx,
-        content:  section.content,
-      },
-    }));
+  // Object loader form: Astro calls load(ctx) and we use ctx.store.set()
+  // to populate entries. This avoids the simpleLoader path that expects
+  // file-based entries with frontmatter.
+  loader: {
+    name: 'changelog-loader',
+    load: async (ctx) => {
+      // Clear stale entries from previous builds so removed/renamed versions don't persist.
+      ctx.store.clear();
+
+      let raw = '';
+      try {
+        const res = await fetch(CHANGELOG_URL);
+        if (res.ok) raw = await res.text();
+      } catch {
+        // Graceful fallback — changelog page renders empty
+      }
+
+      const sections = parseChangelog(raw).slice(0, 20);
+      sections.forEach((section, idx) => {
+        const id = section.version.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        ctx.store.set({
+          id,
+          data: {
+            version:  section.version,
+            date:     section.date,
+            isLatest: idx === 0,
+            order:    idx,
+            content:  section.content,
+          },
+        });
+      });
+    },
   },
   schema: z.object({
     version:  z.string(),
