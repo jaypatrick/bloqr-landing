@@ -1,25 +1,61 @@
 /**
- * Site configuration
+ * Site configuration — single source of truth for all external URLs.
  *
- * SITE_URL is read from environment at build time.
- * Set it in your Cloudflare Pages dashboard under Settings → Environment variables,
- * or in a local .env file during development.
+ * ── URL Migration Guide ────────────────────────────────────────────────────────
+ * Current (temporary): bloqr.jaysonknight.com subdomain scheme
+ * Target (production):  bloqr.ai subdomain scheme
+ *
+ * To migrate to bloqr.ai when the domain is secured:
+ *   1. Update the URL constants in EXTERNAL_URLS below (5 values)
+ *   2. Update CANONICAL_DOMAIN below
+ *   3. Update wrangler.toml [[routes]] pattern
+ *   4. Run `npm run build && wrangler deploy`
+ *   No other files need changes — all components consume from LINKS.
+ * ──────────────────────────────────────────────────────────────────────────────
  */
-export const SITE_URL =
-  import.meta.env.SITE_URL ?? 'https://bloqr.ai';
+
+// ── External service URLs — edit these to change domains ──────────────────────
+// These are the ONLY values that need updating for a domain migration.
+const EXTERNAL_URLS = {
+  /** Landing page / this site */
+  landing: 'https://bloqr.jaysonknight.com',
+  /** Angular app frontend */
+  app:     'https://app.bloqr.jaysonknight.com',
+  /** Backend API worker */
+  api:     'https://api.bloqr.jaysonknight.com',
+  /** mdBook documentation site */
+  docs:    'https://docs.bloqr.jaysonknight.com',
+} as const;
 
 /**
- * External URLs — managed here for build-time static pages.
- * To update for bloqr.ai launch: update these values (or the SITE_URL env var in
- * Cloudflare Pages dashboard) and trigger a redeploy.
+ * The canonical production domain. Used by the Worker to set
+ * `X-Robots-Tag: noindex, nofollow` on responses from non-canonical hosts.
+ * Update to 'bloqr.ai' when the domain is live.
+ */
+export const CANONICAL_DOMAIN = 'bloqr.jaysonknight.com';
+
+/**
+ * SITE_URL — the canonical URL of this landing site.
+ * Read from the SITE_URL build-time env var if set (Cloudflare Pages dashboard),
+ * falls back to the value in EXTERNAL_URLS.
+ */
+export const SITE_URL: string =
+  (import.meta.env.SITE_URL as string | undefined) ?? EXTERNAL_URLS.landing;
+
+/**
+ * LINKS — all external and internal URLs consumed by components and pages.
+ * Internal routes (blog, changelog, etc.) stay as relative paths — never absolute.
  */
 export const LINKS = {
-  app:       'https://adblock-frontend.jayson-knight.workers.dev',
-  github:    'https://github.com/jaypatrick/adblock-compiler',
-  docs:      'https://adblock-compiler-docs.pages.dev',
-  api:       'https://adblock-compiler-docs.pages.dev', // /api path not yet live — points to docs root
-  jsr:       'https://jsr.io/@jk-com/adblock-compiler',
-  author:    'https://jaysonknight.com',
+  // ── External services (update via EXTERNAL_URLS above) ────────────────────
+  app:    EXTERNAL_URLS.app,
+  api:    EXTERNAL_URLS.api,
+  docs:   EXTERNAL_URLS.docs,
+  // ── Third-party ───────────────────────────────────────────────────────────
+  github:  'https://github.com/jaypatrick/adblock-compiler',
+  jsr:     'https://jsr.io/@jk-com/adblock-compiler',
+  author:  'https://jaysonknight.com',
+  // ── Internal routes ───────────────────────────────────────────────────────
   vpnMyths:      '/vpn-myths',
   whyNotPrivate: '/why-not-private',
   about:         '/about',
@@ -31,14 +67,12 @@ export const LINKS = {
 } as const;
 
 /**
- * Static metadata — used at build time for static pages.
- * Update branding, URLs, tagline, and product name here, then rebuild to apply changes.
- * These values feed into <title>, OG tags, and the manifest.
+ * Static metadata — used at build time for <title>, OG tags, and the manifest.
  */
 export const META = {
   title:       'Bloqr — Internet Hygiene: Automated.',
   description: 'AI-powered adblock list management and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
-  ogImage:     '/og-image.png', // regenerate once bloqr.ai brand assets are confirmed
+  ogImage:     '/og-image.png',
 } as const;
 
 // ── TypeScript types for site_config keys ─────────────────────────────────────
@@ -57,8 +91,9 @@ export type SiteConfigKey =
 export type SiteConfig = Record<SiteConfigKey, string>;
 
 /**
- * getConfig() — async, reads from Neon `site_config` when a database URL is
- * provided, otherwise returns hardcoded fallbacks.
+ * getConfig() — reads from Neon `site_config` at runtime when DATABASE_URL is
+ * available, otherwise returns the EXTERNAL_URLS-derived fallbacks.
+ * Static/prerendered pages use LINKS above at build time.
  *
  * **Callers MUST pass `databaseUrl` explicitly** — in Cloudflare Workers, env
  * vars are available only on the `env` binding (not `process.env`), so always
@@ -67,15 +102,13 @@ export type SiteConfig = Record<SiteConfigKey, string>;
  * The `process.env` fallback exists only for Node.js script contexts such as
  * the migration script (`scripts/migrate-site-config.ts`), where `process.env`
  * is available. It will never be set in a Worker invocation.
- *
- * Static pages use the module-level SITE_URL / LINKS / META exports at build time.
  */
 export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
   const DEFAULTS: SiteConfig = {
-    SITE_URL:        import.meta.env.SITE_URL ?? 'https://bloqr.ai',
-    APP_URL:         'https://adblock-frontend.jayson-knight.workers.dev',
-    DOCS_URL:        'https://adblock-compiler-docs.pages.dev',
-    API_URL:         'https://adblock-compiler-docs.pages.dev',
+    SITE_URL:        SITE_URL,
+    APP_URL:         EXTERNAL_URLS.app,
+    DOCS_URL:        EXTERNAL_URLS.docs,
+    API_URL:         EXTERNAL_URLS.api,
     JSR_URL:         'https://jsr.io/@jk-com/adblock-compiler',
     GITHUB_URL:      'https://github.com/jaypatrick/adblock-compiler',
     AUTHOR_URL:      'https://jaysonknight.com',
