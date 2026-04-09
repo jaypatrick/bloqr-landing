@@ -8,7 +8,7 @@ Astro 6 + Svelte 5 marketing landing site, deployed as a Cloudflare Worker with 
 - **Components**: [Svelte 5](https://svelte.dev) (runes syntax — `$state`, `$props`, `$derived`)
 - **Deployment**: [Cloudflare Workers](https://workers.cloudflare.com) via `wrangler deploy`
 - **Fonts**: Space Grotesk + JetBrains Mono — self-hosted via the [Astro 6 Fonts API](https://docs.astro.build/en/guides/fonts/) (`fontProviders.fontsource()`)
-- **CSP**: Inline scripts/styles auto-hashed (SHA-256) by `security.csp`; enforced at the edge by `applyCSP()` in `src/worker.ts`
+- **CSP**: Inline scripts/styles auto-hashed (SHA-256) by Astro's `security.csp` (meta CSP); `applyCSP()` in `src/worker.ts` adds `frame-ancestors`/`base-uri`/`form-action` hardening headers on every HTML response
 - **Code highlighting**: Shiki 4 dual themes (`houston` dark / `vitesse-light` light) with `defaultColor: false` — outputs CSS custom properties via inline `style` attributes; `style-src` must allow inline styles for code blocks to render
 
 ## Requirements
@@ -72,7 +72,7 @@ The site uses `output: 'server'` with the `@astrojs/cloudflare` adapter. Every p
 | `GET/POST /api/auth/*` | Better Auth (GitHub OAuth SSO) |
 | `*` | `env.ASSETS.fetch(request)` — static site |
 
-All HTML responses get a `Content-Security-Policy` header injected by `applyCSP()` in `src/worker.ts`.
+All HTML responses get a `Content-Security-Policy` header injected by `applyCSP()` in `src/worker.ts`. This header sets only hardening directives (`frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`); script and style policies come from Astro's hash-based meta CSP.
 
 ## Content Layer API
 
