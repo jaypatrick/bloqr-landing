@@ -6,64 +6,23 @@ import Footer from '../components/Footer.svelte';
 import BaseHead from '../components/BaseHead.astro';
 import SchemaOrg from '../components/SchemaOrg.astro';
 import { SITE_URL, META, LINKS } from '../config';
+import { getCollection } from 'astro:content';
 
-// Fetch the CHANGELOG.md from GitHub at build time — baked into the static output
-const CHANGELOG_URL =
-  'https://raw.githubusercontent.com/jaypatrick/adblock-compiler/main/CHANGELOG.md';
-
-let rawChangelog = '';
-try {
-  const res = await fetch(CHANGELOG_URL);
-  if (res.ok) rawChangelog = await res.text();
-} catch {
-  rawChangelog = ''; // graceful fallback; page still renders
-}
-
-// Parse into versioned sections ─────────────────────────────────────────────
-// Sections start with "## [x.y.z] - YYYY-MM-DD" or "## [Unreleased]"
-interface ChangeSection {
-  version:  string;
-  date:     string | null;
-  isLatest: boolean;
-  content:  string;
-}
-
-function parseChangelog(raw: string): ChangeSection[] {
-  const lines = raw.split('\n');
-  const sections: ChangeSection[] = [];
-  let current: ChangeSection | null = null;
-  let bodyLines: string[] = [];
-
-  const versionRe = /^## \[(.+?)\](?:\s+-\s+(\d{4}-\d{2}-\d{2}))?/;
-
-  for (const line of lines) {
-    const match = line.match(versionRe);
-    if (match) {
-      if (current) {
-        current.content = bodyLines.join('\n').trim();
-        sections.push(current);
-      }
-      current = {
-        version:  match[1],
-        date:     match[2] ?? null,
-        isLatest: sections.length === 0,
-        content:  '',
-      };
-      bodyLines = [];
-    } else if (current) {
-      bodyLines.push(line);
-    }
-  }
-  if (current) {
-    current.content = bodyLines.join('\n').trim();
-    sections.push(current);
-  }
-
-  // Skip "Unreleased" section if empty
-  return sections.filter(
-    (s) => !(s.version === 'Unreleased' && s.content.trim() === '')
-  );
-}
+// ── Live Content Collection (Astro 6) ─────────────────────────────────────
+// The 'changelog' collection is populated by a custom loader in
+// src/content.config.ts that fetches CHANGELOG.md from GitHub at build time
+// and parses it into typed entries. This replaces the raw fetch() that was
+// previously inline in this page's frontmatter.
+const changelogEntries = await getCollection('changelog');
+// Sort by order (already limited to 20 releases by the loader)
+const sections = changelogEntries
+  .sort((a, b) => a.data.order - b.data.order)
+  .map(entry => ({
+    version:  entry.data.version,
+    date:     entry.data.date,
+    isLatest: entry.data.isLatest,
+    content:  entry.data.content,
+  }));
 
 // Minimal markdown-to-html — only what changelogs actually use
 function simpleMarkdown(md: string): string {
@@ -88,8 +47,6 @@ function simpleMarkdown(md: string): string {
     .replace(/<p>(<ul>)/g, '$1')
     .replace(/(<\/ul>)<\/p>/g, '$1');
 }
-
-const sections = parseChangelog(rawChangelog).slice(0, 20); // show last 20 releases
 
 const meta = {
   title:       'Bloqr Changelog — What\'s New',

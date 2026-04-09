@@ -54,6 +54,61 @@ export default defineConfig({
     },
   },
 
+  // ── Markdown / Code Highlighting ──────────────────────────────────────
+  // Uses Shiki 4 (bundled with Astro 6) with dual dark/light themes so that
+  // highlighted code blocks use CSS custom properties (--shiki-dark / --shiki-light)
+  // instead of inline styles.  This makes code blocks fully CSP-compatible
+  // — no 'unsafe-inline' is needed for syntax highlighting.
+  // The stylesheet that maps these CSS vars to actual colours is in
+  // src/styles/global.css under the "Shiki dual-theme" section.
+  markdown: {
+    syntaxHighlight: {
+      type: 'shiki',
+      excludeLangs: [],
+    },
+    shikiConfig: {
+      // houston: Astro's own dark theme — matches the Bloqr dark palette well.
+      // vitesse-light: clean minimal light theme for light-mode users.
+      // defaultColor:false triggers CSS-variable output (CSP-safe, no inline styles).
+      themes: {
+        dark:  'houston',
+        light: 'vitesse-light',
+      },
+      defaultColor: false,
+      wrap: true,
+    },
+  },
+
+  // ── Astro 6 Experimental Features ─────────────────────────────────────
+  experimental: {
+    // Rust-based Astro compiler — faster .astro file transformation.
+    // Drop-in replacement; no API changes required.
+    rustCompiler: true,
+
+    // Queued rendering — serialises concurrent SSR renders so the Node.js
+    // event loop is never overwhelmed during prerendering.  contentCache
+    // caches rendered HTML across rebuilds to speed up incremental builds.
+    queuedRendering: {
+      enabled:      true,
+      contentCache: true,
+    },
+
+    // Per-route cache hints — tells the adapter how long to cache each route.
+    // All landing pages are fully static (prerendered), so long TTLs are safe.
+    // API / admin routes are omitted (they require fresh responses).
+    routeRules: {
+      '/':              { maxAge: 3600,  swr: 86400 },
+      '/blog':          { maxAge: 3600,  swr: 86400 },
+      '/blog/**':       { maxAge: 86400, swr: 604800 },
+      '/changelog':     { maxAge: 3600,  swr: 86400 },
+      '/about':         { maxAge: 86400, swr: 604800 },
+      '/vpn-myths':     { maxAge: 86400, swr: 604800 },
+      '/why-not-private': { maxAge: 86400, swr: 604800 },
+      '/privacy':       { maxAge: 86400, swr: 604800 },
+      '/terms':         { maxAge: 86400, swr: 604800 },
+    },
+  },
+
   integrations: [
     svelte(),
     sitemap(),
