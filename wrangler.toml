@@ -14,16 +14,14 @@ compatibility_flags = ["nodejs_compat"]
 # dashboard sidebar.
 # account_id = "your-account-id-here"
 
-# ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
-# binding = "ASSETS" is required so that env.ASSETS is injected into the Worker
-# environment. The shorthand `assets = { directory = "..." }` does NOT create the
-# named binding, causing env.ASSETS.fetch() to throw at runtime.
-[assets]
-binding = "ASSETS"
-directory = "./dist"
-
 # ─── Worker Entry Point ───────────────────────────────────────────────────────
 main = "src/worker.ts"
+
+# ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
+# For Workers with a custom entry point (main), static assets must be configured
+# using an ASSETS asset binding, which is available in the Worker as env.ASSETS.
+# The directory field specifies where the static files are located after build.
+assets = { directory = "./dist", binding = "ASSETS" }
 
 # ─── Smart Placement ─────────────────────────────────────────────────────────
 # Cloudflare automatically places the Worker to help reduce latency based on
