@@ -67,6 +67,14 @@ export const LINKS = {
 } as const;
 
 /**
+ * CHANGELOG_URL — raw URL for the upstream CHANGELOG.md.
+ * Used by the changelog Content Layer loader at build time.
+ * Centralised here so a repo move only requires a single edit.
+ */
+export const CHANGELOG_URL =
+  'https://raw.githubusercontent.com/jaypatrick/adblock-compiler/main/CHANGELOG.md';
+
+/**
  * Static metadata — used at build time for <title>, OG tags, and the manifest.
  */
 export const META = {

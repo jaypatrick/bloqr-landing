@@ -1,5 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { CHANGELOG_URL } from './config';
 
 // ── Blog ──────────────────────────────────────────────────────────────────────
 const blog = defineCollection({
@@ -22,8 +23,7 @@ const blog = defineCollection({
 // typed entries via the Astro 6 Content Layer API loader object signature.
 // Uses the { load(ctx) } object form so Astro treats it as a custom loader
 // (not the simpleLoader/glob path) and calls store.set() directly.
-const CHANGELOG_URL =
-  'https://raw.githubusercontent.com/jaypatrick/adblock-compiler/main/CHANGELOG.md';
+// CHANGELOG_URL is imported from src/config.ts — the single source of truth
 
 function parseChangelog(raw: string) {
   const lines = raw.split('\n');
