@@ -23,7 +23,15 @@ export default defineConfig({
   // The nodejs_compat flag in wrangler.toml is unrelated — it handles the
   // better-auth node:async_hooks dependency at runtime.
   output: 'server',
-  adapter: cloudflare({ prerenderEnvironment: 'node' }),
+  adapter: cloudflare({
+    prerenderEnvironment: 'node',
+    // Use the Cloudflare Images Worker Binding (env.IMAGES) for image
+    // optimisation at the edge.  The binding is provisioned automatically
+    // by Wrangler when the account has Cloudflare Images enabled.
+    // Making this explicit (rather than relying on the default) ensures
+    // the intent is clear and avoids surprises if the adapter default changes.
+    imageService: 'cloudflare-binding',
+  }),
 
   // Derived from the SITE_URL env var so the sitemap and RSS context.site stay
   // consistent with the rest of the codebase (src/config.ts SITE_URL, wrangler.toml
