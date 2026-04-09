@@ -1,5 +1,8 @@
 name = "adblock-landing"
 compatibility_date = "2026-01-01"
+# Node.js API compatibility — required by better-auth (node:async_hooks) and
+# other packages that use Node.js built-in modules in the Worker runtime.
+compatibility_flags = ["nodejs_compat"]
 
 # ─── Account Configuration ────────────────────────────────────────────────────
 # If your API token does not resolve the correct default account, uncomment
