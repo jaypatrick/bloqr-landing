@@ -55,7 +55,7 @@ function applyRobotsTag(response: Response, hostname: string, canonicalDomain: s
  * directives to the document-level CSP.
  */
 function applyCSP(response: Response): Response {
-  const contentType = response.headers.get('content-type') ?? '';
+  const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
   if (!contentType.startsWith('text/html')) return response;
 
   const csp = [
