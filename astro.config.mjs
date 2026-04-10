@@ -110,22 +110,6 @@ export default defineConfig({
     },
   },
 
-  // ── Astro 6 Experimental features ─────────────────────────────────────
-  experimental: {
-    // Use the Rust-based .astro compiler from @astrojs/compiler-rs for
-    // faster builds.  Requires the @astrojs/compiler-rs package (already
-    // in dependencies).
-    rustCompiler: true,
-
-    // Queue and batch rendering tasks to improve build throughput.
-    // contentCache caches content collection query results across renders
-    // so identical collection reads don't re-fetch from disk/network.
-    queuedRendering: {
-      enabled: true,
-      contentCache: true,
-    },
-  },
-
   integrations: [
     svelte(),
     sitemap(),

@@ -26,9 +26,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate PWA icons
-        run: node scripts/generate-icons.mjs
-
       - name: Build
         run: npm run build
         env:
