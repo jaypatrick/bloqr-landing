@@ -87,15 +87,13 @@ persist = true            # TODO: disable if long-term trace retention is not ne
 head_sampling_rate = 1   # TODO: reduce before high-traffic production
 
 # ─── Browser Rendering ────────────────────────────────────────────────────────
-# Provides a headless Chromium instance at the edge for UI automation and
-# visual regression tests.
-# Usage: import puppeteer from '@cloudflare/puppeteer'
-#        const browser = await puppeteer.launch(env.BROWSER)
+# Provides a headless Chromium instance at the edge via Cloudflare Browser Rendering.
+# Usage: import { chromium } from '@cloudflare/playwright'
+#        const browser = await chromium.launch(env.BROWSER)
 # Requires Cloudflare Workers paid plan.
-# FIX: Browser rendering uses [[browser_rendering]] (table array), not [browser].
-# The [browser] key is not a valid top-level wrangler config key and caused
-# experimental_readRawConfig to throw a parse error in CI.
-[[browser_rendering]]
+# IMPORTANT: Use [browser] (scalar table), NOT [[browser_rendering]] (array-of-tables).
+# The [[browser_rendering]] syntax causes the binding to be silently ignored by wrangler.
+[browser]
 binding = "BROWSER"
 
 # ─── Tail Worker ───────────────────────────────────────────────────────────────
