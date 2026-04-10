@@ -58,10 +58,12 @@ export interface Env {
 
   // ─── Cloudflare Workers bindings ──────────────────────────────────────────
   /**
-   * Browser Rendering binding — headless Chromium at the edge.
-   * Requires Cloudflare Workers paid plan.
+   * Cloudflare Browser Rendering binding — headless Chromium at the edge.
+   * Requires Cloudflare Workers paid plan and `[browser]` binding in wrangler.toml.
+   * Access via `env.BROWSER` in Worker handlers.
+   * Optional: absent in local dev unless `wrangler dev --remote` is used.
    */
-  BROWSER: Fetcher;
+  BROWSER?: Fetcher;
 
   /**
    * D1 database binding — site_config read-through cache.

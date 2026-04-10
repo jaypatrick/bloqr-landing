@@ -14,7 +14,6 @@ import { neon } from '@neondatabase/serverless';
 export interface Env {
   DATABASE_URL: string;
   APOLLO_API_KEY: string;
-  BROWSER: Fetcher;
 }
 
 interface WaitlistBody {
