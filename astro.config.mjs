@@ -25,15 +25,20 @@ export default defineConfig({
   output: 'server',
   adapter: cloudflare({
     prerenderEnvironment: 'node',
-    // Use the Cloudflare Images Worker Binding (env.IMAGES) for image
-    // optimization at the edge.  This image service expects an IMAGES
-    // binding to be configured for every environment that runs the Worker
-    // (for example via Wrangler and/or the Cloudflare dashboard).  If
-    // Astro's <Image /> component is introduced without that binding,
-    // local preview and deploys can fail at runtime.  Making this explicit
-    // keeps the dependency clear and avoids surprises if the adapter
-    // default changes.
-    imageService: 'cloudflare-binding',
+    // 'passthrough' skips image optimisation entirely and serves images
+    // unchanged.  This is the correct setting for this site because:
+    //   1. No Cloudflare Images binding (env.IMAGES) is provisioned — it is
+    //      a paid add-on that has not been enabled for this account.
+    //   2. wrangler.toml does not declare an IMAGES binding.
+    //   3. Using 'cloudflare-binding' without the binding causes env.IMAGES
+    //      to be undefined at runtime, breaking env.ASSETS.fetch() and
+    //      producing a "Page not found" fallback for every request.
+    //
+    // To switch to 'cloudflare-binding' in the future you need:
+    //   - Cloudflare Images enabled on the account (paid add-on).
+    //   - An IMAGES binding added to wrangler.toml and the CF dashboard.
+    //   - IMAGES: Fetcher added to src/types/env.ts.
+    imageService: 'passthrough',
   }),
 
   // Derived from the SITE_URL env var so the sitemap and RSS context.site stay
