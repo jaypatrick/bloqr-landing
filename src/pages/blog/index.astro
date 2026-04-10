@@ -17,7 +17,7 @@ const meta = {
   title:       'Bloqr Blog — Education, Industry News & Releases',
   description: 'DNS blocking explainers for everyday users, VPN incident coverage, and feature release notes from the Bloqr team.',
   url:         `${SITE_URL}/blog`,
-  image:       `${SITE_URL}${META.ogImage}`,
+  image:       `${SITE_URL}/og/blog.png`,
 };
 
 const blogIndexSchema = {
@@ -83,7 +83,7 @@ function formatDate(d: Date) {
   <meta name="author" content="Jayson Knight" />
 
   <!-- Color scheme -->
-  <meta name="color-scheme" content="dark" />
+  <meta name="color-scheme" content="dark light" />
 
   <!-- OG locale -->
   <meta property="og:locale" content="en_US" />
@@ -104,7 +104,7 @@ function formatDate(d: Date) {
   <SchemaOrg schema={blogIndexSchema} />
 </head>
 <body>
-  <Nav client:idle />
+  <Nav client:idle transition:persist="nav" />
 
   <main id="main-content" class="blog-index">
 
@@ -136,7 +136,7 @@ function formatDate(d: Date) {
 
         <div class="posts-grid">
           {allPosts.map((post) => (
-            <a href={`/blog/${post.id}`} class="post-card">
+            <a href={`/blog/${post.id}`} class="post-card" transition:name={`card-${post.id}`}>
               <div class="post-meta">
                 <span class={`badge ${categoryClass[post.data.category]}`}>
                   {categoryLabel[post.data.category]}
@@ -145,7 +145,7 @@ function formatDate(d: Date) {
                   {formatDate(post.data.pubDate)}
                 </time>
               </div>
-              <h2 class="post-title">{post.data.title}</h2>
+              <h2 class="post-title" transition:name={`title-${post.id}`}>{post.data.title}</h2>
               <p class="post-desc">{post.data.description}</p>
               <span class="read-more">Read more →</span>
             </a>

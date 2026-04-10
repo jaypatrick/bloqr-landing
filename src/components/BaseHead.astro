@@ -49,7 +49,7 @@ const canonical = canonicalURL.toString();
 <title>{title}</title>
 <meta name="description" content={description} />
 <meta name="author" content="Jayson Knight" />
-<meta name="color-scheme" content="dark" />
+<meta name="color-scheme" content="dark light" />
 
 <!-- Open Graph -->
 <meta property="og:site_name"    content="Bloqr" />
@@ -84,6 +84,10 @@ const canonical = canonicalURL.toString();
 <!-- PWA / Theme -->
 <link rel="manifest" href="/site.webmanifest" />
 <meta name="theme-color" content="#FF5500" />
+
+<!-- Preconnect to third-party analytics origins to reduce connection latency -->
+<link rel="preconnect" href="https://app.posthog.com" crossorigin />
+<link rel="dns-prefetch" href="https://app.posthog.com" />
 
 <!-- Astro 6 Fonts API — self-hosted via fontsource, with preload links -->
 <Font cssVariable="--font-display" preload />

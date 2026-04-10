@@ -144,7 +144,7 @@ const blogPostSchema = {
   <meta name="author" content={post.data.author} />
 
   <!-- Color scheme -->
-  <meta name="color-scheme" content="dark" />
+  <meta name="color-scheme" content="dark light" />
 
   <!-- OG locale -->
   <meta property="og:locale" content="en_US" />
@@ -165,7 +165,7 @@ const blogPostSchema = {
   <SchemaOrg schema={blogPostSchema} />
 </head>
 <body>
-  <Nav client:idle />
+  <Nav client:idle transition:persist="nav" />
 
   <main id="main-content" class="post-page">
 
@@ -186,7 +186,7 @@ const blogPostSchema = {
           <span class="author">by {post.data.author}</span>
         </div>
 
-        <h1>{post.data.title}</h1>
+        <h1 transition:name={`title-${post.id}`}>{post.data.title}</h1>
         <p class="post-desc">{post.data.description}</p>
 
         {post.data.tags.length > 0 && (
@@ -200,7 +200,7 @@ const blogPostSchema = {
 
       <!-- Hero cover image (when set in post frontmatter) -->
       {post.data.image && (
-        <div class="post-hero">
+        <div class="post-hero" transition:name={`card-${post.id}`}>
           {/^https:\/\//.test(post.data.image) ? (
             <Image
               src={post.data.image}
@@ -211,14 +211,14 @@ const blogPostSchema = {
               decoding="auto"
             />
           ) : (
-            <img
+            <Image
               src={normalizeLocalPath(post.data.image)}
               alt={post.data.title}
-              width="1200"
-              height="630"
+              width={1200}
+              height={630}
               class="post-hero__img"
               loading="eager"
-              decoding="auto"
+              fetchpriority="high"
             />
           )}
         </div>

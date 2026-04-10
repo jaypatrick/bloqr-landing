@@ -100,6 +100,10 @@ export const PAGE_META = {
     title:       "Why Your Browsing Isn't as Private as You Think — Bloqr",
     description: "HTTPS encrypts your page content. But your DNS lookups — the \"where is this website?\" requests your device makes thousands of times a day — travel unencrypted. Here's what that means.",
   },
+  blog: {
+    title:       'Bloqr Blog — Education, Industry News & Releases',
+    description: 'DNS blocking explainers for everyday users, VPN incident coverage, and feature release notes from the Bloqr team.',
+  },
 } as const;
 
 /**
