@@ -13,7 +13,7 @@ Astro site served via a Cloudflare Worker with static assets.
 
 | Field           | Value                                                               |
 | --------------- | ------------------------------------------------------------------- |
-| Product tagline | "Good internet habits. Automated."                                  |
+| Product tagline | "Internet Hygiene. Automated."                                  |
 | Repo            | `adblock-compiler.landing` (`bloqr-landing`)                        |
 | Owner           | `jaypatrick`                                                        |
 | Default branch  | `main`                                                              |
@@ -248,7 +248,7 @@ Full detail: `brand/BLOQR_DESIGN_LANGUAGE.md` → _Voice & Tone Guidelines_
 | ---------------------------------- | ----------------------------------- |
 | "Set it. Bloqr it. Forget it."     | Consumer promise — zero maintenance |
 | "Bring your own. Or use ours."     | Vendor philosophy — no lock-in      |
-| "Good internet habits. Automated." | Tagline — applies to all personas   |
+| "Internet Hygiene. Automated."     | Tagline — applies to all personas   |
 | "Browsing Hygiene"                 | Our coined concept — not "security" |
 
 ### Write
