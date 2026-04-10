@@ -30,9 +30,10 @@ export default defineConfig({
     //   1. No Cloudflare Images binding (env.IMAGES) is provisioned — it is
     //      a paid add-on that has not been enabled for this account.
     //   2. wrangler.toml does not declare an IMAGES binding.
-    //   3. Using 'cloudflare-binding' without the binding causes env.IMAGES
-    //      to be undefined at runtime, breaking env.ASSETS.fetch() and
-    //      producing a "Page not found" fallback for every request.
+    //   3. Using 'cloudflare-binding' without that binding can make the
+    //      adapter's image optimisation/runtime path expect env.IMAGES at
+    //      runtime and fail when it is undefined, which can surface as
+    //      worker exceptions or incomplete/broken output.
     //
     // To switch to 'cloudflare-binding' in the future you need:
     //   - Cloudflare Images enabled on the account (paid add-on).
