@@ -296,7 +296,7 @@ Merging to `main` triggers a Cloudflare Worker deployment automatically via CI.
 
 Worker entrypoint: `src/worker.ts`  
 Deploy command: `npm run deploy`  
-Build output: `./dist`  
+Static assets (ASSETS binding): `./dist/client/` — Worker bundle: `./dist/server/`  
 Build command: `npm run build`
 
 To deploy manually:
@@ -304,6 +304,48 @@ To deploy manually:
 ```bash
 npm run deploy   # astro build && wrangler deploy
 ```
+
+---
+
+## ⚠️ Critical: Cloudflare Dashboard Is Dangerous
+
+**NEVER add, edit, or delete variables or secrets in the Cloudflare Workers dashboard for adblock-landing.**
+
+Doing so creates a new Worker version with **NO static assets** — the ASSETS binding becomes empty and every request returns "Page not found" immediately. The Worker code is present but `env.ASSETS.fetch()` has nothing to serve.
+
+This is not a bug; it is how Cloudflare Workers works: assets are only attached to a Worker version during a `wrangler deploy` upload. A dashboard-only change (add/edit/delete variable or secret) creates a new version that inherits the Worker script but carries zero assets.
+
+### Safe alternatives
+
+- **To change plain vars** (`ENVIRONMENT`, `CANONICAL_DOMAIN`, `PUBLIC_POSTHOG_KEY`, etc.): edit `wrangler.toml` `[vars]` and merge to `main` — CI will deploy with assets attached.
+- **To add or rotate secrets**: use the CLI only — this updates the secret value without creating an asset-less version:
+  ```bash
+  wrangler secret put SECRET_NAME
+  ```
+
+### Emergency recovery
+
+If the dashboard was used accidentally and the site is broken:
+
+1. CF dashboard → **adblock-landing** → **Deployments**
+2. Find the last entry labelled **"Manually deployed"** — that is what Cloudflare calls a `wrangler deploy` from CI (as opposed to a dashboard-only change)
+3. Click `...` → **Rollback**
+4. Re-run CI (`main` branch) to restore the latest code with assets attached
+
+### Where each config value lives
+
+| Variable               | Lives in              | How to change                                 |
+| ---------------------- | --------------------- | --------------------------------------------- |
+| `ENVIRONMENT`          | `wrangler.toml [vars]` | Edit file, push to main                      |
+| `CANONICAL_DOMAIN`     | `wrangler.toml [vars]` | Edit file, push to main                      |
+| `PUBLIC_POSTHOG_KEY`   | `wrangler.toml [vars]` | Edit file, push to main                      |
+| `DATABASE_URL`         | CF secret             | `wrangler secret put DATABASE_URL`            |
+| `APOLLO_API_KEY`       | CF secret             | `wrangler secret put APOLLO_API_KEY`          |
+| `ADMIN_SECRET`         | CF secret             | `wrangler secret put ADMIN_SECRET`            |
+| `BETTER_AUTH_SECRET`   | CF secret             | `wrangler secret put BETTER_AUTH_SECRET`      |
+| `BETTER_AUTH_URL`      | CF secret             | `wrangler secret put BETTER_AUTH_URL`         |
+| `GITHUB_CLIENT_ID`     | CF secret             | `wrangler secret put GITHUB_CLIENT_ID`        |
+| `GITHUB_CLIENT_SECRET` | CF secret             | `wrangler secret put GITHUB_CLIENT_SECRET`    |
 
 ---
 
