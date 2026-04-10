@@ -10,8 +10,13 @@
   onMount(() => {
     currentPath = window.location.pathname;
     const handleScroll = () => { scrolled = window.scrollY > 10; };
+    const handlePageLoad = () => { currentPath = window.location.pathname; };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    document.addEventListener('astro:page-load', handlePageLoad);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('astro:page-load', handlePageLoad);
+    };
   });
 
   function closeMenu() { menuOpen = false; }
