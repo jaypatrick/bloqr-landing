@@ -30,9 +30,8 @@ export const GET: APIRoute = async ({ props }) => {
   return new Response(buffer, {
     headers: {
       'Content-Type':  'image/png',
-      // 1 year — slug URLs are stable and post titles rarely change;
-      // `immutable` is intentionally omitted so title edits eventually propagate.
-      'Cache-Control': 'public, max-age=31536000',
+      // 1 day — same policy as page OG images; allows copy/brand updates to propagate.
+      'Cache-Control': 'public, max-age=86400',
     },
   });
 };
