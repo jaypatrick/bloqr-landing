@@ -109,7 +109,7 @@ export async function generateOgImage(
 
   // --- mini logo mark (top-left, mirrored from gen-og.mjs) ---
   const logoBarWidths = [22, 16, 9];
-  const logoBarColors = [WHITE, MUTED, ORANGE];
+  const logoBarColors = [WHITE, CYAN, ORANGE];
   const logoBars = logoBarWidths.map((w, i) =>
     `<rect x="80" y="${96 + i * 14}" width="${w}" height="8"
       rx="2" fill="${logoBarColors[i]}"/>`,

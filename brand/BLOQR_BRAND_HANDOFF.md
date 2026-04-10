@@ -53,6 +53,18 @@
 - Clear space: minimum 1× the logo height on all sides.
 - Do not recolor, rotate, stretch, or add drop shadows to the logo mark.
 
+#### Logo Mark — Bar Colors (canonical)
+
+The logo mark consists of three horizontal bars of descending width. Their colors are fixed:
+
+| Bar | Width | Color | Value | Opacity |
+|-----|-------|-------|-------|---------|
+| Bar 1 | 20px | White | `#F1F5F9` | 1.0 (full) |
+| Bar 2 | 15px | Cyan  | `#00D4FF` | 0.85 |
+| Bar 3 |  8px | Orange | `#FF5500` | 1.0 (full) |
+
+> **The cyan second bar is a consistent brand element — it must appear at this position in the logo mark in all contexts: nav, OG images, favicons, and any other brand lockup.**
+
 ---
 
 ## 2. Color System
