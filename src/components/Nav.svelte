@@ -5,17 +5,29 @@
   let scrolled  = $state(false);
   let menuOpen  = $state(false);
   let dropdownOpen = $state(false);
+  let currentPath = $state('/');
 
   onMount(() => {
+    currentPath = window.location.pathname;
     const handleScroll = () => { scrolled = window.scrollY > 10; };
+    const handlePageLoad = () => { currentPath = window.location.pathname; };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    document.addEventListener('astro:page-load', handlePageLoad);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('astro:page-load', handlePageLoad);
+    };
   });
 
   function closeMenu() { menuOpen = false; }
   function toggleMenu() { menuOpen = !menuOpen; }
   function toggleDropdown() { dropdownOpen = !dropdownOpen; }
   function closeDropdown() { dropdownOpen = false; }
+
+  function isActive(href) {
+    if (!href || href.startsWith('/#')) return false;
+    return currentPath === href || currentPath.startsWith(href + '/');
+  }
 </script>
 
 <nav class:scrolled class:menu-open={menuOpen} aria-label="Main navigation">
@@ -42,7 +54,7 @@
       <li><a href="/#audiences">Who</a></li>
       <li><a href="/#features">Features</a></li>
       <li><a href="/#pricing">Pricing</a></li>
-      <li><a href={LINKS.vpnMyths}>VPN Myths</a></li>
+      <li><a href={LINKS.vpnMyths} class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a></li>
       <li class="dropdown">
         <button
           class="dropdown-btn"
@@ -60,8 +72,8 @@
             onclick={closeDropdown}
           ></button>
           <div class="dropdown-menu">
-            <a href={LINKS.changelog} onclick={closeDropdown}>Changelog</a>
-            <a href={LINKS.about} onclick={closeDropdown}>About</a>
+            <a href={LINKS.changelog} onclick={closeDropdown} class:active={isActive(LINKS.changelog)} aria-current={isActive(LINKS.changelog) ? 'page' : undefined}>Changelog</a>
+            <a href={LINKS.about} onclick={closeDropdown} class:active={isActive(LINKS.about)} aria-current={isActive(LINKS.about) ? 'page' : undefined}>About</a>
           </div>
         {/if}
       </li>
@@ -70,7 +82,7 @@
 
     <!-- Desktop CTA -->
     <div class="nav-cta">
-      <a href={LINKS.blog} class="nav-news">News</a>
+      <a href={LINKS.blog} class="nav-news" class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a>
       <a href={LINKS.docs} class="btn btn-ghost btn-sm" rel="noopener noreferrer" target="_blank">Docs</a>
       <a href={LINKS.app} class="btn btn-primary btn-sm" rel="noopener noreferrer" target="_blank">
         Launch App <span aria-hidden="true">→</span>
@@ -109,10 +121,10 @@
         <li><a href="/#audiences"     onclick={closeMenu}>Who it's for</a></li>
         <li><a href="/#features"      onclick={closeMenu}>Features</a></li>
         <li><a href="/#pricing"       onclick={closeMenu}>Pricing</a></li>
-        <li><a href={LINKS.vpnMyths}  onclick={closeMenu}>VPN Myths</a></li>
-        <li><a href={LINKS.blog}      onclick={closeMenu}>News</a></li>
-        <li><a href={LINKS.changelog} onclick={closeMenu}>Changelog</a></li>
-        <li><a href={LINKS.about}     onclick={closeMenu}>About</a></li>
+        <li><a href={LINKS.vpnMyths}  onclick={closeMenu} class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a></li>
+        <li><a href={LINKS.blog}      onclick={closeMenu} class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a></li>
+        <li><a href={LINKS.changelog} onclick={closeMenu} class:active={isActive(LINKS.changelog)} aria-current={isActive(LINKS.changelog) ? 'page' : undefined}>Changelog</a></li>
+        <li><a href={LINKS.about}     onclick={closeMenu} class:active={isActive(LINKS.about)} aria-current={isActive(LINKS.about) ? 'page' : undefined}>About</a></li>
         <li class="mobile-divider" aria-hidden="true"></li>
         <li><a href="/#waitlist" class="mobile-highlight" onclick={closeMenu}>Join Early Access →</a></li>
       </ul>
@@ -238,6 +250,35 @@
 
   .nav-links a:hover { color: var(--text-1); }
   .nav-highlight { color: var(--orange) !important; }
+
+  /* ── Active nav link ── */
+  .nav-links a.active {
+    color: var(--cyan);
+    font-weight: 600;
+    position: relative;
+  }
+
+  .nav-links a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--cyan);
+    border-radius: 1px;
+    opacity: 0.5;
+  }
+
+  .dropdown-menu a.active {
+    color: var(--cyan);
+    background: var(--cyan-dim);
+  }
+
+  .mobile-links a.active {
+    color: var(--cyan);
+    font-weight: 600;
+  }
 
   /* ── Dropdown ── */
   .dropdown {
