@@ -110,40 +110,62 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-      - name: Smoke test — verify site is live after deploy
+      - name: Verify deployment via Cloudflare API
+        # Checks the Cloudflare Workers API to confirm the deploy succeeded and is
+        # recent — avoids the live-URL curl that Cloudflare Bot Fight Mode blocks
+        # (HTTP 403 "Just a moment..." from GitHub Actions runner IPs).
+        #
+        # Required secrets (repo Settings → Secrets → Actions):
+        #   CLOUDFLARE_API_TOKEN — already used by the Deploy step above
+        #   CF_ACCOUNT_ID        — Cloudflare account ID (dashboard sidebar → copy account ID)
+        #                          NOTE: must be added manually; wrangler.toml has it commented out
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
           echo "Waiting 15s for deployment to propagate..."
           sleep 15
-          # --silent --show-error: suppress progress but print curl errors
-          # --output/--write-out: capture body and status separately (no --fail so body
-          #   is always written even on 4xx/5xx, letting body checks run regardless of status)
-          # --connect-timeout/--max-time: fail fast on network stalls
-          # --retry: retry transient failures (connection refused / 5xx)
-          HTTP_STATUS=$(curl --silent --show-error \
-            --output /tmp/smoke-body \
-            --write-out "%{http_code}" \
+
+          if [ -z "$CF_ACCOUNT_ID" ]; then
+            echo "ERROR: CF_ACCOUNT_ID secret is not set."
+            echo "Add it in repo Settings → Secrets → Actions."
+            exit 1
+          fi
+
+          SCRIPT_NAME="adblock-landing"
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${SCRIPT_NAME}"
+
+          RESPONSE=$(curl --silent --show-error \
             --connect-timeout 10 --max-time 30 \
-            --retry 3 --retry-delay 2 --retry-connrefused \
-            https://bloqr.jaysonknight.com/)
-          BODY=$(cat /tmp/smoke-body)
-          # Check for the ASSETS-empty signature first — this fires even when HTTP status is 404
-          if echo "$BODY" | grep -qi "page not found"; then
-            echo "ERROR: Site returned 'Page not found' — ASSETS binding is empty."
-            echo "HTTP status: $HTTP_STATUS"
-            echo "A CF dashboard variable/secret change likely created an asset-less version after this deploy."
-            echo "Fix: CF dashboard > adblock-landing > Deployments > rollback to last Wrangler deploy, then re-run CI."
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "${API_URL}")
+
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
+          if [ "$SUCCESS" != "true" ]; then
+            echo "ERROR: Cloudflare API returned success=false for worker '${SCRIPT_NAME}'"
+            echo "Response: $RESPONSE"
             exit 1
           fi
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "ERROR: Expected HTTP 200 but got $HTTP_STATUS"
-            echo "Response: $BODY"
-            echo "This may indicate a CF dashboard change created an asset-less deployment."
-            echo "Fix: CF dashboard > adblock-landing > Deployments > rollback to last Wrangler deploy, then re-run CI."
+
+          MODIFIED_ON=$(echo "$RESPONSE" | jq -r '.result.modified_on // empty')
+          if [ -z "$MODIFIED_ON" ]; then
+            echo "ERROR: Could not parse modified_on timestamp from API response"
+            echo "Response: $RESPONSE"
             exit 1
           fi
-          if ! echo "$BODY" | grep -qi "bloqr\|<!doctype"; then
-            echo "ERROR: Response body does not look like the Bloqr landing page."
-            echo "First 200 chars: ${BODY:0:200}"
+
+          DEPLOY_EPOCH=$(date -d "$MODIFIED_ON" +%s)
+          NOW_EPOCH=$(date +%s)
+          AGE_SECONDS=$(( NOW_EPOCH - DEPLOY_EPOCH ))
+          MAX_AGE=300  # 5 min — generous buffer for Cloudflare propagation + API lag after wrangler deploy
+
+          if [ "$AGE_SECONDS" -gt "$MAX_AGE" ]; then
+            echo "ERROR: Latest deployment is ${AGE_SECONDS}s old (max allowed: ${MAX_AGE}s)."
+            echo "The deploy step may not have updated the Worker, or the API returned stale data."
+            echo "Deployment modified_on: $MODIFIED_ON"
             exit 1
           fi
-          echo "Smoke test passed — site is live and serving HTML (HTTP $HTTP_STATUS)"
+
+          SCRIPT_ID=$(echo "$RESPONSE" | jq -r '.result.id // "unknown"')
+          echo "Deployment verified — id: ${SCRIPT_ID}, modified_on: ${MODIFIED_ON}, age: ${AGE_SECONDS}s"
