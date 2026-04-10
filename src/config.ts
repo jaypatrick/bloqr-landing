@@ -153,7 +153,7 @@ export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
     GITHUB_URL:      'https://github.com/jaypatrick/adblock-compiler',
     AUTHOR_URL:      'https://jaysonknight.com',
     PRODUCT_NAME:    'Bloqr',
-    PRODUCT_TAGLINE: 'Good Internet Hygiene. Automated.',
+    PRODUCT_TAGLINE: 'Internet Hygiene. Automated.',
     OG_IMAGE_PATH:   '/og-image.png',
   };
 
