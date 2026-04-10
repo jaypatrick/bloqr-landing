@@ -189,3 +189,30 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ─── SCROLL-DRIVEN ANIMATIONS (CSS-native, no JS) ─── */
+/* Uses the CSS Scroll-Driven Animations spec (baseline 2025+).          */
+/* Apply .animate-on-scroll to any element you want to fade up on entry. */
+/* Respects prefers-reduced-motion automatically.                         */
+@keyframes fade-up-in {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.animate-on-scroll {
+  animation: fade-up-in linear both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 35%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-on-scroll {
+    animation: none;
+  }
+}

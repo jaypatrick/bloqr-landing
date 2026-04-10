@@ -87,7 +87,7 @@ const changelogSchema = {
   <SchemaOrg schema={changelogSchema} />
 </head>
 <body>
-  <Nav client:idle />
+  <Nav client:idle transition:persist="nav" />
 
   <main id="main-content" class="changelog-page">
     <div class="container">

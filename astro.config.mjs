@@ -1,4 +1,4 @@
-import { defineConfig, fontProviders } from 'astro/config';
+import { defineConfig, fontProviders, memoryCache } from 'astro/config';
 import svelte from '@astrojs/svelte';
 import cloudflare from '@astrojs/cloudflare';
 import sitemap from '@astrojs/sitemap';
@@ -136,6 +136,14 @@ export default defineConfig({
     queuedRendering: {
       enabled: true,
       contentCache: true,
+    },
+
+    // Route-level caching for SSR API endpoints.
+    // memoryCache() is a safe cross-platform in-memory LRU fallback.
+    // On Cloudflare, the adapter can wire the CF Cache API automatically
+    // when this flag is present.
+    cache: {
+      provider: memoryCache(),
     },
   },
 
