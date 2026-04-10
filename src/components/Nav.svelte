@@ -24,7 +24,7 @@
   function toggleDropdown() { dropdownOpen = !dropdownOpen; }
   function closeDropdown() { dropdownOpen = false; }
 
-  function isActive(href: string | undefined): boolean {
+  function isActive(href) {
     if (!href || href.startsWith('/#')) return false;
     return currentPath === href || currentPath.startsWith(href + '/');
   }
