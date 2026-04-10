@@ -156,9 +156,9 @@ jobs:
             exit 1
           fi
 
-          CREATED_ON=$(echo "$RESPONSE" | jq -r '.result.items[0].created_on // empty')
+          CREATED_ON=$(echo "$RESPONSE" | jq -r '.result.deployments[0].created_on // empty')
           if [ -z "$CREATED_ON" ]; then
-            echo "ERROR: Could not parse created_on timestamp from API response"
+            echo "ERROR: Could not parse created_on from deployments[0] — API response may be empty or malformed"
             echo "Response: $RESPONSE"
             exit 1
           fi
@@ -175,5 +175,5 @@ jobs:
             exit 1
           fi
 
-          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.result.items[0].id // "unknown"')
+          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.result.deployments[0].id // "unknown"')
           echo "Deployment verified — id: ${DEPLOY_ID}, created_on: ${CREATED_ON}, age: ${AGE_SECONDS}s"
