@@ -35,7 +35,9 @@ export const GET: APIRoute = async ({ params }) => {
   return new Response(buffer, {
     headers: {
       'Content-Type':  'image/png',
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      // 1 day — short enough that title/description updates reach crawlers
+      // quickly, since these are served at stable (non-versioned) URLs.
+      'Cache-Control': 'public, max-age=86400',
     },
   });
 };

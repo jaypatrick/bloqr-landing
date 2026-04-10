@@ -54,7 +54,7 @@ let ogImageWidth  = 1200;
 let ogImageHeight = 630;
 
 if (post.data.image) {
-  const isRemote = /^https?:\/\//.test(post.data.image);
+  const isRemote = /^https:\/\//.test(post.data.image);
   if (isRemote) {
     try {
       const processed = await getImage({ src: post.data.image, inferSize: true });
@@ -201,7 +201,7 @@ const blogPostSchema = {
       <!-- Hero cover image (when set in post frontmatter) -->
       {post.data.image && (
         <div class="post-hero">
-          {/^https?:\/\//.test(post.data.image) ? (
+          {/^https:\/\//.test(post.data.image) ? (
             <Image
               src={post.data.image}
               inferSize

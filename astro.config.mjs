@@ -111,11 +111,14 @@ export default defineConfig({
   },
 
   // ── Image configuration ────────────────────────────────────────────────
-  // remotePatterns authorises remote URLs for <Image inferSize> used on blog
-  // post pages (hero cover image).  Without this, Astro rejects any remote
-  // `src` passed to <Image> at build time.  The pattern below allows any
-  // https:// origin — tighten to specific hostnames if the set of remote
-  // image hosts is known.
+  // remotePatterns authorises https:// remote URLs for <Image inferSize>
+  // used on blog post pages (hero cover image).  Only https is allowed —
+  // http:// is rejected at the schema level (see src/content.config.ts)
+  // so it can never reach the image pipeline.  Restricting to https keeps
+  // build-time outbound requests to HTTPS-only, and the repo-owner-
+  // controlled frontmatter limits the exposure further.  Tighten to
+  // explicit hostnames (e.g. `{ protocol: 'https', hostname: 'cdn.example.com' }`)
+  // if the set of remote image hosts is known in advance.
   image: {
     remotePatterns: [{ protocol: 'https' }],
   },
