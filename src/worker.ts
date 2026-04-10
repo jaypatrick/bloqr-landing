@@ -42,6 +42,16 @@ function applyRobotsTag(response: Response, hostname: string, canonicalDomain: s
 }
 
 /**
+ * Returns true for requests that are likely asking for an HTML document.
+ * This scopes HTML-specific fallbacks away from asset requests such as CSS,
+ * JS, images, or extensionless static files.
+ */
+function isHtmlNavigationRequest(request: Request, url: URL): boolean {
+  const accept = (request.headers.get('accept') ?? '').toLowerCase();
+  return accept.includes('text/html') || url.pathname.endsWith('/') || url.pathname.endsWith('.html');
+}
+
+/**
  * Injects a Content-Security-Policy header on HTML responses.
  *
  * Astro's generated HTML already includes a hash-based CSP meta tag for the
@@ -97,6 +107,19 @@ export default {
       else response = new Response('Method Not Allowed', { status: 405 });
     } else {
       response = await env.ASSETS.fetch(request);
+      // Safety guard: if ASSETS returns an empty or untyped response for an HTML
+      // route, return a proper 503 instead of a 0-byte download.
+      const contentType = response.headers.get('content-type');
+      if (
+        response.status === 200 &&
+        isHtmlNavigationRequest(request, url) &&
+        (!contentType || contentType.trim() === '')
+      ) {
+        response = new Response('Service temporarily unavailable — assets not deployed correctly.', {
+          status: 503,
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+        });
+      }
     }
 
     response = applyCSP(response);
