@@ -112,10 +112,11 @@ export const PAGE_META = {
 
 /**
  * Static metadata — used at build time for <title>, OG tags, and the manifest.
+ * title/description are derived from PAGE_META.home so there is a single source of truth.
  */
 export const META = {
-  title:       'Bloqr — Internet Hygiene: Automated.',
-  description: 'AI-powered adblock list management and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
+  title:       PAGE_META.home.title,
+  description: PAGE_META.home.description,
   ogImage:     '/og-image.png',
 } as const;
 
