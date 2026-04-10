@@ -22,6 +22,7 @@ const CYAN   = '#00D4FF';
 const WHITE  = 'white';
 const MUTED  = 'rgba(255,255,255,0.50)';
 const MUTED2 = 'rgba(255,255,255,0.25)';
+const DESC   = 'rgba(255,255,255,0.62)';
 
 /** Escape special XML/SVG characters. */
 function escXml(s: string): string {
@@ -90,7 +91,7 @@ export async function generateOgImage(
       `<text x="80" y="${descY + i * 28}"
         font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
         font-size="18" font-weight="400"
-        fill="rgba(255,255,255,0.62)" letter-spacing="0">${escXml(line)}</text>`,
+        fill="${DESC}" letter-spacing="0">${escXml(line)}</text>`,
     ).join('\n');
   }
 
