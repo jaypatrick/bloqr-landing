@@ -84,6 +84,10 @@ export const CHANGELOG_URL =
  * Keeping them here prevents the two consumers from drifting.
  */
 export const PAGE_META = {
+  home: {
+    title:       'Bloqr — Internet Hygiene: Automated.',
+    description: 'AI-powered adblock list management and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
+  },
   about: {
     title:       'About Bloqr — Why We Exist',
     description: "Bloqr started as a two-minute automation task that exposed a twenty-year gap at the center of consumer internet privacy. Here's the story.",
