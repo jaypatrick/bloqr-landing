@@ -14,7 +14,13 @@ const blog = defineCollection({
     category:    z.enum(['education', 'industry', 'release']),
     tags:        z.array(z.string()).default([]),
     draft:       z.boolean().default(false),
-    image:       z.string().optional(),
+    // Accept either a public/-relative path (/images/foo.png) or an https:// URL.
+    // http:// is intentionally excluded: Astro's image.remotePatterns only
+    // authorises https, so an http image would be rejected at build time anyway.
+    image:       z.string().refine(
+      (val) => val.startsWith('/') || /^https:\/\//.test(val),
+      { message: 'image must be a public/-relative path (e.g. /images/foo.png) or an https:// URL' },
+    ).optional(),
   }),
 });
 

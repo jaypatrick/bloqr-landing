@@ -5,13 +5,13 @@ import Nav from '../components/Nav.svelte';
 import Footer from '../components/Footer.svelte';
 import BaseHead from '../components/BaseHead.astro';
 import SchemaOrg from '../components/SchemaOrg.astro';
-import { SITE_URL, LINKS } from '../config';
+import { SITE_URL, LINKS, PAGE_META } from '../config';
 
 const meta = {
-  title:       'Consumer VPN Myths, Examined — Bloqr',
-  description: 'A sourced, honest look at what consumer VPNs actually do — and don\'t do. Fingerprinting, DNS, jurisdiction, vendor lock-in, and more.',
+  title:       PAGE_META['vpn-myths'].title,
+  description: PAGE_META['vpn-myths'].description,
   url:         `${SITE_URL}/vpn-myths`,
-  image:       `${SITE_URL}/og-image.png`,
+  image:       `${SITE_URL}/og/vpn-myths.png`,
 };
 
 interface MythHighlight {
