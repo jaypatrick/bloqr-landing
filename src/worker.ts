@@ -97,6 +97,14 @@ export default {
       else response = new Response('Method Not Allowed', { status: 405 });
     } else {
       response = await env.ASSETS.fetch(request);
+      // Safety guard: if ASSETS returns an empty or untyped response for an HTML
+      // route, return a proper 503 instead of a 0-byte download.
+      if (response.status === 200 && !response.headers.get('content-type')) {
+        response = new Response('Service temporarily unavailable — assets not deployed correctly.', {
+          status: 503,
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+        });
+      }
     }
 
     response = applyCSP(response);

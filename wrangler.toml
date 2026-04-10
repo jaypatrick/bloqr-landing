@@ -18,9 +18,11 @@ compatibility_flags = ["nodejs_compat"]
 main = "src/worker.ts"
 
 # ─── Static Assets (Workers — replaces pages_build_output_dir) ────────────────
-# For Workers with a custom entry point (main), static assets must be configured
-# using an ASSETS asset binding, which is available in the Worker as env.ASSETS.
-# The directory field specifies where the static files are located after build.
+# ⚠️  DO NOT MODIFY THIS LINE — both `directory` AND `binding` are required.
+# `binding = "ASSETS"` injects env.ASSETS into the Worker so env.ASSETS.fetch()
+# works in src/worker.ts. Removing `binding` causes a 0 KB download on every
+# request. The `assets = { ... }` inline form is correct — do NOT switch to the
+# [assets] table form, which has caused repeated regressions (PRs #58, #64).
 assets = { directory = "./dist", binding = "ASSETS" }
 
 # ─── Smart Placement ─────────────────────────────────────────────────────────
