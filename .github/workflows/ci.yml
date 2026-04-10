@@ -140,7 +140,7 @@ jobs:
           fi
 
           SCRIPT_NAME="adblock-landing"
-          API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${SCRIPT_NAME}"
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${SCRIPT_NAME}/deployments"
 
           RESPONSE=$(curl --silent --show-error \
             --connect-timeout 10 --max-time 30 \
@@ -156,14 +156,14 @@ jobs:
             exit 1
           fi
 
-          MODIFIED_ON=$(echo "$RESPONSE" | jq -r '.result.modified_on // empty')
-          if [ -z "$MODIFIED_ON" ]; then
-            echo "ERROR: Could not parse modified_on timestamp from API response"
+          CREATED_ON=$(echo "$RESPONSE" | jq -r '.result.items[0].created_on // empty')
+          if [ -z "$CREATED_ON" ]; then
+            echo "ERROR: Could not parse created_on timestamp from API response"
             echo "Response: $RESPONSE"
             exit 1
           fi
 
-          DEPLOY_EPOCH=$(date -d "$MODIFIED_ON" +%s)
+          DEPLOY_EPOCH=$(date -d "$CREATED_ON" +%s)
           NOW_EPOCH=$(date +%s)
           AGE_SECONDS=$(( NOW_EPOCH - DEPLOY_EPOCH ))
           MAX_AGE=300  # 5 min — generous buffer for Cloudflare propagation + API lag after wrangler deploy
@@ -171,9 +171,9 @@ jobs:
           if [ "$AGE_SECONDS" -gt "$MAX_AGE" ]; then
             echo "ERROR: Latest deployment is ${AGE_SECONDS}s old (max allowed: ${MAX_AGE}s)."
             echo "The deploy step may not have updated the Worker, or the API returned stale data."
-            echo "Deployment modified_on: $MODIFIED_ON"
+            echo "Deployment created_on: $CREATED_ON"
             exit 1
           fi
 
-          SCRIPT_ID=$(echo "$RESPONSE" | jq -r '.result.id // "unknown"')
-          echo "Deployment verified — id: ${SCRIPT_ID}, modified_on: ${MODIFIED_ON}, age: ${AGE_SECONDS}s"
+          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.result.items[0].id // "unknown"')
+          echo "Deployment verified — id: ${DEPLOY_ID}, created_on: ${CREATED_ON}, age: ${AGE_SECONDS}s"
