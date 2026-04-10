@@ -54,14 +54,17 @@ head_sampling_rate = 1   # TODO: reduce to 0.1–0.25 before high-traffic produc
 
 [observability.logs]
 enabled = true
-destinations = [ "sentry-logs" ]
+# NOTE: Sentry log drain destinations are configured in the Cloudflare dashboard,
+# not in wrangler.toml — the `destinations` field is not part of the Wrangler schema
+# and causes experimental_readRawConfig to throw on strict schema validation.
 head_sampling_rate = 1   # TODO: reduce before high-traffic production
 persist = true            # TODO: disable if long-term log retention is not needed
 invocation_logs = true    # TODO: disable once Worker behaviour is confirmed stable
 
 [observability.traces]
 enabled = true
-destinations = [ "sentry-traces" ]
+# NOTE: Sentry trace drain destinations are configured in the Cloudflare dashboard,
+# not in wrangler.toml — the `destinations` field is not part of the Wrangler schema.
 persist = true            # TODO: disable if long-term trace retention is not needed
 head_sampling_rate = 1   # TODO: reduce before high-traffic production
 
@@ -71,13 +74,19 @@ head_sampling_rate = 1   # TODO: reduce before high-traffic production
 # Usage: import puppeteer from '@cloudflare/puppeteer'
 #        const browser = await puppeteer.launch(env.BROWSER)
 # Requires Cloudflare Workers paid plan.
-[browser]
+# FIX: Browser rendering uses [[browser_rendering]] (table array), not [browser].
+# The [browser] key is not a valid top-level wrangler config key and caused
+# experimental_readRawConfig to throw a parse error in CI.
+[[browser_rendering]]
 binding = "BROWSER"
 
 # ─── Tail Worker ───────────────────────────────────────────────────────────────
-# Tail worker binding for real-time log streaming and diagnostics
-[[tail_consumers]]
-service = "adblock-tail"
+# Tail worker binding for real-time log streaming and diagnostics.
+# DISABLED: Commented out pending confirmation that the "adblock-tail" Worker
+# service exists in the account. If this service does not exist, wrangler rejects
+# the config even on --dry-run. Uncomment once adblock-tail is confirmed live.
+# [[tail_consumers]]
+# service = "adblock-tail"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
 # This route is configured for the current custom domain.
