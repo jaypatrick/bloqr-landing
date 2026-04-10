@@ -7,9 +7,9 @@ import Font from 'astro/components/Font.astro';
 import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import SchemaOrg from '../../components/SchemaOrg.astro';
-import { getImage } from 'astro:assets';
+import { getImage, Image } from 'astro:assets';
 import { getCollection, render } from 'astro:content';
-import { SITE_URL, META } from '../../config';
+import { SITE_URL } from '../../config';
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog', ({ data }) => !data.draft);
@@ -34,6 +34,11 @@ function formatDate(d: Date) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+/** Ensures a public/-relative image path has a leading slash. */
+function normalizeLocalPath(path: string): string {
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
 const meta = {
   title:       `${post.data.title} — Bloqr`,
   description: post.data.description,
@@ -43,7 +48,8 @@ const meta = {
 // Process OG image using Astro's getImage() pipeline.
 // Remote images use inferSize: true so Astro fetches actual dimensions at
 // build time — no manual width/height needed.
-let ogImageSrc  = `${SITE_URL}${META.ogImage}`;
+// Fallback: generated per-post branded OG image (title baked in at build time).
+let ogImageSrc  = `${SITE_URL}/og/blog/${post.id}.png`;
 let ogImageWidth  = 1200;
 let ogImageHeight = 630;
 
@@ -66,8 +72,7 @@ if (post.data.image) {
     }
   } else {
     // Local path relative to public/ — make it absolute.
-    const clean = post.data.image.startsWith('/') ? post.data.image : `/${post.data.image}`;
-    ogImageSrc = `${SITE_URL}${clean}`;
+    ogImageSrc = `${SITE_URL}${normalizeLocalPath(post.data.image)}`;
   }
 }
 
@@ -193,6 +198,32 @@ const blogPostSchema = {
         )}
       </header>
 
+      <!-- Hero cover image (when set in post frontmatter) -->
+      {post.data.image && (
+        <div class="post-hero">
+          {/^https?:\/\//.test(post.data.image) ? (
+            <Image
+              src={post.data.image}
+              inferSize
+              alt={post.data.title}
+              class="post-hero__img"
+              loading="eager"
+              decoding="auto"
+            />
+          ) : (
+            <img
+              src={normalizeLocalPath(post.data.image)}
+              alt={post.data.title}
+              width="1200"
+              height="630"
+              class="post-hero__img"
+              loading="eager"
+              decoding="auto"
+            />
+          )}
+        </div>
+      )}
+
       <!-- Post body -->
       <article class="post-body">
         <Content />
@@ -292,6 +323,22 @@ const blogPostSchema = {
     font-size: 12px;
     color: var(--text-3);
     font-family: var(--font-mono);
+  }
+
+  /* ── Hero cover image ── */
+  .post-hero {
+    max-width: 720px;
+    margin-bottom: 40px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .post-hero__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
   }
 
   /* ── Post body ── */
