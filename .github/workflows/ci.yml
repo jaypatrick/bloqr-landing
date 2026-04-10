@@ -123,6 +123,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
+          set -euo pipefail
+
           echo "Waiting 15s for deployment to propagate..."
           sleep 15
 
@@ -132,11 +134,17 @@ jobs:
             exit 1
           fi
 
+          if ! command -v jq &>/dev/null; then
+            echo "ERROR: jq is not installed on this runner. Install it or switch to Node-based JSON parsing."
+            exit 1
+          fi
+
           SCRIPT_NAME="adblock-landing"
           API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${SCRIPT_NAME}"
 
           RESPONSE=$(curl --silent --show-error \
             --connect-timeout 10 --max-time 30 \
+            --retry 3 --retry-delay 2 --retry-connrefused --retry-all-errors \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "${API_URL}")
