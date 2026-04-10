@@ -28,7 +28,7 @@ const bars = [
 ];
 
 const barHeight = 42;
-const barX      = W - 420; // right-anchored
+const barX      = W - 360; // right-anchored
 
 // Dot grid (subtle background texture)
 const dotRows  = 18;
@@ -58,11 +58,11 @@ for (const b of bars) {
 const glowSvg = `
   <defs>
     <radialGradient id="glow" cx="75%" cy="50%" r="40%">
-      <stop offset="0%"   stop-color="#FF5500" stop-opacity="0.12"/>
+      <stop offset="0%"   stop-color="#FF5500" stop-opacity="0.18"/>
       <stop offset="100%" stop-color="#FF5500" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glowTop" cx="20%" cy="10%" r="50%">
-      <stop offset="0%"   stop-color="#00D4FF" stop-opacity="0.09"/>
+      <stop offset="0%"   stop-color="#00D4FF" stop-opacity="0.14"/>
       <stop offset="100%" stop-color="#00D4FF" stop-opacity="0"/>
     </radialGradient>
   </defs>

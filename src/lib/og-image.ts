@@ -20,7 +20,7 @@ const BG     = '#070B14';
 const ORANGE = '#FF5500';
 const CYAN   = '#00D4FF';
 const WHITE  = 'white';
-const MUTED  = 'rgba(255,255,255,0.45)';
+const MUTED  = 'rgba(255,255,255,0.50)';
 const MUTED2 = 'rgba(255,255,255,0.25)';
 
 /** Escape special XML/SVG characters. */
@@ -72,23 +72,25 @@ export async function generateOgImage(
   const lineHeight = fontSize * 1.22;
   const titleY     = 220;
 
-  const titleSvg = titleLines.map((line, i) =>
-    `<text x="80" y="${titleY + i * lineHeight}"
+  const titleSvg = titleLines.map((line, i) => {
+    const isLastLine = i === titleLines.length - 1;
+    const color = isLastLine && line.startsWith('Automated') ? ORANGE : WHITE;
+    return `<text x="80" y="${titleY + i * lineHeight}"
       font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
       font-size="${fontSize}" font-weight="800"
-      fill="${WHITE}" letter-spacing="-1">${escXml(line)}</text>`,
-  ).join('\n');
+      fill="${color}" letter-spacing="-1">${escXml(line)}</text>`;
+  }).join('\n');
 
-  // --- description layout (max 2 lines) ---
+  // --- description layout (max 3 lines) ---
   let descSvg = '';
   if (description) {
     const descY   = titleY + titleLines.length * lineHeight + 22;
-    const descLines = wrapText(description, 70).slice(0, 2);
+    const descLines = wrapText(description, 62).slice(0, 3);
     descSvg = descLines.map((line, i) =>
       `<text x="80" y="${descY + i * 28}"
         font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
         font-size="18" font-weight="400"
-        fill="${MUTED}" letter-spacing="0">${escXml(line)}</text>`,
+        fill="rgba(255,255,255,0.62)" letter-spacing="0">${escXml(line)}</text>`,
     ).join('\n');
   }
 
@@ -100,7 +102,7 @@ export async function generateOgImage(
     { w: 130, y: 348, opacity: 0.32, accent: false },
     { w:  80, y: 404, opacity: 1.00, accent: true  },
   ];
-  const barX = W - 420;
+  const barX = W - 360;
   const barH = 42;
   const barSvg = bars.map(b =>
     `<rect x="${barX}" y="${b.y}" width="${b.w}" height="${barH}"
@@ -123,11 +125,11 @@ export async function generateOgImage(
   <!-- Ambient glow -->
   <defs>
     <radialGradient id="glow" cx="75%" cy="50%" r="40%">
-      <stop offset="0%"   stop-color="${ORANGE}" stop-opacity="0.10"/>
+      <stop offset="0%"   stop-color="${ORANGE}" stop-opacity="0.18"/>
       <stop offset="100%" stop-color="${ORANGE}" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glowTop" cx="20%" cy="10%" r="50%">
-      <stop offset="0%"   stop-color="${CYAN}"   stop-opacity="0.08"/>
+      <stop offset="0%"   stop-color="${CYAN}"   stop-opacity="0.14"/>
       <stop offset="100%" stop-color="${CYAN}"   stop-opacity="0"/>
     </radialGradient>
   </defs>
