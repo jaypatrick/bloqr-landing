@@ -7,6 +7,7 @@ import Font from 'astro/components/Font.astro';
 import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import SchemaOrg from '../../components/SchemaOrg.astro';
+import { getImage } from 'astro:assets';
 import { getCollection, render } from 'astro:content';
 import { SITE_URL, META } from '../../config';
 
@@ -37,14 +38,38 @@ const meta = {
   title:       `${post.data.title} — Bloqr`,
   description: post.data.description,
   url:         `${SITE_URL}/blog/${post.id}`,
-  image:       `${SITE_URL}${META.ogImage}`,
 };
 
-const ogImage = post.data.image
-  ? (post.data.image.startsWith('http://') || post.data.image.startsWith('https://')
-      ? post.data.image
-      : `${SITE_URL}${post.data.image}`)
-  : `${SITE_URL}${META.ogImage}`;
+// Process OG image using Astro's getImage() pipeline.
+// Remote images use inferSize: true so Astro fetches actual dimensions at
+// build time — no manual width/height needed.
+let ogImageSrc  = `${SITE_URL}${META.ogImage}`;
+let ogImageWidth  = 1200;
+let ogImageHeight = 630;
+
+if (post.data.image) {
+  const isRemote = /^https?:\/\//.test(post.data.image);
+  if (isRemote) {
+    try {
+      const processed = await getImage({ src: post.data.image, inferSize: true });
+      // Ensure the URL is absolute so OG crawlers can reach it.
+      ogImageSrc = processed.src.startsWith('/')
+        ? `${SITE_URL}${processed.src}`
+        : processed.src;
+      const processedWidth  = processed.attributes.width;
+      const processedHeight = processed.attributes.height;
+      if (typeof processedWidth  === 'number') ogImageWidth  = processedWidth;
+      if (typeof processedHeight === 'number') ogImageHeight = processedHeight;
+    } catch {
+      // Graceful fallback: use the remote URL directly.
+      ogImageSrc = post.data.image;
+    }
+  } else {
+    // Local path relative to public/ — make it absolute.
+    const clean = post.data.image.startsWith('/') ? post.data.image : `/${post.data.image}`;
+    ogImageSrc = `${SITE_URL}${clean}`;
+  }
+}
 
 const blogPostSchema = {
   "@context": "https://schema.org",
@@ -66,7 +91,7 @@ const blogPostSchema = {
         "name": "Bloqr",
         "logo": `${SITE_URL}/og-image.png`
       },
-      "image": ogImage,
+      "image": ogImageSrc,
       "keywords": post.data.tags.join(", "),
       "articleSection": post.data.category
     },
@@ -94,9 +119,9 @@ const blogPostSchema = {
   <meta property="og:title"        content={meta.title} />
   <meta property="og:description"  content={meta.description} />
   <meta property="og:url"          content={meta.url} />
-  <meta property="og:image"        content={ogImage} />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image"        content={ogImageSrc} />
+  <meta property="og:image:width"  content={String(ogImageWidth)} />
+  <meta property="og:image:height" content={String(ogImageHeight)} />
   <meta property="og:image:alt"    content={meta.title} />
   <meta property="og:type"         content="article" />
   <meta property="article:published_time" content={post.data.pubDate.toISOString()} />
@@ -105,7 +130,7 @@ const blogPostSchema = {
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content={meta.title} />
   <meta name="twitter:description" content={meta.description} />
-  <meta name="twitter:image"       content={ogImage} />
+  <meta name="twitter:image"       content={ogImageSrc} />
   <meta name="twitter:image:alt"   content={meta.title} />
   <meta name="twitter:site"        content="@bloqr_ai" />
   <meta name="twitter:creator"     content="@jaysonknight" />
