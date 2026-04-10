@@ -74,8 +74,8 @@ jobs:
 
       - name: Verify dist is not empty
         run: |
-          if [ ! -f dist/index.html ]; then
-            echo "ERROR: dist/index.html missing — build artifact is empty or corrupt. Aborting deploy."
+          if [ ! -f dist/client/index.html ]; then
+            echo "ERROR: dist/client/index.html missing — build artifact is empty or corrupt. Aborting deploy."
             exit 1
           fi
           echo "dist/ OK — $(find dist -type f | wc -l) files"
