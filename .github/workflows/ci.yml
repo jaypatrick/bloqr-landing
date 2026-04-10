@@ -53,9 +53,14 @@ jobs:
         # --dry-run skips the actual upload so no CF API token is needed here.
         run: |
           npx wrangler deploy --dry-run --outdir /tmp/wrangler-dry-run
-          WORKER_SIZE=$(find /tmp/wrangler-dry-run -name "*.js" -o -name "*.mjs" | xargs wc -c 2>/dev/null | tail -1 | awk '{print $1}')
-          if [ -z "$WORKER_SIZE" ] || [ "$WORKER_SIZE" -lt 1000 ]; then
-            echo "ERROR: Worker bundle is suspiciously small ($WORKER_SIZE bytes) — something went wrong"
+          # Wrangler outputs .mjs (ESM) bundles; older versions may output .js
+          WORKER_SIZE=$(find /tmp/wrangler-dry-run \( -name "*.js" -o -name "*.mjs" \) | xargs wc -c 2>/dev/null | tail -1 | awk '{print $1}')
+          # 1000 bytes is a conservative floor — a valid Worker bundle with auth,
+          # DB, and routing logic is >1 MB; anything smaller means the bundle is
+          # empty or the dry-run output directory was not written correctly.
+          MIN_WORKER_SIZE=1000
+          if [ -z "$WORKER_SIZE" ] || [ "$WORKER_SIZE" -lt "$MIN_WORKER_SIZE" ]; then
+            echo "ERROR: Worker bundle is suspiciously small ($WORKER_SIZE bytes, min $MIN_WORKER_SIZE) — something went wrong"
             exit 1
           fi
           echo "Worker bundle OK — $WORKER_SIZE bytes"
