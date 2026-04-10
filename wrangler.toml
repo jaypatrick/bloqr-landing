@@ -24,7 +24,14 @@ main = "src/worker.ts"
 # works in src/worker.ts. Removing `binding` causes a 0 KB download on every
 # request. The `assets = { ... }` inline form is correct — do NOT switch to the
 # [assets] table form, which has caused repeated regressions (PRs #58, #64).
-assets = { directory = "./dist", binding = "ASSETS" }
+#
+# WHY ./dist/client (not ./dist):
+# The @astrojs/cloudflare adapter (output: 'server') splits its build output:
+#   dist/client/  — prerendered HTML, CSS, JS, and all static assets (served via ASSETS)
+#   dist/server/  — the SSR Worker bundle (entry point; not served as static files)
+# Pointing at ./dist would upload an empty/wrong directory — ASSETS binding would
+# show "—" in the CF dashboard and env.ASSETS.fetch() would return 404 on every request.
+assets = { directory = "./dist/client", binding = "ASSETS" }
 
 # ─── Smart Placement ─────────────────────────────────────────────────────────
 # Cloudflare automatically places the Worker to help reduce latency based on
