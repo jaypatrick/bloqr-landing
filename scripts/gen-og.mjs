@@ -72,7 +72,7 @@ const glowSvg = `
 
 // Mini logo bars (top-left, small)
 const logoBarW = [22, 16, 9];
-const logoBarColors = ['white', 'rgba(255,255,255,0.55)', '#FF5500'];
+const logoBarColors = ['white', '#00D4FF', '#FF5500'];
 let logoBars = '';
 for (let i = 0; i < 3; i++) {
   logoBars += `<rect x="80" y="${96 + i * 14}" width="${logoBarW[i]}" height="8"

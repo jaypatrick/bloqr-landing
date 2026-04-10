@@ -205,7 +205,7 @@
   }
 
   .bar-1 { width: 20px; }
-  .bar-2 { width: 15px; opacity: 0.65; }
+  .bar-2 { width: 15px; background: var(--cyan); opacity: 0.85; }
   .bar-3 { width: 8px; background: var(--orange); }
 
   .logo:hover .bar-2 { width: 18px; }
