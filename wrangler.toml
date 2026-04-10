@@ -6,7 +6,7 @@ name = "adblock-landing"
 compatibility_date = "2026-01-01"
 # Node.js API compatibility — required by better-auth (node:async_hooks) and
 # other packages that use Node.js built-in modules in the Worker runtime.
-# DO NOT REMOVE — required by Astro 6 + @astrojs/cloudflare v13
+# DO NOT REMOVE unless those Node built-in dependencies are removed or replaced.
 compatibility_flags = ["nodejs_compat"]
 
 # ─── Account Configuration ────────────────────────────────────────────────────

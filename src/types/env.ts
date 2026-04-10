@@ -1,14 +1,17 @@
 /**
- * src/types/env.ts — Canonical Cloudflare Workers environment bindings
+ * src/types/env.ts — Shared Cloudflare Workers environment bindings
  *
- * Single source of truth for the Worker `Env` interface.
+ * Preferred shared definition for the Worker `Env` interface.
  * Import from here in:
  *   - src/worker.ts           (ExportedHandler<Env>)
  *   - src/env.d.ts            (App.Locals extends Runtime<Env>)
  *   - functions/admin/*.ts    (handler Env types)
  *
- * Never re-define these fields in individual handler files — extend or
- * import this interface instead so changes propagate everywhere at once.
+ * Prefer importing or extending this interface where practical so binding
+ * changes stay aligned across the Worker codebase as modules are migrated.
+ * Note: functions/waitlist.ts, functions/config.ts, and src/lib/auth.ts
+ * still define their own narrower Env types; those are intentionally scoped
+ * to what each module needs.
  */
 
 export interface Env {
