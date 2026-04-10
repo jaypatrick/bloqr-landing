@@ -140,7 +140,7 @@ jobs:
           fi
 
           SCRIPT_NAME="adblock-landing"
-          API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${SCRIPT_NAME}"
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${SCRIPT_NAME}/deployments"
 
           RESPONSE=$(curl --silent --show-error \
             --connect-timeout 10 --max-time 30 \
@@ -156,7 +156,7 @@ jobs:
             exit 1
           fi
 
-          MODIFIED_ON=$(echo "$RESPONSE" | jq -r '.result.modified_on // empty')
+          MODIFIED_ON=$(echo "$RESPONSE" | jq -r '.result.items[0].created_on // empty')
           if [ -z "$MODIFIED_ON" ]; then
             echo "ERROR: Could not parse modified_on timestamp from API response"
             echo "Response: $RESPONSE"
@@ -175,5 +175,5 @@ jobs:
             exit 1
           fi
 
-          SCRIPT_ID=$(echo "$RESPONSE" | jq -r '.result.id // "unknown"')
-          echo "Deployment verified — id: ${SCRIPT_ID}, modified_on: ${MODIFIED_ON}, age: ${AGE_SECONDS}s"
+          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.result.items[0].id // "unknown"')
+          echo "Deployment verified — id: ${DEPLOY_ID}, created_on: ${MODIFIED_ON}, age: ${AGE_SECONDS}s"
