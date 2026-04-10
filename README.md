@@ -1,85 +1,122 @@
-# Bloqr — Landing Page
+# Bloqr — Landing Page Source
 
-Astro 6 + Svelte 5 marketing landing site, deployed as a Cloudflare Worker with static assets.
+> **Good internet habits. Automated.**
 
-## Stack
+This is the source code for the [Bloqr](https://bloqr.dev) marketing landing site — the public face of an AI-powered DNS filter list compiler and real-time threat intelligence service.
 
-- **Framework**: [Astro 6](https://astro.build) (`output: 'server'` + `@astrojs/cloudflare` adapter; all pages prerendered)
-- **Components**: [Svelte 5](https://svelte.dev) (runes syntax — `$state`, `$props`, `$derived`)
-- **Deployment**: [Cloudflare Workers](https://workers.cloudflare.com) via `wrangler deploy`
-- **Fonts**: Space Grotesk + JetBrains Mono — self-hosted via the [Astro 6 Fonts API](https://docs.astro.build/en/guides/fonts/) (`fontProviders.fontsource()`)
-- **CSP**: Inline scripts/styles auto-hashed (SHA-256) by Astro's `security.csp` (meta CSP); `applyCSP()` in `src/worker.ts` adds `frame-ancestors`/`base-uri`/`form-action` hardening headers on every HTML response
-- **Code highlighting**: Shiki 4 dual themes (`houston` dark / `vitesse-light` light) with `defaultColor: false` — outputs CSS custom properties via inline `style` attributes; `style-src` must allow inline styles for code blocks to render
+If you're here to browse the product, you're in the wrong place (but welcome). If you're here to contribute, read on.
 
-## Requirements
+---
 
-- **Node.js ≥ 22.12.0** — required by Astro 6 and Wrangler v4. Node.js 22 LTS is used in CI.
+## What is Bloqr?
 
-## Quick start
+Bloqr is the connective tissue between DNS filtering tools and the filter lists that power them. It compiles, deduplicates, and distributes AI-curated block lists to DNS providers like AdGuard, NextDNS, and Pi-hole — automatically, on a schedule, across every device you own.
 
-```bash
-npm install
-npm run dev          # Astro dev server — http://localhost:4321
-npm run build        # Produces ./dist/
-npm run preview      # wrangler dev (full Worker + static assets, requires .dev.vars)
-npm run deploy       # astro build && wrangler deploy
-```
+No copy-pasting. No manual syncing. No configuration drift.
 
-> `npm run dev` is best for fast UI iteration with HMR.  
-> `npm run preview` emulates the full Cloudflare Worker runtime and is required for testing API routes and auth flows. Copy `.dev.vars.example` → `.dev.vars` and fill in your local secrets before running preview.
+**Set it. Bloqr it. Forget it.**
 
-## Structure
+Bloqr improves your privacy. It is not a VPN, not an anonymity tool, and not Tor. It controls what your devices reach out to — quietly, in the background, without adding latency or routing your traffic through a stranger's server.
+
+---
+
+## This Repository
+
+This repo contains the marketing landing site only — not the Bloqr service itself. It is a static site deployed to Cloudflare Workers, built with Astro and Svelte.
+
+### Tech stack
+
+| Layer | Technology |
+|---|---|
+| Framework | [Astro 6](https://astro.build) — static output, file-based routing |
+| Components | [Svelte 5](https://svelte.dev) — runes syntax |
+| Deployment | [Cloudflare Workers](https://workers.cloudflare.com) via `wrangler deploy` |
+| Waitlist DB | [Neon](https://neon.tech) Postgres |
+| Auth | [Better Auth](https://www.better-auth.com) — GitHub OAuth SSO |
+
+### Project layout
 
 ```
 src/
-├── worker.ts             # Cloudflare Worker entry point — routes all requests + injects CSP headers
-├── config.ts             # SITE_URL, LINKS, META — single source of truth for all URLs
-├── content.config.ts     # Astro 6 Content Layer API — blog (glob loader) + changelog (live loader)
-├── pages/
+├── worker.ts             # Cloudflare Worker entry — routes requests, injects CSP headers
+├── config.ts             # Single source of truth for all URLs and site metadata
+├── pages/                # Astro file-based routes
 │   ├── index.astro       # Main landing page
 │   ├── about.astro
-│   ├── blog/
-│   │   ├── index.astro   # Blog listing (Font API tags included directly — no BaseHead)
-│   │   └── [slug].astro  # Blog post (Font API tags included directly — no BaseHead)
-│   ├── changelog.astro   # Renders live `changelog` collection (fetched from GitHub at build time)
-│   └── ...
-├── components/
-│   ├── BaseHead.astro    # Shared <head> block — includes Fonts API <Font> tags, CSP meta, analytics
+│   ├── blog/             # Blog listing + post pages
+│   └── changelog.astro   # Rendered from CHANGELOG.md at build time
+├── components/           # Svelte 5 + Astro components
+│   ├── BaseHead.astro    # Shared <head>: fonts, CSP meta, analytics
 │   ├── Nav.svelte
 │   ├── Hero.svelte
 │   └── ...
 └── styles/
-    └── global.css        # Design tokens (:root), global resets, Shiki CSS variable mappings
-                          # --font-display / --font-mono fallbacks defined here; Fonts API overrides them
+    └── global.css        # Design tokens (:root vars), global resets
 
 brand/
-├── logo.svg
-├── tokens.css            # Design token reference (values mirrored in src/styles/global.css)
-├── BLOQR_DESIGN_LANGUAGE.md
-└── BLOQR_ETHOS.md
+├── BLOQR_DESIGN_LANGUAGE.md   # Personas, voice, page architecture
+├── BLOQR_ETHOS.md             # Product philosophy and core promises
+├── tokens.css                 # Design token reference
+└── logo.svg
+``` 
+
+---
+
+## Running Locally
+
+You need **Node.js ≥ 22.12.0**.
+
+```bash
+npm install
+npm run dev        # Astro dev server — http://localhost:4321 (fast HMR)
+npm run build      # Produces ./dist/
+npm run preview    # Full Cloudflare Worker runtime (requires .dev.vars)
+npm run deploy     # astro build && wrangler deploy
 ```
 
-## Cloudflare Worker deployment
+Use `npm run dev` for UI work. Use `npm run preview` when you need to test API routes, auth flows, or Worker behaviour — it emulates the full Cloudflare runtime.
 
-The site uses `output: 'server'` with the `@astrojs/cloudflare` adapter. Every page has `export const prerender = true`, so all HTML is statically generated at build time. The Worker serves static HTML from the ASSETS binding and handles dynamic API routes:
+Before running `preview`, copy `.dev.vars.example` to `.dev.vars` and fill in your local secrets.
 
-| Route | Handler |
+---
+
+## API Routes
+
+The Worker handles a small set of server-side routes. Everything else falls through to the static site.
+
+| Route | What it does |
 |---|---|
-| `POST /waitlist` | Neon insert + Apollo.io contact sync |
-| `GET /config` | Public site config reader |
-| `POST /admin/config` | Site config writer (auth required) |
+| `POST /waitlist` | Adds an email to the waitlist (Neon) + syncs to Apollo.io |
+| `GET /config` | Returns public site config |
+| `POST /admin/config` | Updates site config (auth required) |
 | `GET/POST/PUT /admin/blog` | Blog post CRUD (auth required) |
-| `GET/POST /api/auth/*` | Better Auth (GitHub OAuth SSO) |
-| `*` | `env.ASSETS.fetch(request)` — static site |
+| `GET/POST /api/auth/*` | GitHub OAuth via Better Auth |
+| `*` | Static site fallback (`env.ASSETS.fetch`) |
 
-All HTML responses get a `Content-Security-Policy` header injected by `applyCSP()` in `src/worker.ts`. This header sets only hardening directives (`frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`); script and style policies come from Astro's hash-based meta CSP.
+---
 
-## Content Layer API
+## Brand and Voice
 
-Blog posts live in `src/content/blog/` as Markdown. The `changelog` collection uses a custom async loader that fetches `CHANGELOG.md` from the upstream GitHub repo at build time and parses it into structured, typed entries. See `src/content.config.ts`.
+Bloqr has a specific voice. Before writing copy, UI labels, or any user-facing text, read:
 
-## Brand reference
+- `brand/BLOQR_DESIGN_LANGUAGE.md` — personas, tone guidelines, page architecture decisions
+- `brand/BLOQR_ETHOS.md` — why Bloqr exists, what we will never do, the promises we keep
 
-See `brand/BLOQR_DESIGN_LANGUAGE.md` for voice, personas, and page architecture.  
-See `brand/tokens.css` for the full design token spec.  
-The authoritative guide for AI agents working in this repo is `AGENTS.md`.
+The short version:
+
+- Short, declarative sentences. Specific numbers, not vague superlatives.
+- "You"-focused — what you get, not what we built.
+- Privacy and anonymity are different things. Bloqr improves privacy. It does not provide anonymity.
+- Never: "leveraging", "seamlessly", "best-in-class", "enterprise-grade", "game-changing".
+
+---
+
+## Contributing
+
+The authoritative guide for contributors and AI agents working in this repo is `AGENTS.md`.
+
+For design token values, see `brand/tokens.css`. The variables used by components come from `src/styles/global.css`.
+
+---
+
+*Bloqr — The privacy you didn't know you needed.*

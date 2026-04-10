@@ -138,7 +138,7 @@ const homeSchema = {
   <meta name="keywords" content="adblock, DNS filtering, ad blocking, tracker blocking, Pi-hole, AdGuard, NextDNS, DoH, DNS over HTTPS, internet privacy, network security" />
 </head>
 <body>
-  <Nav client:idle />
+  <Nav client:idle transition:persist="nav" />
   <main id="main-content">
     <Hero client:idle />
     <ComingSoon client:visible />
@@ -147,16 +147,16 @@ const homeSchema = {
     <BeforeAfter client:visible />
     <HowItWorks client:visible />
     <Audiences client:visible />
-    <Features />
+    <div class="animate-on-scroll"><Features /></div>
     <DynamicWorkers />
     <WhyCloudflare />
-    <PrivacyCommitments />
-    <Pricing />
-    <FounderNote />
+    <div class="animate-on-scroll"><PrivacyCommitments /></div>
+    <div class="animate-on-scroll"><Pricing /></div>
+    <div class="animate-on-scroll"><FounderNote /></div>
     <FAQ client:visible />
     <WaitlistSignup client:visible />
     <CodeDemo client:visible />
-    <CtaBanner />
+    <div class="animate-on-scroll"><CtaBanner /></div>
   </main>
   <Footer />
 </body>

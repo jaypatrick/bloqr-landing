@@ -5,13 +5,13 @@ import Nav from '../components/Nav.svelte';
 import Footer from '../components/Footer.svelte';
 import BaseHead from '../components/BaseHead.astro';
 import SchemaOrg from '../components/SchemaOrg.astro';
-import { SITE_URL, META, LINKS } from '../config';
+import { SITE_URL, LINKS, PAGE_META } from '../config';
 
 const meta = {
-  title:       'About Bloqr — Why We Exist',
-  description: 'Bloqr started as a two-minute automation task that exposed a twenty-year gap at the center of consumer internet privacy. Here\'s the story.',
+  title:       PAGE_META.about.title,
+  description: PAGE_META.about.description,
   url:         `${SITE_URL}/about`,
-  image:       `${SITE_URL}${META.ogImage}`,
+  image:       `${SITE_URL}/og/about.png`,
 };
 
 const aboutSchema = {
@@ -58,7 +58,7 @@ const aboutSchema = {
   <SchemaOrg schema={aboutSchema} />
 </head>
 <body>
-  <Nav client:idle />
+  <Nav client:idle transition:persist="nav" />
 
   <main id="main-content" class="about-page">
 

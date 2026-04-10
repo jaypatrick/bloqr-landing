@@ -20,6 +20,10 @@ interface Props {
   canonicalURL?: URL | string;
   /** Absolute URL for OG/Twitter image. Defaults to ${SITE_URL}/og-image.png. */
   ogImage?: string;
+  /** Width of the OG image in pixels. Defaults to 1200. */
+  ogImageWidth?: number;
+  /** Height of the OG image in pixels. Defaults to 630. */
+  ogImageHeight?: number;
   /** OG type. Defaults to 'website'. */
   ogType?: string;
   /** When true, adds <meta name="robots" content="noindex, nofollow">. */
@@ -31,6 +35,8 @@ const {
   description,
   canonicalURL = Astro.url,
   ogImage = `${SITE_URL}/og-image.png`,
+  ogImageWidth = 1200,
+  ogImageHeight = 630,
   ogType = 'website',
   noindex = false,
 } = Astro.props;
@@ -43,7 +49,7 @@ const canonical = canonicalURL.toString();
 <title>{title}</title>
 <meta name="description" content={description} />
 <meta name="author" content="Jayson Knight" />
-<meta name="color-scheme" content="dark" />
+<meta name="color-scheme" content="dark light" />
 
 <!-- Open Graph -->
 <meta property="og:site_name"    content="Bloqr" />
@@ -51,8 +57,8 @@ const canonical = canonicalURL.toString();
 <meta property="og:description"  content={description} />
 <meta property="og:url"          content={canonical} />
 <meta property="og:image"        content={ogImage} />
-<meta property="og:image:width"  content="1200" />
-<meta property="og:image:height" content="630" />
+<meta property="og:image:width"  content={String(ogImageWidth)} />
+<meta property="og:image:height" content={String(ogImageHeight)} />
 <meta property="og:image:alt"    content={title} />
 <meta property="og:type"         content={ogType} />
 <meta property="og:locale"       content="en_US" />
@@ -78,6 +84,10 @@ const canonical = canonicalURL.toString();
 <!-- PWA / Theme -->
 <link rel="manifest" href="/site.webmanifest" />
 <meta name="theme-color" content="#FF5500" />
+
+<!-- Preconnect to third-party analytics origins to reduce connection latency -->
+<link rel="preconnect" href="https://app.posthog.com" crossorigin />
+<link rel="dns-prefetch" href="//app.posthog.com" />
 
 <!-- Astro 6 Fonts API — self-hosted via fontsource, with preload links -->
 <Font cssVariable="--font-display" preload />

@@ -5,7 +5,7 @@ import Nav from '../components/Nav.svelte';
 import Footer from '../components/Footer.svelte';
 import BaseHead from '../components/BaseHead.astro';
 import SchemaOrg from '../components/SchemaOrg.astro';
-import { SITE_URL, META, LINKS } from '../config';
+import { SITE_URL, LINKS, PAGE_META } from '../config';
 import { getCollection } from 'astro:content';
 
 // ── Live Content Collection (Astro 6) ─────────────────────────────────────
@@ -49,10 +49,10 @@ function simpleMarkdown(md: string): string {
 }
 
 const meta = {
-  title:       'Bloqr Changelog — What\'s New',
-  description: 'A running log of every Bloqr release: features added, bugs fixed, things we broke and fixed again.',
+  title:       PAGE_META.changelog.title,
+  description: PAGE_META.changelog.description,
   url:         `${SITE_URL}/changelog`,
-  image:       `${SITE_URL}${META.ogImage}`,
+  image:       `${SITE_URL}/og/changelog.png`,
 };
 
 const changelogSchema = {
@@ -87,7 +87,7 @@ const changelogSchema = {
   <SchemaOrg schema={changelogSchema} />
 </head>
 <body>
-  <Nav client:idle />
+  <Nav client:idle transition:persist="nav" />
 
   <main id="main-content" class="changelog-page">
     <div class="container">

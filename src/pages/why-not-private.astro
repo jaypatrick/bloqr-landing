@@ -5,13 +5,13 @@ import Nav from '../components/Nav.svelte';
 import Footer from '../components/Footer.svelte';
 import BaseHead from '../components/BaseHead.astro';
 import SchemaOrg from '../components/SchemaOrg.astro';
-import { SITE_URL, LINKS } from '../config';
+import { SITE_URL, LINKS, PAGE_META } from '../config';
 
 const meta = {
-  title:       'Why Your Browsing Isn\'t as Private as You Think — Bloqr',
-  description: 'HTTPS encrypts your page content. But your DNS lookups — the "where is this website?" requests your device makes thousands of times a day — travel unencrypted. Here\'s what that means.',
+  title:       PAGE_META['why-not-private'].title,
+  description: PAGE_META['why-not-private'].description,
   url:         `${SITE_URL}/why-not-private`,
-  image:       `${SITE_URL}/og-image.png`,
+  image:       `${SITE_URL}/og/why-not-private.png`,
 };
 
 const whyNotPrivateSchema = {
@@ -95,7 +95,7 @@ const whyNotPrivateSchema = {
   <SchemaOrg schema={whyNotPrivateSchema} />
 </head>
 <body>
-  <Nav client:load />
+  <Nav client:load transition:persist="nav" />
 
   <main id="main-content" class="wnp-page">
 
