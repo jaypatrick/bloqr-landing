@@ -54,7 +54,7 @@
       <li><a href="/#audiences">Who</a></li>
       <li><a href="/#features">Features</a></li>
       <li><a href="/#pricing">Pricing</a></li>
-      <li><a href={LINKS.vpnMyths} class:active={isActive(LINKS.vpnMyths)}>VPN Myths</a></li>
+      <li><a href={LINKS.vpnMyths} class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a></li>
       <li class="dropdown">
         <button
           class="dropdown-btn"
@@ -72,8 +72,8 @@
             onclick={closeDropdown}
           ></button>
           <div class="dropdown-menu">
-            <a href={LINKS.changelog} onclick={closeDropdown} class:active={isActive(LINKS.changelog)}>Changelog</a>
-            <a href={LINKS.about} onclick={closeDropdown} class:active={isActive(LINKS.about)}>About</a>
+            <a href={LINKS.changelog} onclick={closeDropdown} class:active={isActive(LINKS.changelog)} aria-current={isActive(LINKS.changelog) ? 'page' : undefined}>Changelog</a>
+            <a href={LINKS.about} onclick={closeDropdown} class:active={isActive(LINKS.about)} aria-current={isActive(LINKS.about) ? 'page' : undefined}>About</a>
           </div>
         {/if}
       </li>
@@ -82,7 +82,7 @@
 
     <!-- Desktop CTA -->
     <div class="nav-cta">
-      <a href={LINKS.blog} class="nav-news" class:active={isActive(LINKS.blog)}>News</a>
+      <a href={LINKS.blog} class="nav-news" class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a>
       <a href={LINKS.docs} class="btn btn-ghost btn-sm" rel="noopener noreferrer" target="_blank">Docs</a>
       <a href={LINKS.app} class="btn btn-primary btn-sm" rel="noopener noreferrer" target="_blank">
         Launch App <span aria-hidden="true">→</span>
@@ -121,10 +121,10 @@
         <li><a href="/#audiences"     onclick={closeMenu}>Who it's for</a></li>
         <li><a href="/#features"      onclick={closeMenu}>Features</a></li>
         <li><a href="/#pricing"       onclick={closeMenu}>Pricing</a></li>
-        <li><a href={LINKS.vpnMyths}  onclick={closeMenu} class:active={isActive(LINKS.vpnMyths)}>VPN Myths</a></li>
-        <li><a href={LINKS.blog}      onclick={closeMenu} class:active={isActive(LINKS.blog)}>News</a></li>
-        <li><a href={LINKS.changelog} onclick={closeMenu} class:active={isActive(LINKS.changelog)}>Changelog</a></li>
-        <li><a href={LINKS.about}     onclick={closeMenu} class:active={isActive(LINKS.about)}>About</a></li>
+        <li><a href={LINKS.vpnMyths}  onclick={closeMenu} class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a></li>
+        <li><a href={LINKS.blog}      onclick={closeMenu} class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a></li>
+        <li><a href={LINKS.changelog} onclick={closeMenu} class:active={isActive(LINKS.changelog)} aria-current={isActive(LINKS.changelog) ? 'page' : undefined}>Changelog</a></li>
+        <li><a href={LINKS.about}     onclick={closeMenu} class:active={isActive(LINKS.about)} aria-current={isActive(LINKS.about) ? 'page' : undefined}>About</a></li>
         <li class="mobile-divider" aria-hidden="true"></li>
         <li><a href="/#waitlist" class="mobile-highlight" onclick={closeMenu}>Join Early Access →</a></li>
       </ul>
