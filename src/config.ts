@@ -75,6 +75,34 @@ export const CHANGELOG_URL =
   'https://raw.githubusercontent.com/jaypatrick/adblock-compiler/main/CHANGELOG.md';
 
 /**
+ * PAGE_META — canonical title and description for static content pages.
+ *
+ * These values are the single source of truth consumed by:
+ *   1. The page's own <BaseHead> `title` / `description` props.
+ *   2. The prerendered per-page OG image generator (`/og/[page].png`).
+ *
+ * Keeping them here prevents the two consumers from drifting.
+ */
+export const PAGE_META = {
+  about: {
+    title:       'About Bloqr — Why We Exist',
+    description: "Bloqr started as a two-minute automation task that exposed a twenty-year gap at the center of consumer internet privacy. Here's the story.",
+  },
+  changelog: {
+    title:       "Bloqr Changelog — What's New",
+    description: 'A running log of every Bloqr release: features added, bugs fixed, things we broke and fixed again.',
+  },
+  'vpn-myths': {
+    title:       'Consumer VPN Myths, Examined — Bloqr',
+    description: "A sourced, honest look at what consumer VPNs actually do — and don't do. Fingerprinting, DNS, jurisdiction, vendor lock-in, and more.",
+  },
+  'why-not-private': {
+    title:       "Why Your Browsing Isn't as Private as You Think — Bloqr",
+    description: "HTTPS encrypts your page content. But your DNS lookups — the \"where is this website?\" requests your device makes thousands of times a day — travel unencrypted. Here's what that means.",
+  },
+} as const;
+
+/**
  * Static metadata — used at build time for <title>, OG tags, and the manifest.
  */
 export const META = {

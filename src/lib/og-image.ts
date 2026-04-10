@@ -10,6 +10,8 @@
  * Depends on `sharp` (devDependency).
  */
 
+import { CANONICAL_DOMAIN } from '../config';
+
 const W = 1200;
 const H = 630;
 
@@ -159,7 +161,7 @@ export async function generateOgImage(
   <text x="${W - 40}" y="${H - 28}"
     font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
     font-size="13" font-weight="500" fill="${MUTED2}"
-    text-anchor="end" letter-spacing="0.3">bloqr.jaysonknight.com</text>
+    text-anchor="end" letter-spacing="0.3">${CANONICAL_DOMAIN}</text>
 </svg>`;
 
   return sharp(Buffer.from(svg))

@@ -110,6 +110,16 @@ export default defineConfig({
     },
   },
 
+  // ── Image configuration ────────────────────────────────────────────────
+  // remotePatterns authorises remote URLs for <Image inferSize> used on blog
+  // post pages (hero cover image).  Without this, Astro rejects any remote
+  // `src` passed to <Image> at build time.  The pattern below allows any
+  // https:// origin — tighten to specific hostnames if the set of remote
+  // image hosts is known.
+  image: {
+    remotePatterns: [{ protocol: 'https' }],
+  },
+
   // ── Astro 6 Experimental features ─────────────────────────────────────
   experimental: {
     // Use the Rust-based .astro compiler from @astrojs/compiler-rs for
