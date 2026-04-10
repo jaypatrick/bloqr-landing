@@ -1,6 +1,6 @@
 # Bloqr — Landing Page Source
 
-> **Good internet habits. Automated.**
+> **Internet Hygiene. Automated.**
 
 This is the source code for the [Bloqr](https://bloqr.dev) marketing landing site — the public face of an AI-powered DNS filter list compiler and real-time threat intelligence service.
 

@@ -93,9 +93,9 @@ export async function generateOgImage(
   }
 
   // --- right-side brand filter bars (same as gen-og.mjs) ---
-  const bars = [
+  const bars: Array<{ w: number; y: number; opacity: number; accent: boolean; cyan?: boolean }> = [
     { w: 340, y: 180, opacity: 0.12, accent: false },
-    { w: 260, y: 236, opacity: 0.18, accent: false },
+    { w: 260, y: 236, opacity: 0.20, accent: false, cyan: true },
     { w: 190, y: 292, opacity: 0.25, accent: false },
     { w: 130, y: 348, opacity: 0.32, accent: false },
     { w:  80, y: 404, opacity: 1.00, accent: true  },
@@ -104,7 +104,7 @@ export async function generateOgImage(
   const barH = 42;
   const barSvg = bars.map(b =>
     `<rect x="${barX}" y="${b.y}" width="${b.w}" height="${barH}"
-      rx="6" fill="${b.accent ? ORANGE : WHITE}" opacity="${b.opacity}"/>`,
+      rx="6" fill="${b.accent ? ORANGE : b.cyan ? CYAN : WHITE}" opacity="${b.opacity}"/>`,
   ).join('\n');
 
   // --- mini logo mark (top-left, mirrored from gen-og.mjs) ---
@@ -127,7 +127,7 @@ export async function generateOgImage(
       <stop offset="100%" stop-color="${ORANGE}" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glowTop" cx="20%" cy="10%" r="50%">
-      <stop offset="0%"   stop-color="${CYAN}"   stop-opacity="0.05"/>
+      <stop offset="0%"   stop-color="${CYAN}"   stop-opacity="0.08"/>
       <stop offset="100%" stop-color="${CYAN}"   stop-opacity="0"/>
     </radialGradient>
   </defs>
@@ -146,7 +146,13 @@ export async function generateOgImage(
     font-size="13" font-weight="700" fill="${WHITE}" letter-spacing="2">BLOQR</text>
   <text x="116" y="120"
     font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
-    font-size="10" font-weight="400" fill="${MUTED}" letter-spacing="3">GOOD INTERNET HABITS. AUTOMATED.</text>
+    font-size="10" font-weight="400" fill="${MUTED}" letter-spacing="3">INTERNET </text>
+  <text x="188" y="120"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
+    font-size="10" font-weight="400" fill="${CYAN}" letter-spacing="3">HYGIENE.</text>
+  <text x="252" y="120"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
+    font-size="10" font-weight="400" fill="${MUTED}" letter-spacing="3"> AUTOMATED.</text>
 
   <!-- Title -->
   ${titleSvg}
