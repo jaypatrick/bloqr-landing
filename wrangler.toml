@@ -31,6 +31,17 @@ main = "src/worker.ts"
 #   dist/server/  — the SSR Worker bundle (entry point; not served as static files)
 # Pointing at ./dist would upload an empty/wrong directory — ASSETS binding would
 # show "—" in the CF dashboard and env.ASSETS.fetch() would return 404 on every request.
+#
+# ⚠️  DASHBOARD DANGER — Adding, editing, or deleting any variable or secret in
+# the Cloudflare Workers dashboard creates a new Worker version with NO assets
+# attached. The site will return 'Page not found' on every request.
+# NEVER change variables/secrets from the CF dashboard UI.
+# - Plain vars (ENVIRONMENT, CANONICAL_DOMAIN, etc.): edit [vars] below, push to main
+# - Secrets (DATABASE_URL, APOLLO_API_KEY, etc.): use CLI only:
+#     wrangler secret put SECRET_NAME
+# If the dashboard was used accidentally, rollback immediately:
+#   CF dashboard → adblock-landing → Deployments → last Wrangler deploy → Rollback
+# Then re-run CI to restore assets.
 assets = { directory = "./dist/client", binding = "ASSETS" }
 
 # ─── Smart Placement ─────────────────────────────────────────────────────────
