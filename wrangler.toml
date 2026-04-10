@@ -95,7 +95,8 @@ ENVIRONMENT      = "production"
 # X-Robots-Tag: noindex, nofollow on responses from non-canonical hosts.
 # Update to "bloqr.ai" when that domain is secured.
 CANONICAL_DOMAIN = "bloqr.jaysonknight.com"
-
+PUBLIC_POSTHOG_KEY = "phc_pStjJrkLoRL42wUUAV4KqRX4UNMsurSwJFPn5m3hMNEf
+"
 # ─── Functions / Waitlist edge handler ───────────────────────────────────────
 # Routing is handled in src/worker.ts:
 #   POST   /waitlist  → waitlist handler (Neon insert + Apollo sync)
