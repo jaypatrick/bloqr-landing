@@ -17,17 +17,12 @@
  *   *                       → env.ASSETS.fetch(request) (static site)
  */
 
-import { handleOptions as waitlistOptions, handlePost as waitlistPost, type Env as WaitlistEnv } from '../functions/waitlist';
-import { handleOptions as configGetOptions, handleGet as configGet, type Env as ConfigGetEnv } from '../functions/config';
-import { handleOptions as configPostOptions, handlePost as configPost, type Env as ConfigPostEnv } from '../functions/admin/config';
-import { handleOptions as blogOptions, handleGet as blogGet, handlePost as blogPost, handlePut as blogPut, type Env as BlogEnv } from '../functions/admin/blog';
-import { handleAuth, type Env as AuthEnv } from './lib/auth';
-
-interface Env extends WaitlistEnv, ConfigGetEnv, ConfigPostEnv, BlogEnv, AuthEnv {
-  ASSETS: Fetcher;
-  /** Set in wrangler.toml [vars]. Used to gate X-Robots-Tag noindex on non-canonical hosts. */
-  CANONICAL_DOMAIN?: string;
-}
+import type { Env } from './types/env';
+import { handleOptions as waitlistOptions, handlePost as waitlistPost } from '../functions/waitlist';
+import { handleOptions as configGetOptions, handleGet as configGet } from '../functions/config';
+import { handleOptions as configPostOptions, handlePost as configPost } from '../functions/admin/config';
+import { handleOptions as blogOptions, handleGet as blogGet, handlePost as blogPost, handlePut as blogPut } from '../functions/admin/blog';
+import { handleAuth } from './lib/auth';
 
 /**
  * Returns the response unchanged if the request host matches the canonical domain.
@@ -52,7 +47,8 @@ function isHtmlNavigationRequest(request: Request, url: URL): boolean {
 }
 
 /**
- * Injects a Content-Security-Policy header on HTML responses.
+ * Injects a Content-Security-Policy header and additional security hardening
+ * headers on HTML responses.
  *
  * Astro's generated HTML already includes a hash-based CSP meta tag for the
  * scripts and styles it emits at build time. Header and meta CSP are enforced
@@ -76,6 +72,8 @@ function applyCSP(response: Response): Response {
 
   const headers = new Headers(response.headers);
   headers.set('Content-Security-Policy', csp);
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('X-Content-Type-Options', 'nosniff');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -107,17 +105,31 @@ export default {
       else response = new Response('Method Not Allowed', { status: 405 });
     } else {
       response = await env.ASSETS.fetch(request);
-      // Safety guard: if ASSETS returns an empty or untyped response for an HTML
-      // route, return a proper 503 instead of a 0-byte download.
+
       const contentType = response.headers.get('content-type');
+
+      // Safety guard: if ASSETS returns an empty or untyped response for an HTML
+      // navigation request, return a 503 instead of a 0-byte download.
+      // HEAD requests legitimately have no body — skip the check for them.
       if (
         response.status === 200 &&
+        request.method !== 'HEAD' &&
         isHtmlNavigationRequest(request, url) &&
         (!contentType || contentType.trim() === '')
       ) {
         response = new Response('Service temporarily unavailable — assets not deployed correctly.', {
           status: 503,
           headers: { 'content-type': 'text/plain; charset=utf-8' },
+        });
+      }
+
+      // If ASSETS returns 404 for an HTML navigation, dist/ is incomplete or the
+      // page genuinely doesn't exist — return a proper response instead of
+      // Cloudflare's raw default 404 page.
+      if (response.status === 404 && isHtmlNavigationRequest(request, url)) {
+        response = new Response('Page not found.', {
+          status: 404,
+          headers: { 'content-type': 'text/html; charset=utf-8' },
         });
       }
     }
