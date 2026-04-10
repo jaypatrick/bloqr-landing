@@ -90,13 +90,12 @@ custom_domain = true
 # Non-secret Worker runtime vars. Secrets (DATABASE_URL, APOLLO_API_KEY, etc.)
 # are set in the Cloudflare dashboard or .dev.vars for local dev.
 [vars]
-ENVIRONMENT      = "production"
+ENVIRONMENT = "production"
 # CANONICAL_DOMAIN is read by the Worker at runtime (src/worker.ts) to gate
 # X-Robots-Tag: noindex, nofollow on responses from non-canonical hosts.
 # Update to "bloqr.ai" when that domain is secured.
 CANONICAL_DOMAIN = "bloqr.jaysonknight.com"
-PUBLIC_POSTHOG_KEY = "phc_pStjJrkLoRL42wUUAV4KqRX4UNMsurSwJFPn5m3hMNEf
-"
+PUBLIC_POSTHOG_KEY = "phc_pStjJrkLoRL42wUUAV4KqRX4UNMsurSwJFPn5m3hMNEf"
 # ─── Functions / Waitlist edge handler ───────────────────────────────────────
 # Routing is handled in src/worker.ts:
 #   POST   /waitlist  → waitlist handler (Neon insert + Apollo sync)
