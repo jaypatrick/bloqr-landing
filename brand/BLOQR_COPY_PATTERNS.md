@@ -14,7 +14,7 @@
 |---|---|
 | Set it. Bloqr it. Forget it. | Primary consumer CTA headline |
 | Bring your own. Or use ours. | Vendor/integration sections |
-| Good internet habits. Automated. | Tagline — footers, meta titles, universal |
+| Internet Hygiene. Automated.     | Tagline — footers, meta titles, universal |
 | The privacy you didn't know you needed. | Acquisition hook, top-of-funnel ads |
 | Browsing Hygiene | The concept we coined — always use this term, always capitalised |
 
@@ -29,7 +29,7 @@
 > Block ads. Block trackers. Block malware.
 > One account. Zero setup.
 
-> Good internet habits.
+> Internet Hygiene.
 > Automated.
 
 ### Power-user / developer-facing

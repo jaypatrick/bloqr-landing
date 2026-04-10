@@ -67,7 +67,7 @@ async function migrate(): Promise<void> {
       ('GITHUB_URL',      'https://github.com/jaypatrick/adblock-compiler',    'GitHub repo URL'),
       ('AUTHOR_URL',      'https://jaysonknight.com',                           'Author website'),
       ('PRODUCT_NAME',    'Bloqr',                                              'Product display name'),
-      ('PRODUCT_TAGLINE', 'Good Internet Hygiene. Automated.',                  'Product tagline'),
+      ('PRODUCT_TAGLINE', 'Internet Hygiene. Automated.',                  'Product tagline'),
       ('OG_IMAGE_PATH',   '/og-image.png',                                      'OG image path (relative to SITE_URL)')
     ON CONFLICT (key) DO NOTHING
   `;

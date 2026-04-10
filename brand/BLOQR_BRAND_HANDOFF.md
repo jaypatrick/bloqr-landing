@@ -33,7 +33,7 @@
 
 ### Tagline (canonical)
 
-> Good internet habits. Automated.
+> Internet Hygiene. Automated.
 
 ### Domain
 

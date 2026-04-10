@@ -116,7 +116,7 @@ list compiler and real-time threat intelligence service.
 | ---------------------------------- | -------------------------- |
 | "Set it. Bloqr it. Forget it."     | Consumer-facing CTAs       |
 | "Bring your own. Or use ours."     | Vendor / integration copy  |
-| "Good internet habits. Automated." | Tagline — universal        |
+| "Internet Hygiene. Automated."     | Tagline — universal        |
 | "Browsing Hygiene"                 | Our coined concept for DNS |
 
 ---
