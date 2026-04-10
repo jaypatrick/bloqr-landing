@@ -15,6 +15,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(__dirname, '..', 'public');
 
 // Bloqr "B" mark: dark navy background, orange lettermark
+// Note: the 3-bar logo mark (bar 1=white, bar 2=cyan, bar 3=orange) is used in
+// favicon.svg and Nav.svelte. This icon uses the simplified "B" lettermark for
+// PWA/app icon contexts where the bars would be too small to read.
 const svgTemplate = (size) => `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
   <rect width="${size}" height="${size}" rx="${Math.round(size * 0.1875)}" fill="#070B14"/>
