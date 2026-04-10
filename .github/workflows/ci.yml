@@ -63,6 +63,7 @@ jobs:
           echo "Worker bundle OK — $WORKER_SIZE bytes"
 
       - name: Validate wrangler.toml schema (advisory — does not fail build)
+        continue-on-error: true
         run: |
           # Validate that wrangler.toml parses cleanly and all bindings are recognized.
           # This catches TOML syntax errors and unknown binding keys (e.g. [[browser_rendering]])

@@ -12,7 +12,7 @@
  *   POST    /admin/blog     → create blog post (requires auth)
  *   PUT     /admin/blog     → update blog post (requires auth)
  *   OPTIONS /admin/blog     → CORS preflight
- *   GET     /api/browser-health → Browser Rendering binding health check (admin diagnostic)
+ *   GET     /api/browser-health → Browser Rendering binding health check (requires auth)
  *   POST    /api/auth/*     → Better Auth handler (all auth endpoints)
  *   GET     /api/auth/*     → Better Auth handler (session checks, OAuth callbacks)
  *   *                       → env.ASSETS.fetch(request) (static site)
@@ -24,6 +24,7 @@ import { handleOptions as configGetOptions, handleGet as configGet } from '../fu
 import { handleOptions as configPostOptions, handlePost as configPost } from '../functions/admin/config';
 import { handleOptions as blogOptions, handleGet as blogGet, handlePost as blogPost, handlePut as blogPut } from '../functions/admin/blog';
 import { handleAuth } from './lib/auth';
+import { isAuthConfigured, isAuthorized } from '../functions/admin/_auth-guard';
 
 /**
  * Returns the response unchanged if the request host matches the canonical domain.
@@ -105,18 +106,34 @@ export default {
       else if (request.method === 'PUT') response = await blogPut(request, env);
       else response = new Response('Method Not Allowed', { status: 405 });
     } else if (url.pathname === '/api/browser-health') {
-      // Admin-only browser rendering health check.
-      // Returns 200 if BROWSER binding is present and accessible, 503 if not.
-      if (!env.BROWSER) {
-        response = new Response(
-          JSON.stringify({ ok: false, error: 'BROWSER binding not configured. Ensure [browser] is set in wrangler.toml and the account has Browser Rendering enabled.' }),
-          { status: 503, headers: { 'content-type': 'application/json' } }
-        );
+      if (request.method === 'OPTIONS') {
+        response = new Response(null, { status: 204 });
+      } else if (request.method === 'GET') {
+        // Admin-only browser rendering health check.
+        // Returns 200 if BROWSER binding is present and accessible, 503 if not.
+        if (!isAuthConfigured(env)) {
+          response = new Response(
+            JSON.stringify({ ok: false, error: 'Admin access is not configured.' }),
+            { status: 503, headers: { 'content-type': 'application/json' } }
+          );
+        } else if (!(await isAuthorized(request, env))) {
+          response = new Response(
+            JSON.stringify({ ok: false, error: 'Forbidden.' }),
+            { status: 403, headers: { 'content-type': 'application/json' } }
+          );
+        } else if (!env.BROWSER) {
+          response = new Response(
+            JSON.stringify({ ok: false, error: 'BROWSER binding not configured. Ensure [browser] is set in wrangler.toml and the account has Browser Rendering enabled.' }),
+            { status: 503, headers: { 'content-type': 'application/json' } }
+          );
+        } else {
+          response = new Response(
+            JSON.stringify({ ok: true, binding: 'BROWSER', message: 'Cloudflare Browser Rendering binding is present.' }),
+            { status: 200, headers: { 'content-type': 'application/json' } }
+          );
+        }
       } else {
-        response = new Response(
-          JSON.stringify({ ok: true, binding: 'BROWSER', message: 'Cloudflare Browser Rendering binding is present.' }),
-          { status: 200, headers: { 'content-type': 'application/json' } }
-        );
+        response = new Response('Method Not Allowed', { status: 405 });
       }
     } else {
       response = await env.ASSETS.fetch(request);
