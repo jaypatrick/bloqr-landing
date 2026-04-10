@@ -35,7 +35,9 @@ jobs:
           DATABASE_URL: 'postgresql://placeholder:placeholder@placeholder/placeholder'
           BETTER_AUTH_SECRET: 'ci-placeholder-secret-not-used-in-build'
 
-      - name: Validate wrangler.toml (dry-run)
+      - name: Validate wrangler.toml and bundling (dry-run)
+        # Validates wrangler.toml config and Worker bundling on every PR and push.
+        # --dry-run skips the actual upload so no CF API token is needed here.
         run: npx wrangler deploy --dry-run --outdir /tmp/wrangler-dry-run
 
       - name: Upload build artifact

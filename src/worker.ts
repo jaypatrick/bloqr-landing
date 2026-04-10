@@ -99,7 +99,8 @@ export default {
       response = await env.ASSETS.fetch(request);
       // Safety guard: if ASSETS returns an empty or untyped response for an HTML
       // route, return a proper 503 instead of a 0-byte download.
-      if (response.status === 200 && !response.headers.get('content-type')) {
+      const contentType = response.headers.get('content-type');
+      if (response.status === 200 && (!contentType || contentType.trim() === '')) {
         response = new Response('Service temporarily unavailable — assets not deployed correctly.', {
           status: 503,
           headers: { 'content-type': 'text/plain; charset=utf-8' },
