@@ -31,7 +31,7 @@ jobs:
         env:
           DATABASE_URL: 'postgresql://placeholder:placeholder@placeholder/placeholder'
           BETTER_AUTH_SECRET: 'ci-placeholder-secret-not-used-in-build'
-
+          PUBLIC_POSTHOG_KEY: ${{ secrets.PUBLIC_POSTHOG_KEY }}
       - name: Verify dist is non-empty
         run: |
           if [ ! -f dist/client/index.html ]; then
