@@ -54,7 +54,6 @@
       <li><a href="/#audiences">Who</a></li>
       <li><a href="/#features">Features</a></li>
       <li><a href="/#pricing">Pricing</a></li>
-      <li><a href={LINKS.vpnMyths} class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a></li>
       <li class="dropdown">
         <button
           class="dropdown-btn"
@@ -83,6 +82,7 @@
     <!-- Desktop CTA -->
     <div class="nav-cta">
       <a href={LINKS.blog} class="nav-news" class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a>
+      <a href={LINKS.vpnMyths} class="nav-myths" class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a>
       <a href={LINKS.docs} class="btn btn-ghost btn-sm" rel="noopener noreferrer" target="_blank">Docs</a>
       <a href={LINKS.app} class="btn btn-primary btn-sm" rel="noopener noreferrer" target="_blank">
         Launch App <span aria-hidden="true">→</span>
@@ -476,6 +476,15 @@
     white-space: nowrap;
   }
   .nav-news:hover { opacity: 0.75; }
+
+  .nav-myths {
+    font-size: 14px;
+    color: var(--orange);
+    text-decoration: none;
+    transition: opacity 150ms;
+    white-space: nowrap;
+  }
+  .nav-myths:hover { opacity: 0.75; }
 
   .logo-sub-auto {
     color: var(--cyan);
