@@ -51,8 +51,6 @@
       <li><a href="/#audiences">Who</a></li>
       <li><a href="/#features">Features</a></li>
       <li><a href="/#pricing">Pricing</a></li>
-      <li><a href={LINKS.vpnMyths} class="nav-myths" class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a></li>
-      <li><a href={LINKS.blog} class="nav-news" class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a></li>
       <li><a href={LINKS.changelog} class:active={isActive(LINKS.changelog)} aria-current={isActive(LINKS.changelog) ? 'page' : undefined}>Changelog</a></li>
       <li><a href={LINKS.about} class:active={isActive(LINKS.about)} aria-current={isActive(LINKS.about) ? 'page' : undefined}>About</a></li>
       <li><a href="/#waitlist" class="nav-highlight">Early Access</a></li>
@@ -60,6 +58,8 @@
 
     <!-- Desktop CTA -->
     <div class="nav-cta">
+      <a href={LINKS.vpnMyths} class="nav-myths" class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a>
+      <a href={LINKS.blog} class="nav-news" class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a>
       <a href={LINKS.docs} class="btn btn-ghost btn-sm" rel="noopener noreferrer" target="_blank">Docs</a>
       <a href={LINKS.app} class="btn btn-primary btn-sm" rel="noopener noreferrer" target="_blank">
         Launch App <span aria-hidden="true">→</span>
