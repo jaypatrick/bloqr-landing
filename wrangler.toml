@@ -13,7 +13,7 @@ compatibility_flags = ["nodejs_compat"]
 # If your API token does not resolve the correct default account, uncomment
 # account_id and set it explicitly using the Cloudflare account ID from the
 # dashboard sidebar.
-# account_id = "your-account-id-here"
+account_id = "07a1f8d207654fe5d838174af4813126"
 
 # ─── Worker Entry Point ───────────────────────────────────────────────────────
 main = "src/worker.ts"
