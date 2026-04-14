@@ -468,23 +468,21 @@
     .logo-sub { display: none; }
   }
 
-  .nav-news {
-    font-size: 14px;
-    color: var(--cyan);
-    text-decoration: none;
-    transition: opacity 150ms;
-    white-space: nowrap;
-  }
-  .nav-news:hover { opacity: 0.75; }
-
+  .nav-news,
   .nav-myths {
     font-size: 14px;
-    color: var(--orange);
     text-decoration: none;
     transition: opacity 150ms;
     white-space: nowrap;
   }
+  .nav-news:hover,
   .nav-myths:hover { opacity: 0.75; }
+
+  .nav-news { color: var(--cyan); }
+  .nav-myths { color: var(--orange); }
+
+  .nav-news.active { opacity: 0.75; }
+  .nav-myths.active { opacity: 0.75; }
 
   .logo-sub-auto {
     color: var(--cyan);
