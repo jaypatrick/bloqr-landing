@@ -1,6 +1,6 @@
 <!-- Feature comparison table for /pricing page -->
 
-<script>
+<script lang="ts">
   const features = [
     { label: 'Monthly price',           free: '$0',        payg: '$0.01/compile', pro: '~$9/mo',   vendor: 'Custom' },
     { label: 'Compiles/day',            free: '1,000',     payg: '500',           pro: 'Unlimited', vendor: 'Unlimited' },

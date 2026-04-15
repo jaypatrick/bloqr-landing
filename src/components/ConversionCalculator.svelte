@@ -8,7 +8,7 @@
   let compiles = $state(300);
 
   let paygCost  = $derived(+(compiles * PAYG_RATE).toFixed(2));
-  let savings   = $derived(+(paygCost - PRO_PRICE).toFixed(2));
+  let savings   = $derived(+(Math.abs(paygCost - PRO_PRICE)).toFixed(2));
   let shouldSwitch = $derived(compiles >= THRESHOLD);
 </script>
 
