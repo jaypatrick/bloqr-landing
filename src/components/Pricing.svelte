@@ -1,4 +1,4 @@
-<!-- Pricing section — deliberately vague until CF billing details are confirmed -->
+<!-- Pricing section -->
 
 <script>
   const tiers = [
@@ -17,6 +17,26 @@
         'Multi-device coverage (whole network)',
         'Weekly threat list updates',
         'Email notifications for major incidents',
+      ],
+    },
+    {
+      name:     'Pay As You Go',
+      price:    '$0.01',
+      period:   '/compile',
+      aside:    'No subscription. No commitment.',
+      tagline:  'Try the full pipeline before you commit. Pay per use via Stripe.',
+      cta:      'Start now — no signup',
+      href:     '/pricing#payg',
+      featured: false,
+      payg:     true,
+      items: [
+        'No account required to start',
+        'Up to 50,000 rules per compile',
+        'Up to 5 filter sources per job',
+        '500 compiles/day max',
+        '7-day output retention',
+        'Charged via Stripe — no crypto',
+        'Auto-upsell to Pro when it saves you money',
       ],
     },
     {
@@ -70,21 +90,20 @@
         impulse purchase.
       </h2>
       <p class="section-sub">
-        Exact pricing is being finalized while we work through Cloudflare billing details.
-        Numbers below are targets. Early access subscribers lock in a discount
-        that stays for the life of the account.
+        Simple, transparent pricing. Start for free, pay as you go, or subscribe.
+        Early access subscribers lock in a discount that stays for the life of the account.
+        No crypto. No wallet setup. Just a card.
       </p>
-      <div class="disclaimer">
-        <span class="pill">⚠ Estimates only</span>
-        Pricing confirmed at general availability.
-      </div>
     </div>
 
     <div class="tiers">
       {#each tiers as tier}
-        <div class="tier" class:featured={tier.featured}>
+        <div class="tier" class:featured={tier.featured} class:payg={tier.payg}>
           {#if tier.featured}
             <div class="featured-badge">Most popular</div>
+          {/if}
+          {#if tier.payg}
+            <div class="payg-badge">No subscription</div>
           {/if}
 
           <div class="tier-header">
@@ -116,6 +135,9 @@
           >
             {tier.cta}
           </a>
+          {#if tier.payg}
+            <p class="stripe-note">Powered by Stripe</p>
+          {/if}
         </div>
       {/each}
     </div>
@@ -165,30 +187,14 @@
     margin-bottom: 20px;
   }
 
-  .disclaimer {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: var(--text-3);
-  }
-
-  .pill {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-2);
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-size: 11px;
-    color: var(--text-2);
-    white-space: nowrap;
-  }
-
   /* ── Tiers grid ── */
   .tiers {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 24px;
     align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
   .tier {
@@ -229,6 +235,39 @@
     padding: 4px 14px;
     border-radius: 20px;
     white-space: nowrap;
+  }
+
+  .payg-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--cyan);
+    color: #000;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .tier.payg {
+    border-color: var(--cyan);
+    background: linear-gradient(
+      160deg,
+      rgba(0, 212, 255, 0.05) 0%,
+      var(--bg-surface) 60%
+    );
+  }
+
+  .stripe-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: -8px;
+    letter-spacing: 0.04em;
   }
 
   /* ── Tier header ── */
@@ -347,6 +386,12 @@
   }
 
   /* ── Responsive ── */
+  @media (max-width: 1100px) {
+    .tiers {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
   @media (max-width: 900px) {
     .tiers {
       grid-template-columns: 1fr;

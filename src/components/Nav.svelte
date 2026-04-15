@@ -50,7 +50,7 @@
       <li><a href="/#how">How</a></li>
       <li><a href="/#audiences">Who</a></li>
       <li><a href="/#features">Features</a></li>
-      <li><a href="/#pricing">Pricing</a></li>
+      <li><a href={LINKS.pricing} class:active={isActive(LINKS.pricing)} aria-current={isActive(LINKS.pricing) ? 'page' : undefined}>Pricing</a></li>
       <li><a href={LINKS.changelog} class:active={isActive(LINKS.changelog)} aria-current={isActive(LINKS.changelog) ? 'page' : undefined}>Changelog</a></li>
       <li><a href={LINKS.about} class:active={isActive(LINKS.about)} aria-current={isActive(LINKS.about) ? 'page' : undefined}>About</a></li>
       <li><a href="/#waitlist" class="nav-highlight">Early Access</a></li>
@@ -97,7 +97,7 @@
         <li><a href="/#how"           onclick={closeMenu}>How it works</a></li>
         <li><a href="/#audiences"     onclick={closeMenu}>Who it's for</a></li>
         <li><a href="/#features"      onclick={closeMenu}>Features</a></li>
-        <li><a href="/#pricing"       onclick={closeMenu}>Pricing</a></li>
+        <li><a href={LINKS.pricing} onclick={closeMenu} class:active={isActive(LINKS.pricing)} aria-current={isActive(LINKS.pricing) ? 'page' : undefined}>Pricing</a></li>
         <li><a href={LINKS.vpnMyths}  onclick={closeMenu} class:active={isActive(LINKS.vpnMyths)} aria-current={isActive(LINKS.vpnMyths) ? 'page' : undefined}>VPN Myths</a></li>
         <li><a href={LINKS.blog}      onclick={closeMenu} class:active={isActive(LINKS.blog)} aria-current={isActive(LINKS.blog) ? 'page' : undefined}>News</a></li>
         <li><a href={LINKS.changelog} onclick={closeMenu} class:active={isActive(LINKS.changelog)} aria-current={isActive(LINKS.changelog) ? 'page' : undefined}>Changelog</a></li>
