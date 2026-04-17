@@ -9,6 +9,7 @@
 
   let paygCost  = $derived(+(compiles * PAYG_RATE).toFixed(2));
   let savings   = $derived(+(Math.abs(paygCost - PRO_PRICE)).toFixed(2));
+  let atThreshold  = $derived(compiles === THRESHOLD);
   let shouldSwitch = $derived(compiles > THRESHOLD);
 </script>
 
@@ -36,7 +37,7 @@
           step="10"
           bind:value={compiles}
           class="slider"
-          aria-valuetext="{compiles} compiles per month"
+          aria-valuetext={`${compiles} compiles per month`}
         />
         <div class="slider-ticks" aria-hidden="true">
           <span>10</span>
@@ -59,10 +60,13 @@
         </div>
       </div>
 
-      <div class="verdict" class:switch={shouldSwitch} class:stay={!shouldSwitch} role="status" aria-live="polite">
+      <div class="verdict" class:switch={shouldSwitch} class:equal={atThreshold} class:stay={!shouldSwitch && !atThreshold} role="status" aria-live="polite">
         {#if shouldSwitch}
           <span class="verdict-icon" aria-hidden="true">→</span>
           Switch to Pro and save <strong>${savings.toFixed(2)}/month</strong>
+        {:else if atThreshold}
+          <span class="verdict-icon" aria-hidden="true">≈</span>
+          Same price either way — pick whichever suits you
         {:else}
           <span class="verdict-icon" aria-hidden="true">✓</span>
           Pay As You Go is cheaper — no subscription needed
@@ -251,6 +255,12 @@
     background: var(--cyan-dim);
     color: var(--cyan);
     border: 1px solid rgba(0, 212, 255, 0.25);
+  }
+
+  .verdict.equal {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-2);
+    border: 1px solid var(--border-2);
   }
 
   .verdict.switch {
