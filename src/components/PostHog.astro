@@ -3,16 +3,24 @@ const isProd = import.meta.env.PROD;
 const posthogKey = import.meta.env.PUBLIC_POSTHOG_KEY;
 ---
 {isProd && posthogKey && (
-  <script define:vars={{ posthogKey }}>
-    import('posthog-js').then(({ default: posthog }) => {
-      posthog.init(posthogKey, {
-        api_host: 'https://app.posthog.com',
-        capture_pageview: true,
-        capture_pageleave: true,
-        autocapture: false,   // manual for landing page precision
-        persistence: 'localStorage',
-      });
-      window.__posthog = posthog;
-    });
-  </script>
+  <>
+    <meta id="ph-config" data-key={posthogKey} />
+    <script>
+      const config = document.getElementById('ph-config');
+      const key = config?.dataset.key;
+
+      if (key) {
+        import('posthog-js').then(({ default: posthog }) => {
+          posthog.init(key, {
+            api_host: 'https://app.posthog.com',
+            capture_pageview: true,
+            capture_pageleave: true,
+            autocapture: false, // manual for landing page precision
+            persistence: 'localStorage',
+          });
+          window.__posthog = posthog;
+        });
+      }
+    </script>
+  </>
 )}
