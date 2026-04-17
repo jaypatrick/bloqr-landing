@@ -70,6 +70,7 @@ function applyCSP(response: Response): Response {
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    "style-src-attr 'unsafe-inline'",
   ].join('; ');
 
   const headers = new Headers(response.headers);
