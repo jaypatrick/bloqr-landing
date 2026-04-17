@@ -7,7 +7,7 @@ const posthogKey = import.meta.env.PUBLIC_POSTHOG_KEY;
     <meta id="ph-config" data-key={posthogKey} />
     <script>
       const config = document.getElementById('ph-config');
-      const key = config instanceof HTMLMetaElement ? config.dataset.key : undefined;
+      const key = config?.dataset.key;
 
       if (key) {
         import('posthog-js').then(({ default: posthog }) => {

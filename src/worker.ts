@@ -70,6 +70,8 @@ function applyCSP(response: Response): Response {
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    // Allow Shiki token inline style attributes while keeping Astro's
+    // hash-based style/script CSP enforcement at the document level.
     "style-src-attr 'unsafe-inline'",
   ].join('; ');
 
