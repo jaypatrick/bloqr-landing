@@ -22,7 +22,7 @@ import CtaBanner from '../components/CtaBanner.svelte';
 import Footer from '../components/Footer.svelte';
 import BaseHead from '../components/BaseHead.astro';
 import SchemaOrg from '../components/SchemaOrg.astro';
-import { SITE_URL, PAGE_META } from '../config';
+import { SITE_URL, LINKS, PAGE_META } from '../config';
 
 const meta = {
   title:       PAGE_META.home.title,
@@ -152,6 +152,11 @@ const homeSchema = {
     <WhyCloudflare />
     <div class="animate-on-scroll"><PrivacyCommitments /></div>
     <div class="animate-on-scroll"><Pricing /></div>
+    <div class="pricing-more">
+      <a href={LINKS.pricing} class="pricing-more__link">
+        See full pricing details and comparison table →
+      </a>
+    </div>
     <div class="animate-on-scroll"><FounderNote /></div>
     <FAQ client:visible />
     <WaitlistSignup client:visible />
@@ -161,3 +166,17 @@ const homeSchema = {
   <Footer />
 </body>
 </html>
+
+<style>
+  .pricing-more {
+    text-align: center;
+    margin-top: -2rem;
+    margin-bottom: 2rem;
+  }
+
+  .pricing-more__link {
+    font-size: 0.875rem;
+    color: var(--text-3);
+    text-decoration: underline;
+  }
+</style>
