@@ -145,27 +145,27 @@ const pricingSchema = {
           <!-- CSS-only flow diagram -->
           <div class="payg-flow" aria-label="Pay As You Go flow: Add card, API call, Session issued, N calls covered, Auto-upsell at threshold">
             <div class="flow-step">
-              <div class="flow-icon">💳</div>
+              <div class="flow-icon" aria-hidden="true">💳</div>
               <div class="flow-label">Add card</div>
             </div>
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-step">
-              <div class="flow-icon">⚡</div>
+              <div class="flow-icon" aria-hidden="true">⚡</div>
               <div class="flow-label">API call</div>
             </div>
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-step">
-              <div class="flow-icon">🔑</div>
+              <div class="flow-icon" aria-hidden="true">🔑</div>
               <div class="flow-label">Session issued</div>
             </div>
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-step">
-              <div class="flow-icon">🔁</div>
+              <div class="flow-icon" aria-hidden="true">🔁</div>
               <div class="flow-label">N calls covered</div>
             </div>
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-step flow-step--highlight">
-              <div class="flow-icon">📈</div>
+              <div class="flow-icon" aria-hidden="true">📈</div>
               <div class="flow-label">Auto-upsell at threshold</div>
             </div>
           </div>
@@ -380,42 +380,6 @@ const pricingSchema = {
     gap: 16px;
     justify-content: center;
     flex-wrap: wrap;
-  }
-
-  /* ── Buttons ── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 150ms;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .btn-primary {
-    background: var(--orange);
-    color: #fff;
-    box-shadow: 0 0 20px rgba(255, 85, 0, 0.3);
-  }
-  .btn-primary:hover {
-    background: var(--orange-hover);
-    box-shadow: 0 0 32px rgba(255, 85, 0, 0.45);
-    transform: translateY(-1px);
-  }
-
-  .btn-outline {
-    background: transparent;
-    color: var(--text-1);
-    border: 1px solid var(--border-2);
-  }
-  .btn-outline:hover {
-    border-color: var(--text-3);
-    background: rgba(255, 255, 255, 0.04);
   }
 
   /* ── Section labels (reusable within page) ── */

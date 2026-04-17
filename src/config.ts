@@ -136,8 +136,7 @@ export type SiteConfigKey =
   | 'AUTHOR_URL'
   | 'PRODUCT_NAME'
   | 'PRODUCT_TAGLINE'
-  | 'OG_IMAGE_PATH'
-  | 'pricing';
+  | 'OG_IMAGE_PATH';
 
 export type SiteConfig = Record<SiteConfigKey, string>;
 

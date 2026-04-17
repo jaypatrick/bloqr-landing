@@ -1,6 +1,8 @@
 <!-- Pricing section -->
 
 <script>
+  import { LINKS } from '../config';
+
   const tiers = [
     {
       name:     'Personal',
@@ -26,7 +28,7 @@
       aside:    'No subscription. No commitment.',
       tagline:  'Try the full pipeline before you commit. Pay per use via Stripe.',
       cta:      'Start now — no signup',
-      href:     '/pricing#payg',
+      get href() { return `${LINKS.pricing}#payg`; },
       featured: false,
       payg:     true,
       items: [

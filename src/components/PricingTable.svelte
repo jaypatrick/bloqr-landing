@@ -13,7 +13,7 @@
     { label: 'Custom pipelines',        free: false,       payg: false,           pro: true,        vendor: true },
     { label: 'Priority queue',          free: false,       payg: false,           pro: false,       vendor: true },
     { label: 'SLA',                     free: false,       payg: false,           pro: false,       vendor: true },
-    { label: 'API marketplace listing', free: true,        payg: true,            pro: true,        vendor: true },
+    { label: 'API marketplace listing', free: 'Coming soon', payg: 'Coming soon', pro: 'Coming soon', vendor: 'Coming soon' },
     { label: 'Support',                 free: 'Community', payg: 'Community',     pro: 'Email',     vendor: 'Dedicated' },
   ];
 </script>
@@ -39,7 +39,7 @@
         <tbody>
           {#each features as row}
             <tr>
-              <td class="feature-label">{row.label}</td>
+              <th scope="row" class="feature-label">{row.label}</th>
               <td>{@render cell(row.free)}</td>
               <td class="col-payg">{@render cell(row.payg)}</td>
               <td class="col-pro">{@render cell(row.pro)}</td>
@@ -143,14 +143,15 @@
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
 
-  tbody td {
+  tbody td,
+  tbody th {
     padding: 14px 20px;
     text-align: center;
     color: var(--text-2);
     vertical-align: middle;
   }
 
-  tbody td.feature-label {
+  tbody th.feature-label {
     text-align: left;
     color: var(--text-1);
     font-weight: 500;
@@ -174,6 +175,6 @@
 
   @media (max-width: 700px) {
     .comparison-table { font-size: 0.8rem; }
-    tbody td, thead th { padding: 12px 14px; }
+    tbody td, tbody th, thead th { padding: 12px 14px; }
   }
 </style>
