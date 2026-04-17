@@ -28,7 +28,7 @@
       aside:    'No subscription. No commitment.',
       tagline:  'Try the full pipeline before you commit. Pay per use via Stripe.',
       cta:      'Start now — no signup',
-      get href() { return `${LINKS.pricing}#payg`; },
+      href:     `${LINKS.pricing}#payg`,
       featured: false,
       payg:     true,
       items: [
