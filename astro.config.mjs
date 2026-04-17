@@ -76,15 +76,12 @@ export default defineConfig({
 
   // ── Astro 6 Security ───────────────────────────────────────────────────
   // checkOrigin guards against CSRF on form actions.
-  // csp auto-hashes inline scripts/styles so a strict CSP can be enforced
-  // without 'unsafe-inline'.  Production CSP headers are applied in
-  // src/worker.ts via applyCSP(), which adds hardening directives
-  // (frame-ancestors, base-uri, form-action) at the edge.
+  // Astro's CSP meta policy remains disabled because Shiki emits inline style
+  // attributes for syntax tokens.  Production hardening directives are
+  // applied in src/worker.ts via applyCSP() (frame-ancestors/base-uri/form-action).
   security: {
     checkOrigin: true,
-    csp: {
-      algorithm: 'SHA-256',
-    },
+    csp: false,
   },
 
   // ── Markdown / Code Highlighting ──────────────────────────────────────
