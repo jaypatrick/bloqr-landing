@@ -26,6 +26,7 @@
       <ul>
         <li><a href={LINKS.app}      rel="noopener noreferrer" target="_blank">Launch App</a></li>
         <li><a href={LINKS.docs}     rel="noopener noreferrer" target="_blank">Docs</a></li>
+        <li><a href={LINKS.pricing}>Pricing</a></li>
         <li><a href={LINKS.api}      rel="noopener noreferrer" target="_blank">API</a></li>
         <li><a href={LINKS.vpnMyths}>VPN Myths</a></li>
         <li><a href={LINKS.privacy}>Privacy</a></li>

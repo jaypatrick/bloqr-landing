@@ -61,6 +61,7 @@ export const LINKS = {
   about:         '/about',
   blog:          '/blog',
   changelog:     '/changelog',
+  pricing:       '/pricing',
   rss:           '/rss.xml',
   privacy:       '/privacy',
   terms:         '/terms',
@@ -107,6 +108,10 @@ export const PAGE_META = {
   blog: {
     title:       'Bloqr Blog — Education, Industry News & Releases',
     description: 'DNS blocking explainers for everyday users, VPN incident coverage, and feature release notes from the Bloqr team.',
+  },
+  pricing: {
+    title:       'Pricing — Bloqr',
+    description: 'Simple, transparent pricing for individuals, developers, and enterprise teams. Free tier, monthly subscriptions, and Pay As You Go — charged via Stripe. No crypto required.',
   },
 } as const;
 
