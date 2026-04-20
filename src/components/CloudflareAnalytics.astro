@@ -1,0 +1,13 @@
+---
+const isProd = import.meta.env.PROD;
+const cfBeaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
+const cfBeaconConfig = cfBeaconToken ? JSON.stringify({ token: cfBeaconToken }) : null;
+---
+{isProd && cfBeaconConfig && (
+  <script
+    defer
+    src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon={cfBeaconConfig}
+    is:inline
+  ></script>
+)}

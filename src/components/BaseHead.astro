@@ -5,12 +5,13 @@
  * Renders charset, viewport, title, description, Open Graph, Twitter/X card,
  * canonical link, RSS link, favicon, PWA manifest, theme-color, font preloads
  * (via Astro 6 Fonts API), OG image preload, ClientRouter (View Transitions),
- * Plausible analytics, and PostHog analytics.
+ * Plausible analytics, PostHog analytics, and Cloudflare Web Analytics.
  */
 import { ClientRouter } from 'astro:transitions'; // Astro 6 replacement for ViewTransitions
 import Font from 'astro/components/Font.astro';
 import { SITE_URL } from '../config';
 import Analytics from './Analytics.astro';
+import CloudflareAnalytics from './CloudflareAnalytics.astro';
 import PostHog from './PostHog.astro';
 
 interface Props {
@@ -90,6 +91,8 @@ const canonical = canonicalURL.toString();
 <!-- Preconnect to third-party analytics origins to reduce connection latency -->
 <link rel="preconnect" href="https://app.posthog.com" crossorigin />
 <link rel="dns-prefetch" href="//app.posthog.com" />
+<link rel="preconnect" href="https://static.cloudflareinsights.com" crossorigin />
+<link rel="dns-prefetch" href="//static.cloudflareinsights.com" />
 
 <!-- Astro 6 Fonts API — self-hosted via fontsource, with preload links -->
 <Font cssVariable="--font-display" preload />
@@ -100,3 +103,4 @@ const canonical = canonicalURL.toString();
 <ClientRouter />
 <Analytics />
 <PostHog />
+<CloudflareAnalytics />
