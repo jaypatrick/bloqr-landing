@@ -121,6 +121,10 @@ ENVIRONMENT = "production"
 # Update to "bloqr.ai" when that domain is secured.
 CANONICAL_DOMAIN = "bloqr.jaysonknight.com"
 PUBLIC_POSTHOG_KEY = "phc_pStjJrkLoRL42wUUAV4KqRX4UNMsurSwJFPn5m3hMNEf"
+# Cloudflare Web Analytics beacon token.
+# Find this in the CF dashboard → Web Analytics → your site → Manage site → Copy beacon token.
+# Leave empty ("") to disable the beacon in this environment.
+PUBLIC_CF_BEACON_TOKEN = ""
 # ─── Functions / Waitlist edge handler ───────────────────────────────────────
 # Routing is handled in src/worker.ts:
 #   POST   /waitlist  → waitlist handler (Neon insert + Apollo sync)
@@ -179,4 +183,3 @@ PUBLIC_POSTHOG_KEY = "phc_pStjJrkLoRL42wUUAV4KqRX4UNMsurSwJFPn5m3hMNEf"
 binding = "bloqr_config_cache"
 database_name = "bloqr-config-cache"
 database_id = "8d6153e2-9be1-470a-980b-9532a1850378"
-

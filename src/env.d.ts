@@ -20,6 +20,7 @@ interface ImportMetaEnv {
   readonly SITE_URL?: string;
   readonly PUBLIC_PLAUSIBLE_DOMAIN?: string;
   readonly PUBLIC_POSTHOG_KEY?: string;
+  readonly PUBLIC_CF_BEACON_TOKEN?: string;
 }
 
 interface ImportMeta {
