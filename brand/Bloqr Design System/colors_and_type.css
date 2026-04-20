@@ -5,7 +5,9 @@
    ────────────────────────────────────────────────────────────── */
 
 /* Self-hosted variable font (Space Grotesk) + Google-hosted supporting faces.
-   Swap the Inter + JetBrains Mono @import for @font-face if you need full offline. */
+   PROTOTYPE-ONLY: Inter + JetBrains Mono are loaded via Google Fonts below for
+   preview convenience in this design kit. Do not deploy as-is on production
+   Bloqr properties; self-host these faces first. */
 @font-face {
   font-family: 'Space Grotesk';
   font-style: normal;

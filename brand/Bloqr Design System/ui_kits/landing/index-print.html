@@ -9,6 +9,15 @@
   html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
   *{box-sizing:border-box;}
   a{color:inherit;text-decoration:none;}
+  .demo-warning{
+    position:sticky;top:0;z-index:200;
+    padding:8px 12px;
+    background:var(--bg-elevated);
+    border-bottom:1px solid var(--border);
+    color:var(--fg-2);
+    font:500 12px/1.4 var(--font-display);
+    text-align:center;
+  }
 
   /* Print setup: portrait A4, force dark background to render */
   @page {
@@ -59,11 +68,14 @@
     html { overflow: visible !important; }
   }
 </style>
+<!-- Local prototype only: these CDN scripts are for design preview convenience.
+     Do not deploy this file as-is to production Bloqr properties. -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 </head>
 <body>
+<div class="demo-warning">Local demo only. Uses CDN React/Babel for preview convenience — do not deploy as-is.</div>
 <div id="root"></div>
 
 <script type="text/babel" src="components/Primitives.jsx"></script>

@@ -30,9 +30,12 @@ All content here was distilled from these originals (not preloaded — reference
 | `colors_and_type.css` | Canonical CSS variables: backgrounds, orange/cyan ramps, foregrounds, type scale, motion, radii. |
 | `tokens.css` | The original token file from the landing repo, preserved verbatim. |
 | `brand/` | Voice, copy patterns, forbidden phrases, ethos, full handoff. |
+| `uploads/` | Snapshot of original uploaded source files (including duplicated brand docs) kept for provenance/reference only. |
 | `assets/` | Logos (full + mark), favicon, app icons, OG image. |
 | `preview/` | Design System cards (typography, color, spacing, components, brand). |
 | `ui_kits/landing/` | High-fidelity recreation of the Bloqr marketing site: Nav, Hero, Problem, Features, HowItWorks, Pricing, Footer. |
+
+`brand/` is the canonical document location for this design kit. Treat `uploads/` as archival input, not the source of truth.
 
 ---
 

@@ -15,9 +15,15 @@
 > `src/styles/global.css`, which uses abbreviated aliases rather than the full
 > `--color-*` names in `brand/tokens.css`. When styling this repo, use the
 > `global.css` variables that exist at runtime. Quick mapping:
-> - `--color-bg` / `--color-surface-0` → `--bg-base`
-> - `--color-accent` / primary orange accent → `--orange`
-> - `--color-text` / primary foreground text → `--text-1`
+> - `--color-bg-base` → `--bg-base`
+> - `--color-bg-surface` → `--bg-surface`
+> - `--color-bg-elevated` → `--bg-elevated`
+> - `--color-orange-500` / primary orange accent → `--orange`
+> - `--color-orange-400` → `--orange-hover`
+> - `--color-text-primary` → `--text-1`
+> - `--color-text-secondary` → `--text-2`
+> - `--color-text-muted` → `--text-3`
+> - `--color-border` → `--border`
 > - If a property needs a token that only exists in `brand/tokens.css`, import or
 >   mirror it explicitly instead of assuming the `--color-*` name already exists.
 

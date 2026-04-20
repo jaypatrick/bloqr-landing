@@ -10,14 +10,26 @@
   *{box-sizing:border-box;}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.8);}}
   a{color:inherit;}
+  .demo-warning{
+    position:sticky;top:0;z-index:200;
+    padding:8px 12px;
+    background:var(--bg-elevated);
+    border-bottom:1px solid var(--border);
+    color:var(--fg-2);
+    font:500 12px/1.4 var(--font-display);
+    text-align:center;
+  }
   .modal-bg{position:fixed;inset:0;background:rgba(7,11,20,0.7);backdrop-filter:blur(4px);z-index:100;display:grid;place-items:center;animation:fade 200ms var(--ease-out);}
   @keyframes fade{from{opacity:0;}to{opacity:1;}}
 </style>
+<!-- Local prototype only: these CDN scripts are for design preview convenience.
+     Do not deploy this file as-is to production Bloqr properties. -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 </head>
 <body>
+<div class="demo-warning">Local demo only. Uses CDN React/Babel for preview convenience — do not deploy as-is.</div>
 <template id="__bundler_thumbnail" data-bg-color="#070B14">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#070B14"/>

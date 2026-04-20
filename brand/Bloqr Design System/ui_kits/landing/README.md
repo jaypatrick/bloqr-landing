@@ -2,6 +2,8 @@
 
 High-fidelity recreation of the Bloqr marketing site, extracted from the Astro + Svelte codebase at `adblock-compiler.landing/`.
 
+> Local demo artifact only. These HTML previews currently load React/ReactDOM/Babel from CDN for convenience and should not be deployed to production as-is.
+
 ## What's here
 
 - `index.html` — full landing page demo: Nav → Hero → Problem/VPN → Features → HowItWorks → Pricing → CTA → Footer, with tab switching, waitlist signup flow, and a toggleable code/UI view in HowItWorks.
