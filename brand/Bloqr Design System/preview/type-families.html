@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bloqr — Type Families</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);}
+  .card{padding:24px 32px;display:flex;flex-direction:column;gap:14px;}
+  .fam{display:flex;align-items:baseline;gap:18px;}
+  .name{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);letter-spacing:0.1em;text-transform:uppercase;width:80px;flex-shrink:0;}
+  .spec{font-size:26px;font-weight:700;letter-spacing:-0.02em;flex:1;}
+  .weights{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="fam">
+    <span class="name">Display</span>
+    <span class="spec" style="font-family:'Space Grotesk',sans-serif">Space Grotesk — Aa Bb 01 →</span>
+    <span class="weights">300–700 (variable axis)</span>
+  </div>
+  <div class="fam">
+    <span class="name">Body</span>
+    <span class="spec" style="font-family:'Inter',sans-serif;font-weight:500">Inter — Aa Bb 01 for long-form</span>
+    <span class="weights">400 / 500</span>
+  </div>
+  <div class="fam">
+    <span class="name">Mono</span>
+    <span class="spec" style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500">JetBrains Mono · const = () =&gt; {}</span>
+    <span class="weights">400 / 500 / 700</span>
+  </div>
+</div>
+</body>
+</html>

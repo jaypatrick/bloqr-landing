@@ -1,0 +1,40 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);min-height:100vh;}
+.bg{background:radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,85,0,0.08), transparent),var(--bg-base);padding:0;}
+.nav{position:sticky;top:0;height:64px;background:rgba(7,11,20,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:28px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.mark{width:28px;height:24px;display:flex;flex-direction:column;gap:3px;justify-content:center;}
+.mark span{height:3px;border-radius:2px;background:#F1F5F9;}
+.mark span:nth-child(1){width:22px;}
+.mark span:nth-child(2){width:16px;background:var(--cyan-500);}
+.mark span:nth-child(3){width:10px;background:var(--orange-500);}
+.wordmark{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-0.01em;}
+.links{display:flex;gap:22px;margin-left:16px;}
+.link{font-size:14px;font-weight:500;color:var(--fg-2);cursor:pointer;}
+.link.active{color:var(--fg-1);}
+.link:hover{color:var(--fg-1);}
+.right{margin-left:auto;display:flex;gap:10px;align-items:center;}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;}
+.ghost{background:transparent;color:var(--fg-2);}
+.primary{background:var(--orange-500);color:#fff;box-shadow:0 0 16px rgba(255,85,0,0.3);}
+</style></head><body>
+<div class="bg">
+  <div class="nav">
+    <div class="logo">
+      <div class="mark"><span></span><span></span><span></span></div>
+      <span class="wordmark">Bloqr</span>
+    </div>
+    <div class="links">
+      <span class="link active">Product</span>
+      <span class="link">Pricing</span>
+      <span class="link">Docs</span>
+      <span class="link">Blog</span>
+    </div>
+    <div class="right">
+      <button class="btn ghost">Sign in</button>
+      <button class="btn primary">Join the waitlist</button>
+    </div>
+  </div>
+</div></body></html>

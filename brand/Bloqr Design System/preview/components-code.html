@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.wrap{padding:24px;}
+.window{background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.chrome{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.dot{width:12px;height:12px;border-radius:50%;}
+.r{background:#FF5F57;}.y{background:#FEBC2E;}.g{background:#28C840;}
+.file{margin-left:12px;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);}
+pre{margin:0;padding:18px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.7;color:var(--fg-1);}
+.kw{color:var(--cyan-500);}.str{color:#C3E88D;}.typ{color:#FFCB6B;}.com{color:#546E7A;}.num{color:var(--orange-500);}.fn{color:#82AAFF;}
+</style></head><body>
+<div class="wrap">
+  <div class="window">
+    <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="file">bloqr.config.ts</span></div>
+<pre><span class="kw">import</span> { compile } <span class="kw">from</span> <span class="str">"@bloqr/compiler"</span>;
+
+<span class="kw">const</span> <span class="fn">config</span> = <span class="typ">compile</span>({
+  sources: [<span class="str">"hagezi/pro"</span>, <span class="str">"oisd/big"</span>],
+  vendor:  <span class="str">"adguard-home"</span>,
+  <span class="com">// AI fills in the rest.</span>
+});</pre>
+  </div>
+</div></body></html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:24px 32px;display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg-2);margin-bottom:8px;}
+.input,.select{width:100%;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:var(--font-display);font-size:14px;color:var(--fg-1);outline:none;box-sizing:border-box;}
+.input:focus{border-color:var(--orange-500);}
+.input.focused{border-color:var(--orange-500);}
+.input::placeholder{color:var(--fg-3);}
+.placeholder{color:var(--fg-3);}
+.toggle{width:44px;height:24px;background:var(--bg-elevated);border-radius:9999px;border:1px solid var(--border);position:relative;cursor:pointer;}
+.toggle.on{background:var(--orange-500);border-color:var(--orange-500);}
+.toggle::after{content:"";position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:all 150ms var(--ease-out);}
+.toggle.on::after{left:22px;}
+.row{display:flex;align-items:center;gap:12px;}
+.hint{font-size:11px;color:var(--fg-3);margin-top:6px;}
+.check{width:18px;height:18px;border:1px solid var(--border);border-radius:4px;background:var(--bg-surface);display:inline-grid;place-items:center;}
+.check.on{background:var(--orange-500);border-color:var(--orange-500);color:#fff;font-size:11px;font-weight:800;}
+</style></head><body>
+<div class="card">
+  <div>
+    <label>Email</label>
+    <input class="input" value="you@bloqr.ai" />
+  </div>
+  <div>
+    <label>Focused</label>
+    <input class="input focused" placeholder="name@domain.com" />
+  </div>
+  <div>
+    <label>Vendor</label>
+    <div class="select">AdGuard Home ▾</div>
+  </div>
+  <div>
+    <label>Toggles</label>
+    <div class="row"><div class="toggle on"></div><span style="font-size:13px;color:var(--fg-2)">AI list curation</span></div>
+    <div class="row" style="margin-top:6px"><div class="toggle"></div><span style="font-size:13px;color:var(--fg-2)">Voice input (v2)</span></div>
+  </div>
+</div></body></html>

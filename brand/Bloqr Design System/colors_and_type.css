@@ -1,0 +1,188 @@
+/* ──────────────────────────────────────────────────────────────
+   Bloqr Design System — Colors & Type
+   Dark-first. Deep space navy. Orange primary. Cyan secondary.
+   Fonts: Space Grotesk (display/UI), Inter (body), JetBrains Mono.
+   ────────────────────────────────────────────────────────────── */
+
+/* Self-hosted variable font (Space Grotesk) + Google-hosted supporting faces.
+   Swap the Inter + JetBrains Mono @import for @font-face if you need full offline. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;            /* variable axis */
+  font-display: swap;
+  src: url('fonts/SpaceGrotesk-VariableFont_wght.ttf') format('truetype-variations'),
+       url('fonts/SpaceGrotesk-VariableFont_wght.ttf') format('truetype');
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  /* ─── BACKGROUNDS ─── */
+  --bg-base:      #070B14;  /* page canvas — deep space navy */
+  --bg-surface:   #0E1829;  /* cards, panels */
+  --bg-elevated:  #162035;  /* hover, tooltips, code */
+  --bg-overlay:   #1C2A45;  /* modals, popovers */
+
+  /* ─── ORANGE (primary accent) ─── */
+  --orange-500:   #FF5500;  /* CTAs, highlights, eyebrows */
+  --orange-400:   #FF7033;  /* hover */
+  --orange-600:   #CC4400;  /* pressed */
+  --orange-900:   #1A0A00;  /* tinted surface */
+  --orange-glow:  rgba(255, 85, 0, 0.15);
+  --orange-dim:   rgba(255, 85, 0, 0.12);
+
+  /* ─── CYAN (secondary accent) ─── */
+  --cyan-500:     #00D4FF;  /* links, info, secondary */
+  --cyan-400:     #33DDFF;  /* hover */
+  --cyan-900:     #001829;
+  --cyan-glow:    rgba(0, 212, 255, 0.12);
+  --cyan-dim:     rgba(0, 212, 255, 0.10);
+
+  /* ─── FOREGROUNDS ─── */
+  --fg-1:         #F1F5F9;  /* headings, body primary */
+  --fg-2:         #94A3B8;  /* body secondary, descriptions */
+  --fg-3:         #475569;  /* muted, placeholders, disabled */
+  --fg-inverse:   #070B14;  /* on orange / light */
+
+  /* ─── BORDERS ─── */
+  --border:        #1E2D40;
+  --border-subtle: #162035;
+  --border-accent: #2A4060;
+  --border-2:      #2A3F5A; /* runtime alias */
+
+  /* ─── SEMANTIC ─── */
+  --success:      #22C55E;
+  --warning:      #F59E0B;
+  --error:        #EF4444;
+  --info:         #00D4FF;
+
+  /* ─── FONT FAMILIES ─── */
+  --font-display: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  --font-body:    'Inter', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* ─── TYPE SCALE ─── */
+  --text-xs:      0.75rem;   /* 12 */
+  --text-sm:      0.875rem;  /* 14 */
+  --text-base:    1rem;      /* 16 */
+  --text-lg:      1.125rem;  /* 18 */
+  --text-xl:      1.25rem;   /* 20 */
+  --text-2xl:     1.5rem;    /* 24 */
+  --text-3xl:     1.875rem;  /* 30 */
+  --text-4xl:     2.25rem;   /* 36 */
+  --text-5xl:     3rem;      /* 48 */
+  --text-6xl:     3.75rem;   /* 60 */
+  --text-7xl:     4.5rem;    /* 72 */
+
+  --font-regular:   400;
+  --font-medium:    500;
+  --font-semibold:  600;
+  --font-bold:      700;
+  --font-extrabold: 800;
+
+  --leading-tight:  1.1;
+  --leading-snug:   1.25;
+  --leading-normal: 1.5;
+  --leading-loose:  1.75;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.05em;
+  --tracking-wider:   0.1em;
+  --tracking-widest:  0.2em;
+
+  /* ─── SPACING ─── */
+  --space-1:  0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
+  --space-4:  1rem;    --space-5: 1.25rem; --space-6: 1.5rem;
+  --space-8:  2rem;    --space-10:2.5rem;  --space-12:3rem;
+  --space-16: 4rem;    --space-20:5rem;    --space-24:6rem;    --space-32:8rem;
+
+  /* ─── RADIUS ─── */
+  --radius-sm:   0.25rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-2xl:  1.5rem;
+  --radius-full: 9999px;
+
+  /* ─── SHADOWS ─── */
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md:     0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg:     0 8px 32px rgba(0,0,0,0.6);
+  --shadow-orange: 0 0 24px rgba(255,85,0,0.15), 0 0 48px rgba(255,85,0,0.15);
+  --shadow-cyan:   0 0 24px rgba(0,212,255,0.12);
+
+  /* ─── MOTION ─── */
+  --ease-out:       cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:    cubic-bezier(0.45, 0, 0.55, 1);
+  --duration-fast:  150ms;
+  --duration-base:  250ms;
+  --duration-slow:  400ms;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Semantic type roles — apply directly to markup
+   ────────────────────────────────────────────────────────────── */
+
+.h1-hero {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--fg-1);
+}
+
+.h2-section {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--fg-1);
+}
+
+.h3-card {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--orange-500);
+}
+
+.body {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--fg-2);
+}
+
+.body-sm {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--fg-2);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--fg-1);
+}
+
+.nav-link {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-2);
+}
+.nav-link:hover { color: var(--fg-1); }
