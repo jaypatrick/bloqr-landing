@@ -130,7 +130,7 @@ PUBLIC_POSTHOG_KEY = "phc_pStjJrkLoRL42wUUAV4KqRX4UNMsurSwJFPn5m3hMNEf"
 # PUBLIC_CF_BEACON_TOKEN value (for example via CI env vars or a build-time .env file).
 # Keep the value here aligned with the build pipeline to avoid a silently-disabled beacon.
 # Leave empty ("") in both places to disable the beacon intentionally.
-PUBLIC_CF_BEACON_TOKEN = ""
+PUBLIC_CF_BEACON_TOKEN = "c669b516a8e54055b08bf02e3fe8f438"
 # ─── Functions / Waitlist edge handler ───────────────────────────────────────
 # Routing is handled in src/worker.ts:
 #   POST   /waitlist  → waitlist handler (Neon insert + Apollo sync)
