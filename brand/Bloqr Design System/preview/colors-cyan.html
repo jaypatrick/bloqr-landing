@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.sw{border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:3px;min-height:100px;justify-content:flex-end;border:1px solid var(--border);}
+.name{font-size:11px;font-weight:700;}
+.hex{font-family:var(--font-mono);font-size:10px;opacity:0.85;}
+.use{font-size:10px;opacity:0.7;}
+</style></head><body>
+<div class="card">
+  <div class="sw" style="background:#33DDFF;color:#001829"><span class="name">cyan-400</span><span class="hex">#33DDFF</span><span class="use">hover</span></div>
+  <div class="sw" style="background:#00D4FF;color:#001829;box-shadow:0 0 24px rgba(0,212,255,0.20)"><span class="name">cyan-500</span><span class="hex">#00D4FF</span><span class="use">links, info</span></div>
+  <div class="sw" style="background:#001829;color:var(--cyan-500)"><span class="name">cyan-900</span><span class="hex">#001829</span><span class="use">tinted surface</span></div>
+  <div class="sw" style="background:rgba(0,212,255,0.10);border:1px solid rgba(0,212,255,0.25);color:var(--cyan-500)"><span class="name">glow</span><span class="hex">/0.12</span><span class="use" style="color:var(--fg-2)">shadows</span></div>
+</div></body></html>

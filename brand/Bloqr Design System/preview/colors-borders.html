@@ -1,0 +1,14 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:22px 32px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.box{background:var(--bg-surface);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:6px;min-height:90px;justify-content:flex-end;}
+.name{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);}
+.hex{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);}
+</style></head><body>
+<div class="card">
+  <div class="box" style="border:1px solid #1E2D40"><span class="name">--border</span><span class="hex">#1E2D40 · default</span></div>
+  <div class="box" style="border:1px solid #162035"><span class="name">--border-subtle</span><span class="hex">#162035 · separators</span></div>
+  <div class="box" style="border:1px solid #2A4060"><span class="name">--border-accent</span><span class="hex">#2A4060 · hover/active</span></div>
+</div></body></html>

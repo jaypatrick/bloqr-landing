@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.wrap{padding:32px;display:grid;grid-template-columns:1fr 180px;gap:20px;align-items:center;}
+.big{display:flex;align-items:center;gap:14px;}
+.mark{width:52px;height:44px;display:flex;flex-direction:column;gap:4px;justify-content:center;}
+.mark span{height:5px;border-radius:3px;}
+.mark span:nth-child(1){width:44px;background:#F1F5F9;}
+.mark span:nth-child(2){width:34px;background:var(--cyan-500);}
+.mark span:nth-child(3){width:22px;background:var(--orange-500);}
+.mark span:nth-child(4){width:10px;background:var(--orange-500);opacity:0.6;}
+.wordmark{font-family:var(--font-display);font-weight:700;font-size:36px;letter-spacing:-0.02em;}
+.small-mark{width:36px;height:30px;display:flex;flex-direction:column;gap:3px;justify-content:center;background:var(--bg-surface);padding:8px;border-radius:10px;border:1px solid var(--border);}
+.small-mark span{height:3px;border-radius:2px;}
+.small-mark span:nth-child(1){width:24px;background:#F1F5F9;}
+.small-mark span:nth-child(2){width:18px;background:var(--cyan-500);}
+.small-mark span:nth-child(3){width:10px;background:var(--orange-500);}
+.mono{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);margin-top:8px;}
+</style></head><body>
+<div class="wrap">
+  <div>
+    <div class="big">
+      <div class="mark"><span></span><span></span><span></span><span></span></div>
+      <span class="wordmark">Bloqr</span>
+    </div>
+    <div class="mono">Space Grotesk 700 · Mark: white / cyan / orange descending bars</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+    <div class="small-mark"><span></span><span></span><span></span></div>
+    <div class="mono">Mark only · favicon / avatar</div>
+  </div>
+</div></body></html>

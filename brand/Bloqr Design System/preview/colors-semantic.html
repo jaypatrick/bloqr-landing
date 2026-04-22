@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.sw{border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:3px;min-height:100px;justify-content:flex-end;color:#070B14;}
+.name{font-size:11px;font-weight:700;}
+.hex{font-family:var(--font-mono);font-size:10px;opacity:0.8;}
+.use{font-size:10px;opacity:0.75;}
+</style></head><body>
+<div class="card">
+  <div class="sw" style="background:#22C55E"><span class="name">success</span><span class="hex">#22C55E</span><span class="use">confirmations</span></div>
+  <div class="sw" style="background:#F59E0B"><span class="name">warning</span><span class="hex">#F59E0B</span><span class="use">warnings</span></div>
+  <div class="sw" style="background:#EF4444"><span class="name">error</span><span class="hex">#EF4444</span><span class="use">destructive</span></div>
+  <div class="sw" style="background:#00D4FF"><span class="name">info</span><span class="hex">#00D4FF</span><span class="use">info (=cyan)</span></div>
+</div></body></html>

@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.sw{border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;min-height:100px;border:1px solid var(--border);justify-content:flex-end;}
+.name{font-size:11px;font-weight:700;color:var(--fg-1);}
+.hex{font-family:var(--font-mono);font-size:10px;color:var(--fg-2);}
+.use{font-size:10px;color:var(--fg-3);}
+</style></head><body>
+<div class="card">
+  <div class="sw" style="background:#070B14"><span class="name">bg-base</span><span class="hex">#070B14</span><span class="use">page canvas</span></div>
+  <div class="sw" style="background:#0E1829"><span class="name">bg-surface</span><span class="hex">#0E1829</span><span class="use">cards, panels</span></div>
+  <div class="sw" style="background:#162035"><span class="name">bg-elevated</span><span class="hex">#162035</span><span class="use">hover, tooltips</span></div>
+  <div class="sw" style="background:#1C2A45"><span class="name">bg-overlay</span><span class="hex">#1C2A45</span><span class="use">modals, popovers</span></div>
+</div></body></html>

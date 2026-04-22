@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);font-family:var(--font-display);}
+.card{padding:24px 32px;display:flex;flex-direction:column;gap:10px;}
+.row{display:flex;align-items:center;gap:16px;padding:8px 0;border-bottom:1px solid var(--border-subtle);}
+.row:last-child{border:none;}
+.name{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);width:150px;}
+.sample{font-size:18px;font-weight:600;flex:1;}
+.hex{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);}
+</style></head><body>
+<div class="card">
+  <div class="row"><span class="name">--fg-1</span><span class="sample" style="color:#F1F5F9">Headings and body primary</span><span class="hex">#F1F5F9</span></div>
+  <div class="row"><span class="name">--fg-2</span><span class="sample" style="color:#94A3B8">Descriptions, secondary body</span><span class="hex">#94A3B8</span></div>
+  <div class="row"><span class="name">--fg-3</span><span class="sample" style="color:#475569">Placeholders, timestamps</span><span class="hex">#475569</span></div>
+  <div class="row"><span class="name">--fg-inverse</span><span class="sample" style="color:#070B14;background:#FF5500;padding:6px 10px;border-radius:4px;display:inline-block;flex:0;">Text on orange</span><span class="hex">#070B14</span></div>
+</div></body></html>

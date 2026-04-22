@@ -1,0 +1,28 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:28px 32px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-family:var(--font-display);font-size:14px;font-weight:600;cursor:pointer;transition:all 150ms var(--ease-out);border:none;white-space:nowrap;}
+.primary{background:var(--orange-500);color:#fff;box-shadow:0 0 20px rgba(255,85,0,0.30);}
+.primary-hover{background:var(--orange-400);color:#fff;box-shadow:0 0 32px rgba(255,85,0,0.45);transform:translateY(-1px);}
+.primary-pressed{background:var(--orange-600);color:#fff;}
+.outline{background:transparent;color:var(--fg-1);border:1px solid #2A3F5A;}
+.outline-hover{background:var(--bg-surface);color:var(--fg-1);border:1px solid var(--fg-2);}
+.ghost{background:transparent;color:var(--fg-2);}
+.ghost-hover{background:transparent;color:var(--fg-1);}
+.small{padding:7px 14px;font-size:13px;}
+.label{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.1em;width:100%;margin-top:8px;}
+.label:first-child{margin-top:0;}
+</style></head><body>
+<div class="card">
+  <span class="label">Primary · default / hover / pressed</span>
+  <button class="btn primary">Join the waitlist →</button>
+  <button class="btn primary-hover">Join the waitlist →</button>
+  <button class="btn primary-pressed">Join the waitlist →</button>
+  <span class="label">Outline · Ghost · Small</span>
+  <button class="btn outline">Read the docs</button>
+  <button class="btn outline-hover">Read the docs</button>
+  <button class="btn ghost">Learn more</button>
+  <button class="btn primary small">Try Bloqr free</button>
+</div></body></html>

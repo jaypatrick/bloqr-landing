@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:28px 32px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:600;font-family:var(--font-display);}
+.orange{background:rgba(255,85,0,0.12);color:var(--orange-500);border:1px solid rgba(255,85,0,0.25);}
+.cyan{background:rgba(0,212,255,0.10);color:var(--cyan-500);border:1px solid rgba(0,212,255,0.20);}
+.slate{background:var(--bg-surface);color:var(--fg-2);border:1px solid var(--border);}
+.success{background:rgba(34,197,94,0.12);color:var(--success);border:1px solid rgba(34,197,94,0.25);}
+.error{background:rgba(239,68,68,0.12);color:var(--error);border:1px solid rgba(239,68,68,0.25);}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.label{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.1em;width:100%;}
+</style></head><body>
+<div class="card">
+  <span class="pill orange"><span class="dot"></span>Now in beta</span>
+  <span class="pill cyan">🔌 Bring your own</span>
+  <span class="pill slate">v0.80</span>
+  <span class="pill success"><span class="dot"></span>Synced</span>
+  <span class="pill error">Blocked</span>
+  <span class="pill orange">48,291 rules</span>
+  <span class="pill cyan">AI-maintained</span>
+  <span class="label">Pills · 12px · font-weight 600 · 9999px radius</span>
+</div></body></html>

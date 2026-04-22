@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:22px 20px;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+.box{background:var(--bg-elevated);border:1px solid var(--border);aspect-ratio:1;display:flex;align-items:flex-end;justify-content:center;padding:6px;}
+.caption{font-family:var(--font-mono);font-size:9px;color:var(--fg-3);text-align:center;}
+.wrap{display:flex;flex-direction:column;gap:4px;}
+</style></head><body>
+<div class="card">
+  <div class="wrap"><div class="box" style="border-radius:4px"></div><div class="caption">sm · 4</div></div>
+  <div class="wrap"><div class="box" style="border-radius:8px"></div><div class="caption">md · 8</div></div>
+  <div class="wrap"><div class="box" style="border-radius:12px"></div><div class="caption">lg · 12</div></div>
+  <div class="wrap"><div class="box" style="border-radius:16px"></div><div class="caption">xl · 16</div></div>
+  <div class="wrap"><div class="box" style="border-radius:24px"></div><div class="caption">2xl · 24</div></div>
+  <div class="wrap"><div class="box" style="border-radius:9999px"></div><div class="caption">full · pill</div></div>
+</div></body></html>
