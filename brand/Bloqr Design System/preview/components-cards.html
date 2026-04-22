@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.tile{background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;padding:22px;transition:all 150ms var(--ease-out);}
+.tile.hover{border-color:var(--border-accent);background:var(--bg-elevated);}
+.icon{width:40px;height:40px;background:var(--bg-elevated);border:1px solid var(--border-accent);border-radius:10px;display:grid;place-items:center;margin-bottom:14px;font-size:18px;}
+.title{font-size:1.05rem;font-weight:700;margin:0 0 6px;}
+.desc{font-size:0.875rem;color:var(--fg-2);line-height:1.6;margin:0;}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--orange-500);margin-bottom:8px;}
+</style></head><body>
+<div class="card">
+  <div class="tile">
+    <div class="icon">🤖</div>
+    <div class="eyebrow">Default</div>
+    <h3 class="title">AI-maintained lists</h3>
+    <p class="desc">48,291 rules deduplicated nightly. No script to babysit. No stale entries.</p>
+  </div>
+  <div class="tile hover">
+    <div class="icon">🔄</div>
+    <div class="eyebrow">On hover</div>
+    <h3 class="title">One change. Every device.</h3>
+    <p class="desc">Push once — syncs to every AdGuard, NextDNS, or Pi-hole instance in seconds.</p>
+  </div>
+</div></body></html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.card{padding:32px 28px;display:grid;grid-template-columns:repeat(5,1fr);gap:18px;}
+.box{background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;height:70px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;}
+.caption{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);}
+.wrap{display:flex;flex-direction:column;gap:8px;align-items:center;}
+.orange{background:var(--orange-500);border:none;color:#fff;}
+</style></head><body>
+<div class="card">
+  <div class="wrap"><div class="box" style="box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div><div class="caption">shadow-sm</div></div>
+  <div class="wrap"><div class="box" style="box-shadow:0 4px 12px rgba(0,0,0,0.5)"></div><div class="caption">shadow-md</div></div>
+  <div class="wrap"><div class="box" style="box-shadow:0 8px 32px rgba(0,0,0,0.6)"></div><div class="caption">shadow-lg</div></div>
+  <div class="wrap"><div class="box orange" style="box-shadow:0 0 24px rgba(255,85,0,0.15),0 0 48px rgba(255,85,0,0.15)"></div><div class="caption" style="color:var(--orange-500)">shadow-orange</div></div>
+  <div class="wrap"><div class="box" style="box-shadow:0 0 24px rgba(0,212,255,0.35);border-color:rgba(0,212,255,0.3)"></div><div class="caption" style="color:var(--cyan-500)">shadow-cyan</div></div>
+</div></body></html>

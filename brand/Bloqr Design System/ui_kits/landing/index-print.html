@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bloqr — Internet Hygiene: Automated. (Print)</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+  *{box-sizing:border-box;}
+  a{color:inherit;text-decoration:none;}
+  .demo-warning{
+    position:sticky;top:0;z-index:200;
+    padding:8px 12px;
+    background:var(--bg-elevated);
+    border-bottom:1px solid var(--border);
+    color:var(--fg-2);
+    font:500 12px/1.4 var(--font-display);
+    text-align:center;
+  }
+
+  /* Print setup: portrait A4, force dark background to render */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  @media print {
+    html, body {
+      background: #070B14 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    /* Kill any interactive affordances that would look weird in print */
+    button { cursor: default !important; }
+    /* Avoid cards getting split across pages */
+    section > div > div[style*="grid"] > div,
+    [data-print-keep] {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    /* Each top-level <section> gets a clean break before it */
+    section {
+      break-before: page;
+      page-break-before: always;
+    }
+    section:first-of-type { break-before: auto; page-break-before: auto; }
+    /* Kill the sticky nav in print — stickies print weirdly */
+    nav {
+      position: static !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    /* Remove viewport-relative sizing so things don't explode on an A4 page */
+    .hero-title {
+      font-size: 3.25rem !important;
+    }
+    .hero-sub {
+      font-size: 1rem !important;
+    }
+    /* Keep hero on one page */
+    .hero { min-height: auto !important; padding-top: 32px !important; padding-bottom: 48px !important; }
+    /* Hide scrollbar placeholders */
+    html { overflow: visible !important; }
+  }
+</style>
+<!-- Local prototype only: these CDN scripts are for design preview convenience.
+     Do not deploy this file as-is to production Bloqr properties. -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="demo-warning">Local demo only. Uses CDN React/Babel for preview convenience — do not deploy as-is.</div>
+<div id="root"></div>
+
+<script type="text/babel" src="components/Primitives.jsx"></script>
+<script type="text/babel" src="Nav.jsx"></script>
+<script type="text/babel" src="Hero.jsx"></script>
+<script type="text/babel" src="Problem.jsx"></script>
+<script type="text/babel" src="Features.jsx"></script>
+<script type="text/babel" src="HowItWorks.jsx"></script>
+<script type="text/babel" src="Pricing.jsx"></script>
+
+<script type="text/babel">
+function PrintApp() {
+  // Static, print-optimised render: no modal, no waitlist interactions, nav not sticky.
+  const noop = () => {};
+  return (
+    <>
+      <Nav active="why" setActive={noop} onWaitlist={noop} />
+      <Hero onWaitlist={noop} />
+      <Problem />
+      <Features />
+      <HowItWorks />
+      <Pricing />
+      <CtaBanner onWaitlist={noop} />
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PrintApp />);
+
+// ── Auto-print once fonts + JSX have finished loading ─────────────
+(async () => {
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+  // Let React commit + Babel finish transforming subsequent script tags
+  await new Promise(r => setTimeout(r, 1200));
+  window.print();
+})();
+</script>
+</body>
+</html>

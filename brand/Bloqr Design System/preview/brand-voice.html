@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--bg-base);color:var(--fg-1);font-family:var(--font-display);}
+.wrap{padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.col h4{margin:0 0 10px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;}
+.col.do h4{color:var(--success);}
+.col.dont h4{color:var(--error);}
+.item{font-size:13px;color:var(--fg-2);line-height:1.55;margin-bottom:8px;padding-left:14px;position:relative;}
+.item::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;}
+.do .item::before{background:var(--success);}
+.dont .item::before{background:var(--error);}
+.dont .item{text-decoration:line-through;text-decoration-color:rgba(239,68,68,0.4);}
+</style></head><body>
+<div class="wrap">
+  <div class="col do">
+    <h4>✓ Do</h4>
+    <div class="item">48,291 rules deduplicated.</div>
+    <div class="item">You flip one switch. Done.</div>
+    <div class="item">Running before your next coffee.</div>
+    <div class="item">Less than one mediocre cocktail.</div>
+  </div>
+  <div class="col dont">
+    <h4>✕ Never</h4>
+    <div class="item">Leveraging best-in-class AI</div>
+    <div class="item">Seamless integration</div>
+    <div class="item">Revolutionary, game-changing</div>
+    <div class="item">Click here to learn more!</div>
+  </div>
+</div></body></html>
