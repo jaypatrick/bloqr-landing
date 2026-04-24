@@ -9,7 +9,7 @@
  *
  * SSO design:
  *   This auth instance is the single source of truth for all Bloqr properties.
- *   Other apps (app.bloqr.ai, docs.bloqr.ai) validate sessions by calling
+ *   Other apps (app.bloqr.dev, docs.bloqr.dev) validate sessions by calling
  *   GET /api/auth/session on this origin with the session cookie forwarded.
  *   BETTER_AUTH_TRUSTED_ORIGINS controls which cross-origin requests are accepted.
  *
@@ -59,9 +59,8 @@ export function isAdminUser(githubLogin: string): boolean {
 /**
  * Fallback base URL used when BETTER_AUTH_URL is not set in environment.
  * Override this with the BETTER_AUTH_URL secret in Cloudflare Workers.
- * Update to https://bloqr.ai when the domain is live.
  */
-const FALLBACK_BASE_URL = 'https://bloqr.jaysonknight.com';
+const FALLBACK_BASE_URL = 'https://bloqr.dev';
 
 /**
  * Module-level caches.

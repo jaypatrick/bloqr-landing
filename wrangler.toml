@@ -106,9 +106,9 @@ binding = "BROWSER"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
 # This route is configured for the current custom domain.
-# Update pattern to "bloqr.ai" when the domain is secured.
+# Update pattern when the custom domain changes.
 [[routes]]
-pattern = "bloqr.jaysonknight.com"
+pattern = "bloqr.dev"
 custom_domain = true
 
 # ─── Environment Variables ───────────────────────────────────────────────────
@@ -118,8 +118,7 @@ custom_domain = true
 ENVIRONMENT = "production"
 # CANONICAL_DOMAIN is read by the Worker at runtime (src/worker.ts) to gate
 # X-Robots-Tag: noindex, nofollow on responses from non-canonical hosts.
-# Update to "bloqr.ai" when that domain is secured.
-CANONICAL_DOMAIN = "bloqr.jaysonknight.com"
+CANONICAL_DOMAIN = "bloqr.dev"
 PUBLIC_POSTHOG_KEY = "phc_pStjJrkLoRL42wUUAV4KqRX4UNMsurSwJFPn5m3hMNEf"
 # Cloudflare Web Analytics beacon token.
 # Find this in the CF dashboard → Web Analytics → your site → Manage site → Copy beacon token.
@@ -154,21 +153,20 @@ PUBLIC_CF_BEACON_TOKEN = "c669b516a8e54055b08bf02e3fe8f438"
 #   BETTER_AUTH_SECRET          — Random 32+ char string; signs/validates sessions
 #                                  Generate with: openssl rand -base64 32  (REQUIRED)
 #   BETTER_AUTH_URL             — Canonical origin for auth callbacks  (REQUIRED)
-#                                  Pre-migration: https://bloqr.jaysonknight.com
-#                                  Update to https://bloqr.ai when the domain goes live
+#                                  https://bloqr.dev
 #   GITHUB_CLIENT_ID            — GitHub OAuth App client ID
 #   GITHUB_CLIENT_SECRET        — GitHub OAuth App client secret
 #   BETTER_AUTH_TRUSTED_ORIGINS — Optional; comma-separated trusted origins for cross-app SSO
-#                                  Leave unset until app.bloqr.ai / docs.bloqr.ai are live
+#                                  Leave unset until app.bloqr.dev / docs.bloqr.dev are live
 #
 # GitHub OAuth App setup:  https://github.com/settings/developers
 # Callback URLs to register on your GitHub OAuth App:
-#   Production (pre-migration): https://bloqr.jaysonknight.com/api/auth/callback/github
-#   Local dev:                  http://localhost:4321/api/auth/callback/github
+#   Production: https://bloqr.dev/api/auth/callback/github
+#   Local dev:  http://localhost:4321/api/auth/callback/github
 #
-# Migration note: when bloqr.ai goes live —
-#   1. Update BETTER_AUTH_URL secret → https://bloqr.ai
-#   2. Add https://bloqr.ai/api/auth/callback/github to the GitHub OAuth App
+# Migration note: when domain changes —
+#   1. Update BETTER_AUTH_URL secret → new canonical URL
+#   2. Update /api/auth/callback/* in the GitHub OAuth App
 #
 # Local dev: values live in .dev.vars (gitignored), then run:
 #   npm run preview   →  wrangler pages dev ./dist

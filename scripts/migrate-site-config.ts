@@ -56,13 +56,13 @@ async function migrate(): Promise<void> {
   `;
   console.log('✓ Table site_config created (or already exists)');
 
-  // 2. Seed default values — temp: bloqr.jaysonknight.com subdomain scheme → final: bloqr.ai
+  // 2. Seed default values — bloqr.dev domain scheme
   await sql`
     INSERT INTO site_config (key, value, label) VALUES
-      ('SITE_URL',        'https://bloqr.jaysonknight.com',             'Landing URL — temp: bloqr.jaysonknight.com → final: bloqr.ai'),
-      ('APP_URL',         'https://app.bloqr.jaysonknight.com',         'App URL — temp: app.bloqr.jaysonknight.com → final: app.bloqr.ai'),
-      ('DOCS_URL',        'https://docs.bloqr.jaysonknight.com',        'Docs URL — temp: docs.bloqr.jaysonknight.com → final: docs.bloqr.ai'),
-      ('API_URL',         'https://api.bloqr.jaysonknight.com',         'API URL — temp: api.bloqr.jaysonknight.com → final: api.bloqr.ai'),
+      ('SITE_URL',        'https://bloqr.dev',             'Landing URL'),
+      ('APP_URL',         'https://app.bloqr.dev',         'App URL'),
+      ('DOCS_URL',        'https://docs.bloqr.dev',        'Docs URL'),
+      ('API_URL',         'https://api.bloqr.dev',         'API URL'),
       ('JSR_URL',         'https://jsr.io/@jk-com/adblock-compiler',           'JSR package URL'),
       ('GITHUB_URL',      'https://github.com/jaypatrick/adblock-compiler',    'GitHub repo URL'),
       ('AUTHOR_URL',      'https://jaysonknight.com',                           'Author website'),

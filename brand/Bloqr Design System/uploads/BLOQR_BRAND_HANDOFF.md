@@ -43,11 +43,11 @@
 
 ### Domain
 
-- Primary: `https://bloqr.ai`
-- App: `https://app.bloqr.jaysonknight.com` (transitioning to `app.bloqr.ai`)
-- Docs: `https://docs.bloqr.jaysonknight.com` (transitioning to `docs.bloqr.ai`)
-- API: `https://api.bloqr.jaysonknight.com` (transitioning to `api.bloqr.ai`)
-- Landing: `https://bloqr.jaysonknight.com` (transitioning to `bloqr.ai`)
+- Primary: `https://bloqr.dev`
+- App: `https://app.bloqr.dev`
+- Docs: `https://docs.bloqr.dev`
+- API: `https://api.bloqr.dev`
+- Landing: `https://bloqr.dev`
 - JSR package: `https://jsr.io/@jk-com/adblock-compiler` (transitioning to `@bloqr/compiler`)
 
 ### Logo

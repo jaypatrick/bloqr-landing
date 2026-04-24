@@ -48,7 +48,7 @@ Set in **Cloudflare dashboard → Workers → adblock-landing → Settings → V
 | `APOLLO_API_KEY` | Apollo.io API key for waitlist contact sync |
 | `ADMIN_SECRET` | Legacy password for `/admin/*` fallback auth (keep set until Better Auth migration is complete) |
 | `BETTER_AUTH_SECRET` | Same value as GitHub secret — JWT signing key for Better Auth sessions |
-| `BETTER_AUTH_URL` | The canonical URL of this app, e.g. `https://adblock-landing.jk-com.workers.dev` (update to `https://bloqr.ai` when live) |
+| `BETTER_AUTH_URL` | The canonical URL of this app. Set production to `https://bloqr.dev`; use the active preview or local origin only in non-production environments. |
 | `GITHUB_CLIENT_ID` | GitHub OAuth App client ID (for admin SSO) |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
 
@@ -67,9 +67,9 @@ npm run preview    # wrangler dev (full Worker + static assets, recommended)
 npm run deploy  # astro build && wrangler deploy
 ```
 
-## Domain Migration Checklist (Pending: bloqr.ai)
+## Domain Migration Checklist
 
-When `bloqr.ai` is procured and DNS is configured:
+When the domain changes:
 
 1. Update `SITE_URL` in Cloudflare Workers environment variables
 2. Update `BETTER_AUTH_URL` in Cloudflare Workers environment variables
@@ -82,8 +82,8 @@ When `bloqr.ai` is procured and DNS is configured:
 
 1. Go to https://github.com/settings/developers → OAuth Apps → New OAuth App
 2. Application name: `Bloqr Admin (Production)` (create a separate one for local dev)
-3. Homepage URL: `https://adblock-landing.jk-com.workers.dev` (update to `https://bloqr.ai` when live)
-4. Authorization callback URL: `https://adblock-landing.jk-com.workers.dev/api/auth/callback/github`
+3. Homepage URL: `https://bloqr.dev`
+4. Authorization callback URL: `https://bloqr.dev/api/auth/callback/github`
 5. Copy Client ID and Client Secret → set as Cloudflare Workers secrets
 
 For local development, create a second OAuth App:

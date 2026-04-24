@@ -1,6 +1,6 @@
 ---
 const isProd = import.meta.env.PROD;
-const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN ?? 'bloqr.ai';
+const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN ?? 'bloqr.dev';
 ---
 {isProd && (
   <script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" is:inline></script>

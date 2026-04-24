@@ -9,17 +9,16 @@ ADMIN_SECRET=any-strong-random-string-for-local-dev
 # Generate BETTER_AUTH_SECRET with: openssl rand -base64 32
 BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
 # Local dev value shown below. For production, set in the Cloudflare dashboard:
-#   Pre-migration: https://bloqr.jaysonknight.com
-#   Update to https://bloqr.ai when the domain goes live
+#   Production: https://bloqr.dev
 BETTER_AUTH_URL=http://localhost:4321
 
 # GitHub OAuth — create an OAuth App at https://github.com/settings/developers
 # Callback URLs to add to your GitHub OAuth App:
-#   Local dev:                  http://localhost:4321/api/auth/callback/github
-#   Production (pre-migration): https://bloqr.jaysonknight.com/api/auth/callback/github
+#   Local dev:   http://localhost:4321/api/auth/callback/github
+#   Production:  https://bloqr.dev/api/auth/callback/github
 GITHUB_CLIENT_ID=your-github-oauth-app-client-id
 GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
 
 # BETTER_AUTH_TRUSTED_ORIGINS — optional; comma-separated trusted origins for cross-app SSO
-# Not needed until app.bloqr.ai / docs.bloqr.ai are live
-# BETTER_AUTH_TRUSTED_ORIGINS=https://app.bloqr.ai,https://docs.bloqr.ai
+# Not needed until app.bloqr.dev / docs.bloqr.dev are live
+# BETTER_AUTH_TRUSTED_ORIGINS=https://app.bloqr.dev,https://docs.bloqr.dev

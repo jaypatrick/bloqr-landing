@@ -2,10 +2,9 @@
  * Site configuration — single source of truth for all external URLs.
  *
  * ── URL Migration Guide ────────────────────────────────────────────────────────
- * Current (temporary): bloqr.jaysonknight.com subdomain scheme
- * Target (production):  bloqr.ai subdomain scheme
+ * Current (production): bloqr.dev subdomain scheme
  *
- * To migrate to bloqr.ai when the domain is secured:
+ * To migrate to a new domain in the future:
  *   1. Update the URL constants in EXTERNAL_URLS below (4 values)
  *   2. Update CANONICAL_DOMAIN below
  *   3. Update wrangler.toml [[routes]] pattern
@@ -18,21 +17,20 @@
 // These are the ONLY values that need updating for a domain migration.
 const EXTERNAL_URLS = {
   /** Landing page / this site */
-  landing: 'https://bloqr.jaysonknight.com',
+  landing: 'https://bloqr.dev',
   /** Angular app frontend */
-  app:     'https://app.bloqr.jaysonknight.com',
+  app:     'https://app.bloqr.dev',
   /** Backend API worker */
-  api:     'https://api.bloqr.jaysonknight.com',
+  api:     'https://api.bloqr.dev',
   /** mdBook documentation site */
-  docs:    'https://docs.bloqr.jaysonknight.com',
+  docs:    'https://docs.bloqr.dev',
 } as const;
 
 /**
  * The canonical production domain. Used by the Worker to set
  * `X-Robots-Tag: noindex, nofollow` on responses from non-canonical hosts.
- * Update to 'bloqr.ai' when the domain is live.
  */
-export const CANONICAL_DOMAIN = 'bloqr.jaysonknight.com';
+export const CANONICAL_DOMAIN = 'bloqr.dev';
 
 /**
  * SITE_URL — the canonical URL of this landing site.
