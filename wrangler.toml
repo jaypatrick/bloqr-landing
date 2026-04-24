@@ -106,7 +106,7 @@ binding = "BROWSER"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
 # This route is configured for the current custom domain.
-# Update pattern to "bloqr.dev" when the domain is secured.
+# Update pattern when the custom domain changes.
 [[routes]]
 pattern = "bloqr.dev"
 custom_domain = true
