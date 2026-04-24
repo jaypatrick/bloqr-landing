@@ -45,8 +45,8 @@ export default defineConfig({
   // Derived from the SITE_URL env var so the sitemap and RSS context.site stay
   // consistent with the rest of the codebase (src/config.ts SITE_URL, wrangler.toml
   // CANONICAL_DOMAIN, and wrangler.toml [[routes]]).  Set SITE_URL in the
-  // Cloudflare dashboard (or .env / .dev.vars locally) when migrating to bloqr.ai.
-  site: process.env.SITE_URL ?? 'https://bloqr.jaysonknight.com',
+  // Cloudflare dashboard (or .env / .dev.vars locally) when migrating to a new domain.
+  site: process.env.SITE_URL ?? 'https://bloqr.dev',
 
   // ── Astro 6 Fonts API ──────────────────────────────────────────────────
   // Uses the fontsource() provider to self-host fonts from the installed

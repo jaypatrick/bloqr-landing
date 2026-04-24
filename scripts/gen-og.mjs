@@ -131,7 +131,7 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
   <text x="${W - 40}" y="${H - 28}"
     font-family="system-ui, -apple-system, 'Helvetica Neue', sans-serif"
     font-size="13" font-weight="500" fill="rgba(255,255,255,0.25)"
-    text-anchor="end" letter-spacing="0.3">bloqr.jaysonknight.com</text>
+    text-anchor="end" letter-spacing="0.3">bloqr.dev</text>
 
 </svg>`;
 

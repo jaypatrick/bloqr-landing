@@ -30,7 +30,7 @@ export interface Env {
   // ─── Better Auth ──────────────────────────────────────────────────────────
   /** Random 32+ char secret; signs and validates Better Auth sessions. */
   BETTER_AUTH_SECRET: string;
-  /** Canonical origin for Better Auth callbacks (e.g. https://bloqr.jaysonknight.com). */
+  /** Canonical origin for Better Auth callbacks (e.g. https://bloqr.dev). */
   BETTER_AUTH_URL?: string;
   /** GitHub OAuth App client ID. */
   GITHUB_CLIENT_ID?: string;
@@ -38,7 +38,7 @@ export interface Env {
   GITHUB_CLIENT_SECRET?: string;
   /**
    * Optional comma-separated list of trusted origins for cross-app SSO.
-   * Leave unset until app.bloqr.ai / docs.bloqr.ai are live.
+   * Leave unset until app.bloqr.dev / docs.bloqr.dev are live.
    */
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
 
