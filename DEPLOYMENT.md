@@ -48,7 +48,7 @@ Set in **Cloudflare dashboard → Workers → adblock-landing → Settings → V
 | `APOLLO_API_KEY` | Apollo.io API key for waitlist contact sync |
 | `ADMIN_SECRET` | Legacy password for `/admin/*` fallback auth (keep set until Better Auth migration is complete) |
 | `BETTER_AUTH_SECRET` | Same value as GitHub secret — JWT signing key for Better Auth sessions |
-| `BETTER_AUTH_URL` | The canonical URL of this app, e.g. `https://adblock-landing.jk-com.workers.dev` (update to `https://bloqr.dev` when live) |
+| `BETTER_AUTH_URL` | The canonical URL of this app. Set production to `https://bloqr.dev`; use the active preview or local origin only in non-production environments. |
 | `GITHUB_CLIENT_ID` | GitHub OAuth App client ID (for admin SSO) |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
 
