@@ -16,7 +16,7 @@
     "migrate:auth": "tsx scripts/migrate-better-auth.ts"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^13.1.8",
+    "@astrojs/cloudflare": "^13.1.10",
     "@astrojs/compiler-rs": "^0.1.6",
     "@astrojs/rss": "^4.0.18",
     "@astrojs/sitemap": "^3.7.2",
