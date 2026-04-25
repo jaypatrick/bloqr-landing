@@ -183,7 +183,7 @@ function buildRawMimeMessage(
   text:    string,
   html:    string,
 ): string {
-  const boundary = `----bloqr-${Date.now()}`;
+  const boundary = `----bloqr-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
   const lines = [
     `From: ${from}`,
     `To: ${to}`,

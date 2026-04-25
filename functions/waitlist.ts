@@ -237,7 +237,7 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
         ctx.waitUntil(
           createEmailService({
             FROM_EMAIL:   env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
-            SEND_EMAIL:   env.EMAIL_WORKER ? undefined : env.SEND_EMAIL,
+            SEND_EMAIL:   env.SEND_EMAIL,
             EMAIL_WORKER: env.EMAIL_WORKER,
           })
             .sendWaitlistConfirmation(email, segment)
