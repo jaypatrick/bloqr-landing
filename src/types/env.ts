@@ -68,6 +68,19 @@ export interface Env {
    * Set as a Worker Secret: wrangler secret put DKIM_PRIVATE_KEY
    */
   DKIM_PRIVATE_KEY?: string;
+  /**
+   * Cloudflare service binding to the dedicated `adblock-email` Worker.
+   * When present, email is routed through the email worker instead of calling
+   * MailChannels directly.
+   *
+   * Wire in wrangler.toml:
+   *   [[services]]
+   *   binding = "EMAIL_WORKER"
+   *   service = "adblock-email"
+   *
+   * @see src/services/emailService.ts — ServiceBindingStrategy
+   */
+  EMAIL_WORKER?: Fetcher;
 
   // ─── Cloudflare Workers bindings ──────────────────────────────────────────
   /**

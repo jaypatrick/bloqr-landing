@@ -1,45 +1,80 @@
 /**
- * src/services/emailService.ts — Transactional email via MailChannels
+ * src/services/emailService.ts — Transactional email for the Bloqr Worker
  *
- * Sends outbound email from the Cloudflare Worker using the MailChannels
- * Send API (https://api.mailchannels.net/tx/v1/send). This is the correct
- * outbound mechanism for CF Workers; Email Routing is inbound-only.
+ * Supports two delivery strategies — automatically selected at runtime:
+ *
+ *  1. **Service binding** (`EMAIL_WORKER`): Routes the request through the
+ *     dedicated `adblock-email` Cloudflare Worker via a service binding.
+ *     Preferred when the binding is present because it centralises delivery
+ *     logic, retries, and logging in a single place.
+ *
+ *  2. **MailChannels direct** (fallback): POSTs directly to the MailChannels
+ *     TX API (`https://api.mailchannels.net/tx/v1/send`).  Used when the
+ *     service binding is absent (local dev without `npm run preview`, CI, etc.).
+ *
+ * Both strategies validate the payload with Zod before any network call and
+ * treat non-2xx responses as warnings (fire-and-forget safe).
  *
  * Usage:
+ *   import { createEmailService } from '@/services/emailService';
+ *
+ *   // Inside a Worker handler:
  *   const svc = createEmailService(env);
  *   await svc.sendEmail({ to, subject, html, text });
+ *
+ *   // Fire-and-forget (never blocks the primary response):
+ *   ctx.waitUntil(
+ *     svc.sendEmail({ to, subject, html, text })
+ *        .catch((err) => console.warn('Email failed:', err)),
+ *   );
  */
 
-import { z, ZodError } from 'zod';
+import { ZodError } from 'zod';
+import { EmailPayloadSchema, type EmailPayload } from './emailSchemas';
+
+// ─── Re-export EmailPayload so callers only need one import ───────────────────
+export type { EmailPayload } from './emailSchemas';
+export { EmailPayloadSchema } from './emailSchemas';
 
 // ─── Environment ──────────────────────────────────────────────────────────────
 
+/**
+ * Minimum environment bindings required by the email service.
+ *
+ * `FROM_EMAIL` is the only strictly required field.  DKIM fields are optional
+ * but must ALL be present together to enable DKIM signing; if any one is
+ * missing the service sends without DKIM rather than failing.
+ *
+ * `EMAIL_WORKER` is the service binding to the `adblock-email` Cloudflare
+ * Worker.  When present the service forwards the payload there instead of
+ * calling MailChannels directly.  Wire it in `wrangler.toml`:
+ *
+ *   [[services]]
+ *   binding = "EMAIL_WORKER"
+ *   service = "adblock-email"
+ */
 export interface EmailEnv {
-  /** Sender address, e.g. "Bloqr <hello@bloqr.dev>" */
+  /** Sender address, e.g. `"Bloqr <hello@bloqr.dev>"` */
   FROM_EMAIL: string;
-  /** Domain used for DKIM signing (e.g. "bloqr.dev"). Must match DNS TXT record. */
+  /** Domain used for DKIM signing (e.g. `"bloqr.dev"`). Must match the DNS TXT record. */
   DKIM_DOMAIN?: string;
-  /** DKIM selector (e.g. "mailchannels"). */
+  /** DKIM selector (e.g. `"mailchannels"`). Must match the DNS TXT record. */
   DKIM_SELECTOR?: string;
   /**
    * DKIM private key (base64-encoded RSA private key).
-   * Set as a Worker Secret: wrangler secret put DKIM_PRIVATE_KEY
+   * Set as a Worker Secret: `wrangler secret put DKIM_PRIVATE_KEY`
+   * Never put this in `wrangler.toml [vars]` or source code.
    */
   DKIM_PRIVATE_KEY?: string;
+  /**
+   * Cloudflare service binding to the `adblock-email` Worker.
+   * When present, email delivery is routed through this binding instead of
+   * calling MailChannels directly.
+   */
+  EMAIL_WORKER?: Fetcher;
 }
 
-// ─── Payload schema ───────────────────────────────────────────────────────────
-
-export const EmailPayloadSchema = z.object({
-  to:      z.string().email(),
-  subject: z.string().min(1),
-  html:    z.string().min(1),
-  text:    z.string().min(1),
-});
-
-export type EmailPayload = z.infer<typeof EmailPayloadSchema>;
-
-// ─── MailChannels types (internal) ───────────────────────────────────────────
+// ─── MailChannels internal types ─────────────────────────────────────────────
 
 interface MailChannelsPersonalization {
   to:                [{ email: string }];
@@ -55,50 +90,120 @@ interface MailChannelsBody {
   content:          { type: string; value: string }[];
 }
 
-// ─── Service ─────────────────────────────────────────────────────────────────
+// ─── Service binding payload ──────────────────────────────────────────────────
 
-const MAILCHANNELS_API = 'https://api.mailchannels.net/tx/v1/send';
+/**
+ * JSON body sent to the `adblock-email` worker via the service binding.
+ * The worker receives this and forwards to MailChannels (or any provider it
+ * chooses), allowing the delivery implementation to be updated independently.
+ */
+interface EmailWorkerPayload {
+  to:               string;
+  from:             string;
+  subject:          string;
+  html:             string;
+  text:             string;
+  dkimDomain?:      string;
+  dkimSelector?:    string;
+  dkimPrivateKey?:  string;
+}
 
-export class EmailService {
-  private readonly env: EmailEnv;
+// ─── Send strategies ─────────────────────────────────────────────────────────
 
-  constructor(env: EmailEnv) {
-    this.env = env;
-  }
+/**
+ * Pluggable delivery strategy.  Both concrete strategies below implement this
+ * interface so the `EmailService` class does not need to know which one is
+ * active — the factory selects the right strategy based on `env`.
+ */
+export interface EmailSendStrategy {
+  send(payload: EmailPayload, env: EmailEnv): Promise<void>;
+}
 
-  async sendEmail(payload: EmailPayload): Promise<void> {
-    // Validate at the trust boundary — unknown callers must pass a well-formed payload.
-    let validated: EmailPayload;
-    try {
-      validated = EmailPayloadSchema.parse(payload);
-    } catch (err) {
-      if (err instanceof ZodError) {
-        throw new Error(`Invalid email payload: ${err.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
-      }
-      throw err;
+/**
+ * Delivers via the `adblock-email` Worker service binding.
+ *
+ * Forwards a JSON payload to `env.EMAIL_WORKER.fetch()`.  The service binding
+ * handles MailChannels (or an alternative provider) on its own.  A non-2xx
+ * response is treated as a warning — it is logged but does not propagate.
+ */
+export class ServiceBindingStrategy implements EmailSendStrategy {
+  async send(payload: EmailPayload, env: EmailEnv): Promise<void> {
+    if (!env.EMAIL_WORKER) {
+      throw new Error('ServiceBindingStrategy requires EMAIL_WORKER binding');
     }
 
     const hasDkim =
-      this.env.DKIM_DOMAIN != null &&
-      this.env.DKIM_SELECTOR != null &&
-      this.env.DKIM_PRIVATE_KEY != null;
+      env.DKIM_DOMAIN      != null &&
+      env.DKIM_SELECTOR    != null &&
+      env.DKIM_PRIVATE_KEY != null;
+
+    const body: EmailWorkerPayload = {
+      to:      payload.to,
+      from:    env.FROM_EMAIL,
+      subject: payload.subject,
+      html:    payload.html,
+      text:    payload.text,
+      ...(hasDkim && {
+        dkimDomain:     env.DKIM_DOMAIN,
+        dkimSelector:   env.DKIM_SELECTOR,
+        dkimPrivateKey: env.DKIM_PRIVATE_KEY,
+      }),
+    };
+
+    let res: Response;
+    try {
+      res = await env.EMAIL_WORKER.fetch(
+        new Request('https://send-email', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+        }),
+      );
+    } catch (err) {
+      console.warn('adblock-email service binding request failed:', err);
+      return;
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '(no body)');
+      console.warn(`adblock-email service binding returned ${res.status}:`, text);
+    }
+  }
+}
+
+/** URL of the MailChannels TX Send API. */
+const MAILCHANNELS_API = 'https://api.mailchannels.net/tx/v1/send';
+
+/**
+ * Delivers directly to the MailChannels TX API.
+ *
+ * Used when the `EMAIL_WORKER` service binding is not present.  A non-2xx
+ * response is treated as a warning — logged but not thrown — so callers using
+ * `ctx.waitUntil` receive a clean resolution.
+ */
+export class MailChannelsStrategy implements EmailSendStrategy {
+  async send(payload: EmailPayload, env: EmailEnv): Promise<void> {
+    const hasDkim =
+      env.DKIM_DOMAIN      != null &&
+      env.DKIM_SELECTOR    != null &&
+      env.DKIM_PRIVATE_KEY != null;
 
     const personalization: MailChannelsPersonalization = {
-      to: [{ email: validated.to }],
+      to: [{ email: payload.to }],
       ...(hasDkim && {
-        dkim_domain:      this.env.DKIM_DOMAIN,
-        dkim_selector:    this.env.DKIM_SELECTOR,
-        dkim_private_key: this.env.DKIM_PRIVATE_KEY,
+        dkim_domain:      env.DKIM_DOMAIN,
+        dkim_selector:    env.DKIM_SELECTOR,
+        dkim_private_key: env.DKIM_PRIVATE_KEY,
       }),
     };
 
     const body: MailChannelsBody = {
       personalizations: [personalization],
-      from:             { email: this.env.FROM_EMAIL },
-      subject:          validated.subject,
+      from:             { email: env.FROM_EMAIL },
+      subject:          payload.subject,
       content: [
-        { type: 'text/plain', value: validated.text },
-        { type: 'text/html',  value: validated.html  },
+        { type: 'text/plain', value: payload.text },
+        { type: 'text/html',  value: payload.html  },
       ],
     };
 
@@ -110,8 +215,8 @@ export class EmailService {
         body:    JSON.stringify(body),
       });
     } catch (err) {
-      // Network or CF-side failure — log and resolve without throwing so callers
-      // using ctx.waitUntil don't see an unhandled rejection.
+      // Network or CF-side failure — log and resolve so ctx.waitUntil callers
+      // don't see an unhandled rejection.
       console.warn('MailChannels request failed:', err);
       return;
     }
@@ -123,8 +228,95 @@ export class EmailService {
   }
 }
 
+// ─── EmailService ─────────────────────────────────────────────────────────────
+
+/**
+ * Primary email service class.
+ *
+ * Validates the payload with Zod then delegates to the injected strategy.
+ * Construct via `createEmailService(env)` rather than directly so the correct
+ * strategy is chosen automatically.
+ *
+ * @example
+ * ```typescript
+ * const svc = createEmailService(env);
+ *
+ * // Blocking send (awaited directly):
+ * await svc.sendEmail({ to, subject, html, text });
+ *
+ * // Non-blocking (fire-and-forget via ctx.waitUntil):
+ * ctx.waitUntil(
+ *   svc.sendEmail({ to, subject, html, text })
+ *      .catch((err) => console.warn('Email failed:', err)),
+ * );
+ * ```
+ */
+export class EmailService {
+  private readonly env:      EmailEnv;
+  private readonly strategy: EmailSendStrategy;
+
+  constructor(env: EmailEnv, strategy: EmailSendStrategy) {
+    this.env      = env;
+    this.strategy = strategy;
+  }
+
+  /**
+   * Validates `payload` with the `EmailPayloadSchema` Zod schema, then
+   * delegates to the configured send strategy.
+   *
+   * @throws {Error} If the payload fails validation. The message includes the
+   *   failing field path and Zod error message, e.g.
+   *   `"Invalid email payload: to: Invalid email"`.
+   *
+   * Non-2xx responses from MailChannels / the service binding are treated as
+   * warnings and logged via `console.warn` — they do **not** throw, so callers
+   * using `ctx.waitUntil` receive a clean resolution.
+   */
+  async sendEmail(payload: EmailPayload): Promise<void> {
+    let validated: EmailPayload;
+    try {
+      validated = EmailPayloadSchema.parse(payload);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        const details = err.issues
+          .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`)
+          .join(', ');
+        throw new Error(`Invalid email payload: ${details}`);
+      }
+      throw err;
+    }
+
+    await this.strategy.send(validated, this.env);
+  }
+}
+
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
+/**
+ * Creates an `EmailService` configured for the current Worker environment.
+ *
+ * Strategy selection:
+ * - **`EMAIL_WORKER` present** → `ServiceBindingStrategy` (routes through the
+ *   `adblock-email` Worker via a Cloudflare service binding).
+ * - **`EMAIL_WORKER` absent** → `MailChannelsStrategy` (calls the MailChannels
+ *   TX API directly — correct for CF Workers).
+ *
+ * @example
+ * ```typescript
+ * // In a Worker handler:
+ * if (env.FROM_EMAIL) {
+ *   const svc = createEmailService(env);
+ *   ctx.waitUntil(
+ *     svc.sendEmail({ to: email, subject, html, text })
+ *        .catch((err) => console.warn('Email failed:', err)),
+ *   );
+ * }
+ * ```
+ */
 export function createEmailService(env: EmailEnv): EmailService {
-  return new EmailService(env);
+  const strategy: EmailSendStrategy = env.EMAIL_WORKER
+    ? new ServiceBindingStrategy()
+    : new MailChannelsStrategy();
+  return new EmailService(env, strategy);
 }
+

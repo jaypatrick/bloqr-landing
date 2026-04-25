@@ -12,6 +12,10 @@
  *   POST    /admin/blog     → create blog post (requires auth)
  *   PUT     /admin/blog     → update blog post (requires auth)
  *   OPTIONS /admin/blog     → CORS preflight
+ *   GET     /admin/email/status  → email config status (requires auth)
+ *   GET     /admin/email/preview → render template preview (requires auth)
+ *   POST    /admin/email/send-test → send test email (requires auth)
+ *   OPTIONS /admin/email/*       → CORS preflight
  *   GET     /api/browser-health → Browser Rendering binding health check (requires auth)
  *   POST    /api/auth/*     → Better Auth handler (all auth endpoints)
  *   GET     /api/auth/*     → Better Auth handler (session checks, OAuth callbacks)
@@ -23,6 +27,12 @@ import { handleOptions as waitlistOptions, handlePost as waitlistPost } from '..
 import { handleOptions as configGetOptions, handleGet as configGet } from '../functions/config';
 import { handleOptions as configPostOptions, handlePost as configPost } from '../functions/admin/config';
 import { handleOptions as blogOptions, handleGet as blogGet, handlePost as blogPost, handlePut as blogPut } from '../functions/admin/blog';
+import {
+  handleOptions as emailAdminOptions,
+  handleStatus as emailAdminStatus,
+  handlePreview as emailAdminPreview,
+  handleSendTest as emailAdminSendTest,
+} from '../functions/admin/email';
 import { handleAuth } from './lib/auth';
 import { isAuthConfigured, isAuthorized } from '../functions/admin/_auth-guard';
 
@@ -104,6 +114,18 @@ export default {
       else if (request.method === 'GET') response = await blogGet(request, env);
       else if (request.method === 'POST') response = await blogPost(request, env);
       else if (request.method === 'PUT') response = await blogPut(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/admin/email/status') {
+      if (request.method === 'OPTIONS') response = emailAdminOptions();
+      else if (request.method === 'GET') response = await emailAdminStatus(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/admin/email/preview') {
+      if (request.method === 'OPTIONS') response = emailAdminOptions();
+      else if (request.method === 'GET') response = await emailAdminPreview(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/admin/email/send-test') {
+      if (request.method === 'OPTIONS') response = emailAdminOptions();
+      else if (request.method === 'POST') response = await emailAdminSendTest(request, env);
       else response = new Response('Method Not Allowed', { status: 405 });
     } else if (url.pathname === '/api/browser-health') {
       if (request.method === 'OPTIONS') {

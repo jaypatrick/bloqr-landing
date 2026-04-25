@@ -20,6 +20,8 @@ export interface Env {
   DKIM_DOMAIN?: string;
   DKIM_SELECTOR?: string;
   DKIM_PRIVATE_KEY?: string;
+  /** Service binding to the `adblock-email` Cloudflare Worker (preferred over direct MailChannels). */
+  EMAIL_WORKER?: Fetcher;
 }
 
 interface WaitlistBody {
@@ -134,14 +136,16 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
     }
 
     // Fire confirmation email in the background — never blocks the response.
+    // Prefers the EMAIL_WORKER service binding (adblock-email) over direct MailChannels.
     if (env.FROM_EMAIL) {
       const { subject, html, text } = renderWaitlistWelcome(email, segment);
       ctx.waitUntil(
         createEmailService({
-          FROM_EMAIL:      env.FROM_EMAIL,
-          DKIM_DOMAIN:     env.DKIM_DOMAIN,
-          DKIM_SELECTOR:   env.DKIM_SELECTOR,
+          FROM_EMAIL:       env.FROM_EMAIL,
+          DKIM_DOMAIN:      env.DKIM_DOMAIN,
+          DKIM_SELECTOR:    env.DKIM_SELECTOR,
           DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
+          EMAIL_WORKER:     env.EMAIL_WORKER,
         })
           .sendEmail({ to: email, subject, html, text })
           .catch((err: unknown) => console.warn('Waitlist email failed:', err)),
