@@ -18,17 +18,14 @@ export interface Env {
   /** Apollo.io API key for contact enrichment. Optional — enrichment is fire-and-forget. */
   APOLLO_API_KEY?: string;
   FROM_EMAIL?: string;
-  DKIM_DOMAIN?: string;
-  DKIM_SELECTOR?: string;
-  DKIM_PRIVATE_KEY?: string;
   /**
-   * Resend API key for outbound transactional email.
-   * When present (and EMAIL_WORKER is absent), ResendStrategy is used.
-   * Set as a Worker Secret — never add to wrangler.toml [vars].
-   * wrangler secret put RESEND_API_KEY
+   * Cloudflare Email Workers `SEND_EMAIL` binding.
+   * When present (and EMAIL_WORKER is absent), CfEmailSendingStrategy is used.
    */
-  RESEND_API_KEY?: string;
-  /** Service binding to the `adblock-email` Cloudflare Worker (preferred over direct MailChannels). */
+  SEND_EMAIL?: {
+    send(message: unknown): Promise<void>;
+  };
+  /** Service binding to the `adblock-email` Cloudflare Worker (preferred over direct send). */
   EMAIL_WORKER?: Fetcher;
   /**
    * Cloudflare Queue producer for durable email delivery.
@@ -233,20 +230,15 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
           env.EMAIL_QUEUE.send(message)
             .catch((err: unknown) => console.warn('Email queue publish failed:', err)),
         );
-      } else if (env.FROM_EMAIL || env.RESEND_API_KEY) {
+      } else if (env.FROM_EMAIL) {
         // Strategy 3: Direct email send (fallback for local dev / no queue).
-        // Resend is preferred when RESEND_API_KEY is set; MailChannels is the
-        // legacy fallback.  createEmailService() auto-selects the strategy.
-        // Falls back to DEFAULT_FROM_EMAIL when only RESEND_API_KEY is set
-        // (no FROM_EMAIL configured) — this path never involves the queue.
+        // createEmailService() auto-selects the strategy (CfEmailSendingStrategy
+        // when SEND_EMAIL is present, NullEmailStrategy otherwise).
         ctx.waitUntil(
           createEmailService({
-            FROM_EMAIL:       env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
-            RESEND_API_KEY:   env.RESEND_API_KEY,
-            DKIM_DOMAIN:      env.DKIM_DOMAIN,
-            DKIM_SELECTOR:    env.DKIM_SELECTOR,
-            DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
-            EMAIL_WORKER:     env.EMAIL_WORKER,
+            FROM_EMAIL:   env.FROM_EMAIL,
+            SEND_EMAIL:   env.SEND_EMAIL,
+            EMAIL_WORKER: env.EMAIL_WORKER,
           })
             .sendWaitlistConfirmation(email, segment)
             .catch((err: unknown) => console.warn('Waitlist email failed:', err)),

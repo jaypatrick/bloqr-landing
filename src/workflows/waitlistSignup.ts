@@ -141,7 +141,7 @@ export class WaitlistSignupWorkflow
     //
     // Separating "enqueue durably" (this step) from "send reliably" (consumer)
     // gives each concern an independent retry budget, avoiding a scenario where
-    // a transient MailChannels error causes Apollo enrichment to re-run too.
+    // a transient email delivery error causes Apollo enrichment to re-run too.
     await step.do(
       'enqueue-email',
       {

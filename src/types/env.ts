@@ -68,40 +68,29 @@ export interface Env {
   /** Deployment environment tag ("production", "staging", etc.). */
   ENVIRONMENT?: string;
 
-  // ─── Email service (MailChannels via CF Workers — transactional, outbound) ──
-  /** Sender address, e.g. "Bloqr <hello@bloqr.app>" */
+  // ─── Email service (Cloudflare Email Workers — transactional, outbound) ──────
+  /** Sender address, e.g. "Bloqr <hello@bloqr.dev>" */
   FROM_EMAIL?: string;
   /**
-   * Resend API key for outbound transactional email.
+   * Cloudflare Email Workers `SEND_EMAIL` binding.
+   * Enables outbound transactional email via the native CF Email Routing
+   * infrastructure — no third-party API key required.
    *
-   * When present (and `EMAIL_WORKER` is absent), `createEmailService()` selects
-   * `ResendStrategy` over `MailChannelsStrategy`.
+   * Wire in wrangler.toml:
+   *   [[send_email]]
+   *   name = "SEND_EMAIL"
+   *   # destination_address = "hello@bloqr.dev"  # optional: restrict to one address
    *
-   * Set as a Worker Secret — never put the value in `wrangler.toml [vars]`:
-   *   wrangler secret put RESEND_API_KEY
-   *
-   * DNS prerequisites:
-   *   - Add `bloqr.app` in the Resend dashboard to obtain SPF/DKIM records.
-   *   - Add those records to the Cloudflare zone for `bloqr.app`.
-   *   - Cloudflare Email Routing handles inbound forwarding separately
-   *     (configured in the CF dashboard — no code changes needed).
-   *
-   * @see src/services/emailService.ts — ResendStrategy
+   * @see src/services/emailService.ts — CfEmailSendingStrategy
+   * @see https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/
    */
-  RESEND_API_KEY?: string;
-  /** Domain used for DKIM signing (e.g. "bloqr.dev"). Must match DNS TXT record. */
-  DKIM_DOMAIN?: string;
-  /** DKIM selector (e.g. "mailchannels"). */
-  DKIM_SELECTOR?: string;
-  /**
-   * DKIM private key (base64-encoded RSA private key).
-   * Set as a Worker Secret: wrangler secret put DKIM_PRIVATE_KEY
-   */
-  DKIM_PRIVATE_KEY?: string;
+  SEND_EMAIL?: {
+    send(message: unknown): Promise<void>;
+  };
   /**
    * Cloudflare service binding to the dedicated `adblock-email` Worker.
    * When present, email is routed through the email worker instead of calling
-   * MailChannels directly.
+   * the SEND_EMAIL binding directly.
    *
    * Wire in wrangler.toml:
    *   [[services]]

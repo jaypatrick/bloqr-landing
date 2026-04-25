@@ -95,35 +95,37 @@ The Worker handles a small set of server-side routes. Everything else falls thro
 
 ---
 
-## Email Setup (Resend + Cloudflare Email Routing)
+## Email Setup (CF Email Workers binding)
 
-Bloqr uses **Resend** for outbound transactional email (waitlist confirmations) and **Cloudflare Email Routing** for inbound forwarding. They operate independently and do not conflict.
+Bloqr uses the **Cloudflare Email Workers binding** (`cloudflare:email`) for outbound transactional email (waitlist confirmations) and **Cloudflare Email Routing** for inbound forwarding. Both are fully Cloudflare-native — no third-party API key is needed.
 
-### Outbound — Resend
+### Outbound — CF Email Workers binding (`SEND_EMAIL`)
 
-1. Create an account at [resend.com](https://resend.com) and add `bloqr.app` as a sending domain.
-2. The Resend dashboard will provide **SPF** and **DKIM** DNS records. Add these to the `bloqr.app` Cloudflare DNS zone.
-3. Obtain an API key and set it as a Worker Secret — **never** add it to `wrangler.toml [vars]`:
-   ```sh
-   wrangler secret put RESEND_API_KEY
+1. In the **Cloudflare dashboard → Email → Email Routing**, enable Email Routing on the `bloqr.dev` zone and verify your sending domain.
+2. The `[[send_email]]` binding is already declared in `wrangler.toml`. CF handles DKIM/SPF automatically — no keys to manage.
+3. `FROM_EMAIL` is set as a plain var in `wrangler.toml [vars]`:
+   ```toml
+   FROM_EMAIL = "Bloqr <hello@bloqr.dev>"
    ```
-4. Set `FROM_EMAIL` explicitly for all email flows:
-   ```sh
-   # In .dev.vars for local dev, or wrangler.toml [vars] for non-secret values
-   FROM_EMAIL=Bloqr <hello@bloqr.app>
-   ```
+   Override it locally in `.dev.vars` if needed.
+4. The binding only works in the Cloudflare Workers runtime. Use `npm run preview` (wrangler dev) to exercise email paths locally.
 
-The direct waitlist send path falls back to `Bloqr <hello@bloqr.app>` when only `RESEND_API_KEY` is set and `FROM_EMAIL` is absent. All other send paths (queue consumer, admin send-test) require `FROM_EMAIL` to be set explicitly.
+`createEmailService(env)` automatically selects the correct strategy based on what is bound:
 
-`createEmailService(env)` automatically selects `ResendStrategy` when `RESEND_API_KEY` is present (preferred over MailChannels fallback).
+| Binding present | Strategy selected |
+|---|---|
+| `EMAIL_WORKER` (adblock-email service binding) | `ServiceBindingStrategy` — routes to the dedicated email Worker |
+| `SEND_EMAIL` only | `CfEmailSendingStrategy` — CF Email Routing Workers binding |
+| Neither | `NullEmailStrategy` — logs a warning and drops (local dev / CI) |
 
 ### Inbound — Cloudflare Email Routing
 
-Cloudflare Email Routing forwards inbound messages to your personal inbox. Configure it in the **Cloudflare dashboard → Email → Email Routing** — no code changes are required. This is independent of the Resend outbound flow.
+Cloudflare Email Routing forwards inbound messages to your personal inbox. Configure it in the **Cloudflare dashboard → Email → Email Routing** — no code changes are required. This is independent of the outbound `SEND_EMAIL` binding.
 
 ### Security checklist
 
-- `RESEND_API_KEY` must be a **Worker Secret** — never appears in `[vars]` or committed config.
+- `FROM_EMAIL` is a non-secret plain var — safe in `wrangler.toml [vars]`.
+- No API keys or DKIM private keys are required or stored.
 - All waitlist request fields are Zod-validated before any email is sent.
 - Email delivery errors are fire-and-forget — they never block the `200` waitlist response.
 

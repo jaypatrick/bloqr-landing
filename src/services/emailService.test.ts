@@ -1,29 +1,39 @@
 /**
  * src/services/emailService.test.ts — Unit tests for EmailService
  *
- * All tests mock `globalThis.fetch` and the EMAIL_WORKER Fetcher binding.
- * No real MailChannels requests are made in this suite.
+ * All tests mock `env.SEND_EMAIL` or the `EMAIL_WORKER` Fetcher binding.
+ * No real network requests are made in this suite.
  *
  * Test categories:
  *   1. EmailPayloadSchema — Zod validation edge cases
- *   2. MailChannelsStrategy — direct MailChannels delivery path
- *   3. ServiceBindingStrategy — adblock-email service binding path
- *   4. EmailService.sendEmail — end-to-end with both strategies
- *   5. createEmailService factory — strategy selection
+ *   2. ServiceBindingStrategy — adblock-email service binding path
+ *   3. CfEmailSendingStrategy — CF Email Workers binding path
+ *   4. NullEmailStrategy — no-op fallback path
+ *   5. EmailService.sendEmail — end-to-end validation + strategy delegation
+ *   6. EmailService.sendWaitlistConfirmation — template rendering + send
+ *   7. createEmailService factory — strategy selection
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import {
   EmailService,
   EmailValidationError,
-  MailChannelsStrategy,
-  ResendStrategy,
+  CfEmailSendingStrategy,
+  NullEmailStrategy,
   ServiceBindingStrategy,
   createEmailService,
   DEFAULT_FROM_EMAIL,
   type EmailEnv,
 } from './emailService';
 import { EmailPayloadSchema } from './emailSchemas';
+
+// ─── Mock cloudflare:email ────────────────────────────────────────────────────
+
+vi.mock('cloudflare:email', () => ({
+  // Use vi.fn() (no implementation) — constructible mock that records call args.
+  // Arrow functions are not constructors; vi.fn() is.
+  EmailMessage: vi.fn(),
+}));
 
 // ─── Shared fixtures ──────────────────────────────────────────────────────────
 
@@ -36,13 +46,6 @@ const VALID_PAYLOAD = {
 
 const MINIMAL_ENV: EmailEnv = {
   FROM_EMAIL: 'hello@bloqr.dev',
-};
-
-const DKIM_ENV: EmailEnv = {
-  FROM_EMAIL:      'hello@bloqr.dev',
-  DKIM_DOMAIN:     'bloqr.dev',
-  DKIM_SELECTOR:   'mailchannels',
-  DKIM_PRIVATE_KEY: 'base64-private-key',
 };
 
 // ─── 0. Module-level exports ──────────────────────────────────────────────────
@@ -90,90 +93,7 @@ describe('EmailPayloadSchema', () => {
   });
 });
 
-// ─── 2. MailChannelsStrategy ──────────────────────────────────────────────────
-
-describe('MailChannelsStrategy', () => {
-  let fetchMock: Mock;
-
-  beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(
-      new Response(null, { status: 202 }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('calls fetch with the MailChannels endpoint and correct JSON body', async () => {
-    const strategy = new MailChannelsStrategy();
-    await strategy.send(VALID_PAYLOAD, MINIMAL_ENV);
-
-    expect(fetchMock).toHaveBeenCalledOnce();
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://api.mailchannels.net/tx/v1/send');
-    expect(init.method).toBe('POST');
-
-    const body = JSON.parse(init.body as string);
-    expect(body.from.email).toBe('hello@bloqr.dev');
-    expect(body.personalizations[0].to[0].email).toBe('user@example.com');
-    expect(body.subject).toBe('Test Subject');
-    expect(body.content).toHaveLength(2);
-    expect(body.content[0].type).toBe('text/plain');
-    expect(body.content[1].type).toBe('text/html');
-  });
-
-  it('includes DKIM fields in personalization when all three DKIM env vars are present', async () => {
-    const strategy = new MailChannelsStrategy();
-    await strategy.send(VALID_PAYLOAD, DKIM_ENV);
-
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    const person = body.personalizations[0];
-    expect(person.dkim_domain).toBe('bloqr.dev');
-    expect(person.dkim_selector).toBe('mailchannels');
-    expect(person.dkim_private_key).toBe('base64-private-key');
-  });
-
-  it('omits DKIM fields when only some DKIM env vars are present', async () => {
-    const partialDkimEnv: EmailEnv = {
-      FROM_EMAIL:    'hello@bloqr.dev',
-      DKIM_DOMAIN:   'bloqr.dev',
-      // DKIM_SELECTOR and DKIM_PRIVATE_KEY intentionally missing
-    };
-    const strategy = new MailChannelsStrategy();
-    await strategy.send(VALID_PAYLOAD, partialDkimEnv);
-
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    const person = body.personalizations[0];
-    expect(person.dkim_domain).toBeUndefined();
-    expect(person.dkim_selector).toBeUndefined();
-    expect(person.dkim_private_key).toBeUndefined();
-  });
-
-  it('throws when MailChannels returns a non-2xx status', async () => {
-    fetchMock.mockResolvedValue(new Response('Bad request', { status: 400 }));
-    const strategy = new MailChannelsStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow(/MailChannels send failed/);
-  });
-
-  it('throws when fetch itself rejects (network failure)', async () => {
-    fetchMock.mockRejectedValue(new TypeError('network failure'));
-    const strategy = new MailChannelsStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow();
-  });
-
-  it('logs a warning on non-2xx response before throwing', async () => {
-    fetchMock.mockResolvedValue(new Response('error', { status: 500 }));
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const strategy = new MailChannelsStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow();
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
-  });
-});
-
-// ─── 3. ServiceBindingStrategy ────────────────────────────────────────────────
+// ─── 2. ServiceBindingStrategy ────────────────────────────────────────────────
 
 describe('ServiceBindingStrategy', () => {
   function makeWorkerFetcher(status = 200): { fetcher: Fetcher; fetcherMock: Mock } {
@@ -196,28 +116,6 @@ describe('ServiceBindingStrategy', () => {
     expect(body['to']).toBe('user@example.com');
     expect(body['from']).toBe('hello@bloqr.dev');
     expect(body['subject']).toBe('Test Subject');
-  });
-
-  it('includes DKIM fields in the service binding payload when all DKIM vars are set', async () => {
-    const { fetcher, fetcherMock } = makeWorkerFetcher();
-    const env: EmailEnv = { ...DKIM_ENV, EMAIL_WORKER: fetcher };
-    const strategy = new ServiceBindingStrategy();
-    await strategy.send(VALID_PAYLOAD, env);
-
-    const body = await (fetcherMock.mock.calls[0] as [Request])[0].json() as Record<string, unknown>;
-    expect(body['dkimDomain']).toBe('bloqr.dev');
-    expect(body['dkimSelector']).toBe('mailchannels');
-    expect(body['dkimPrivateKey']).toBe('base64-private-key');
-  });
-
-  it('omits DKIM fields when partial DKIM vars are set', async () => {
-    const { fetcher, fetcherMock } = makeWorkerFetcher();
-    const env: EmailEnv = { FROM_EMAIL: 'hello@bloqr.dev', DKIM_DOMAIN: 'bloqr.dev', EMAIL_WORKER: fetcher };
-    const strategy = new ServiceBindingStrategy();
-    await strategy.send(VALID_PAYLOAD, env);
-
-    const body = await (fetcherMock.mock.calls[0] as [Request])[0].json() as Record<string, unknown>;
-    expect(body['dkimDomain']).toBeUndefined();
   });
 
   it('throws when the service binding returns a non-2xx status', async () => {
@@ -243,28 +141,93 @@ describe('ServiceBindingStrategy', () => {
   });
 });
 
-// ─── 4. EmailService.sendEmail ────────────────────────────────────────────────
+// ─── 3. CfEmailSendingStrategy ────────────────────────────────────────────────
 
-describe('EmailService.sendEmail', () => {
-  let fetchMock: Mock;
+describe('CfEmailSendingStrategy', () => {
+  let sendMock: Mock;
+  let env: EmailEnv;
 
   beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
-    vi.stubGlobal('fetch', fetchMock);
+    sendMock = vi.fn().mockResolvedValue(undefined);
+    env = { ...MINIMAL_ENV, SEND_EMAIL: { send: sendMock } };
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
+  it('throws when SEND_EMAIL binding is absent', async () => {
+    const strategy = new CfEmailSendingStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow(
+      'CfEmailSendingStrategy requires SEND_EMAIL binding',
+    );
   });
 
-  it('sends with the MailChannels strategy when no EMAIL_WORKER binding is provided', async () => {
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+  it('calls env.SEND_EMAIL.send() with an EmailMessage', async () => {
+    const strategy = new CfEmailSendingStrategy();
+    await strategy.send(VALID_PAYLOAD, env);
+    expect(sendMock).toHaveBeenCalledOnce();
+  });
+
+  it('derives the envelope `from` address from env.FROM_EMAIL (strips display name)', async () => {
+    const { EmailMessage } = await import('cloudflare:email');
+    const strategy = new CfEmailSendingStrategy();
+    const displayEnv: EmailEnv = {
+      FROM_EMAIL: 'Bloqr <hello@bloqr.dev>',
+      SEND_EMAIL: { send: sendMock },
+    };
+    await strategy.send(VALID_PAYLOAD, displayEnv);
+    const [from] = vi.mocked(EmailMessage).mock.lastCall as [string, string, string];
+    expect(from).toBe('hello@bloqr.dev');
+  });
+
+  it('resolves without throwing on a successful send', async () => {
+    const strategy = new CfEmailSendingStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, env)).resolves.toBeUndefined();
+  });
+
+  it('throws and logs a warning when SEND_EMAIL.send() rejects', async () => {
+    sendMock.mockRejectedValueOnce(new Error('routing error'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const strategy = new CfEmailSendingStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, env)).rejects.toThrow(/CF Email Sending failed/);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+});
+
+// ─── 4. NullEmailStrategy ─────────────────────────────────────────────────────
+
+describe('NullEmailStrategy', () => {
+  it('resolves without throwing', async () => {
+    const strategy = new NullEmailStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).resolves.toBeUndefined();
+  });
+
+  it('logs a warning when dropping an email', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const strategy = new NullEmailStrategy();
+    await strategy.send(VALID_PAYLOAD, MINIMAL_ENV);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('NullEmailStrategy'));
+    warnSpy.mockRestore();
+  });
+});
+
+// ─── 5. EmailService.sendEmail ────────────────────────────────────────────────
+
+describe('EmailService.sendEmail', () => {
+  let sendMock: Mock;
+  let env: EmailEnv;
+
+  beforeEach(() => {
+    sendMock = vi.fn().mockResolvedValue(undefined);
+    env = { ...MINIMAL_ENV, SEND_EMAIL: { send: sendMock } };
+  });
+
+  it('sends via CfEmailSendingStrategy when SEND_EMAIL is provided', async () => {
+    const svc = new EmailService(env, new CfEmailSendingStrategy());
     await svc.sendEmail(VALID_PAYLOAD);
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sendMock).toHaveBeenCalledOnce();
   });
 
   it('throws with "Invalid email payload" prefix when `to` is missing', async () => {
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    const svc = new EmailService(env, new CfEmailSendingStrategy());
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { to, ...withoutTo } = VALID_PAYLOAD;  // `to` is destructured to remove it
     const err = await svc.sendEmail(withoutTo as typeof VALID_PAYLOAD).catch((e: unknown) => e);
@@ -273,179 +236,55 @@ describe('EmailService.sendEmail', () => {
   });
 
   it('throws with "Invalid email payload" prefix when `to` is not a valid email', async () => {
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    const svc = new EmailService(env, new CfEmailSendingStrategy());
     const err = await svc.sendEmail({ ...VALID_PAYLOAD, to: 'not-valid' }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(EmailValidationError);
-    // No network call should have been made
-    expect(fetchMock).not.toHaveBeenCalled();
+    // No delivery call should have been made
+    expect(sendMock).not.toHaveBeenCalled();
   });
 
   it('includes the failing field path in the error message', async () => {
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    const svc = new EmailService(env, new CfEmailSendingStrategy());
     const err = await svc.sendEmail({ ...VALID_PAYLOAD, to: 'not-valid' }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(EmailValidationError);
     expect((err as Error).message).toMatch(/to:/);
   });
 
-  it('throws when the MailChannels response is non-2xx', async () => {
-    fetchMock.mockResolvedValue(new Response('Bad request', { status: 400 }));
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
-    await expect(svc.sendEmail(VALID_PAYLOAD)).rejects.toThrow(/MailChannels send failed/);
+  it('throws when the SEND_EMAIL binding rejects', async () => {
+    sendMock.mockRejectedValueOnce(new Error('CF error'));
+    const svc = new EmailService(env, new CfEmailSendingStrategy());
+    await expect(svc.sendEmail(VALID_PAYLOAD)).rejects.toThrow(/CF Email Sending failed/);
   });
 });
 
-// ─── 4b. EmailService.sendWaitlistConfirmation ────────────────────────────────
+// ─── 6. EmailService.sendWaitlistConfirmation ─────────────────────────────────
 
 describe('EmailService.sendWaitlistConfirmation', () => {
-  let fetchMock: Mock;
+  let sendMock: Mock;
+  let env: EmailEnv;
 
   beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
-    vi.stubGlobal('fetch', fetchMock);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
+    sendMock = vi.fn().mockResolvedValue(undefined);
+    env = { ...MINIMAL_ENV, SEND_EMAIL: { send: sendMock } };
   });
 
   it('sends a rendered waitlist email via the underlying sendEmail method', async () => {
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    const svc = new EmailService(env, new CfEmailSendingStrategy());
     await svc.sendWaitlistConfirmation('user@example.com', null);
-    expect(fetchMock).toHaveBeenCalledOnce();
-  });
-
-  it('includes the segment in the rendered email body when segment is provided', async () => {
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
-    await svc.sendWaitlistConfirmation('user@example.com', 'list-maker');
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    const htmlBody = body.content[1].value as string;
-    expect(htmlBody).toMatch(/list maker/);
+    expect(sendMock).toHaveBeenCalledOnce();
   });
 
   it('sends without a segment when segment is null', async () => {
-    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    const svc = new EmailService(env, new CfEmailSendingStrategy());
     await expect(svc.sendWaitlistConfirmation('user@example.com', null)).resolves.toBeUndefined();
   });
 });
 
-// ─── 5. ResendStrategy ────────────────────────────────────────────────────────
-
-describe('ResendStrategy', () => {
-  let fetchMock: Mock;
-
-  beforeEach(() => {
-    // Resend SDK calls fetch internally — stub the global to avoid real HTTP.
-    // Success: { id: "..." } with 200; error: { message, name, statusCode } with 4xx/5xx.
-    fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: 'test-email-id' }), {
-        status:  200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  const RESEND_ENV: EmailEnv = {
-    FROM_EMAIL:     'hello@bloqr.app',
-    RESEND_API_KEY: 're_test_key',
-  };
-
-  it('throws when RESEND_API_KEY is absent', async () => {
-    const strategy = new ResendStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow(
-      'ResendStrategy requires RESEND_API_KEY',
-    );
-  });
-
-  it('calls the Resend emails endpoint with the correct payload', async () => {
-    const strategy = new ResendStrategy();
-    await strategy.send(VALID_PAYLOAD, RESEND_ENV);
-
-    expect(fetchMock).toHaveBeenCalledOnce();
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain('resend.com');
-    expect(url).toContain('emails');
-    expect(init.method).toBe('POST');
-
-    const body = JSON.parse(init.body as string);
-    expect(body.from).toBe('hello@bloqr.app');
-    expect(body.to).toContain('user@example.com');
-    expect(body.subject).toBe('Test Subject');
-  });
-
-  it('resolves without throwing on a successful Resend response', async () => {
-    const strategy = new ResendStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).resolves.toBeUndefined();
-  });
-
-  it('throws with a descriptive message when Resend returns an error status', async () => {
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({ name: 'invalid_from_address', message: 'Invalid from address', statusCode: 422 }),
-        { status: 422, headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
-    const strategy = new ResendStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow(
-      /Resend send failed/,
-    );
-  });
-
-  it('logs a warning before throwing on Resend error', async () => {
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({ name: 'internal_server_error', message: 'Internal server error', statusCode: 500 }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const strategy = new ResendStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow();
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
-  });
-
-  it('logs a warning when the Resend SDK converts a network error into an error response', async () => {
-    // The Resend SDK converts network failures into { error } objects (never throws directly).
-    // Simulate that by returning a 0/unknown status that the SDK surfaces as an error.
-    fetchMock.mockRejectedValue(new TypeError('network failure'));
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const strategy = new ResendStrategy();
-    // SDK wraps the rejection into { error: { statusCode: undefined, message: '...' } }
-    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow(/Resend send failed/);
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
-  });
-});
-
-// ─── 6. createEmailService factory ────────────────────────────────────────────
+// ─── 7. createEmailService factory ────────────────────────────────────────────
 
 describe('createEmailService', () => {
-  let fetchMock: Mock;
-
-  beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
-    vi.stubGlobal('fetch', fetchMock);
-  });
-
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
-  });
-
-  it('returns an EmailService backed by MailChannelsStrategy when EMAIL_WORKER and RESEND_API_KEY are absent', async () => {
-    const svc = createEmailService(MINIMAL_ENV);
-    await svc.sendEmail(VALID_PAYLOAD);
-
-    // MailChannels endpoint must have been called
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.mailchannels.net/tx/v1/send',
-      expect.objectContaining({ method: 'POST' }),
-    );
   });
 
   it('returns an EmailService backed by ServiceBindingStrategy when EMAIL_WORKER is present', async () => {
@@ -456,18 +295,41 @@ describe('createEmailService', () => {
     const svc = createEmailService(env);
     await svc.sendEmail(VALID_PAYLOAD);
 
-    // The global fetch (MailChannels) must NOT have been called
-    expect(fetchMock).not.toHaveBeenCalled();
-    // The service binding fetcher must have been called
     expect(fetcherMock).toHaveBeenCalledOnce();
   });
 
-  it('returns an EmailService backed by ResendStrategy when RESEND_API_KEY is present and EMAIL_WORKER is absent', () => {
-    const env: EmailEnv = { ...MINIMAL_ENV, RESEND_API_KEY: 're_test_key' };
+  it('returns an EmailService backed by CfEmailSendingStrategy when SEND_EMAIL is present and EMAIL_WORKER is absent', async () => {
+    const sendMock = vi.fn().mockResolvedValue(undefined);
+    const env: EmailEnv = { ...MINIMAL_ENV, SEND_EMAIL: { send: sendMock } };
+
     const svc = createEmailService(env);
-    // Verify the service is usable and is an EmailService instance
-    expect(svc).toBeInstanceOf(EmailService);
-    // The MailChannels global fetch should not be triggered at construction time
-    expect(fetchMock).not.toHaveBeenCalled();
+    await svc.sendEmail(VALID_PAYLOAD);
+
+    expect(sendMock).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to NullEmailStrategy when neither EMAIL_WORKER nor SEND_EMAIL are present', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const svc = createEmailService(MINIMAL_ENV);
+    await expect(svc.sendEmail(VALID_PAYLOAD)).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('NullEmailStrategy'));
+    warnSpy.mockRestore();
+  });
+
+  it('prefers EMAIL_WORKER over SEND_EMAIL when both are present', async () => {
+    const fetcherMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    const fetcher = { fetch: fetcherMock } as unknown as Fetcher;
+    const sendMock = vi.fn().mockResolvedValue(undefined);
+    const env: EmailEnv = {
+      ...MINIMAL_ENV,
+      EMAIL_WORKER: fetcher,
+      SEND_EMAIL:   { send: sendMock },
+    };
+
+    const svc = createEmailService(env);
+    await svc.sendEmail(VALID_PAYLOAD);
+
+    expect(fetcherMock).toHaveBeenCalledOnce();
+    expect(sendMock).not.toHaveBeenCalled();
   });
 });

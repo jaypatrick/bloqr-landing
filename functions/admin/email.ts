@@ -72,14 +72,12 @@ export interface Env extends AuthEnv {
   DATABASE_URL?: string;
   FROM_EMAIL?:        string;
   /**
-   * Resend API key for outbound transactional email.
-   * When present (and EMAIL_WORKER is absent), ResendStrategy is used.
-   * Set as a Worker Secret — never add to wrangler.toml [vars].
+   * Cloudflare Email Workers `SEND_EMAIL` binding.
+   * When present (and EMAIL_WORKER is absent), CfEmailSendingStrategy is used.
    */
-  RESEND_API_KEY?:    string;
-  DKIM_DOMAIN?:       string;
-  DKIM_SELECTOR?:     string;
-  DKIM_PRIVATE_KEY?:  string;
+  SEND_EMAIL?: {
+    send(message: unknown): Promise<void>;
+  };
   /** Service binding to the `adblock-email` Cloudflare Worker. */
   EMAIL_WORKER?: Fetcher;
   /** Cloudflare Queue producer binding for durable email delivery. */
@@ -169,7 +167,9 @@ export async function handleStatus(request: Request, env: Env): Promise<Response
 
   const strategy = env.EMAIL_WORKER
     ? 'service-binding (adblock-email)'
-    : 'mailchannels-direct';
+    : env.SEND_EMAIL
+      ? 'cf-email-sending'
+      : 'null (no provider configured)';
 
   // Determine the active email pipeline strategy
   const pipeline = env.WAITLIST_WORKFLOW
@@ -181,9 +181,7 @@ export async function handleStatus(request: Request, env: Env): Promise<Response
   return json({
     configured: {
       FROM_EMAIL:           !!env.FROM_EMAIL,
-      DKIM_DOMAIN:          !!env.DKIM_DOMAIN,
-      DKIM_SELECTOR:        !!env.DKIM_SELECTOR,
-      DKIM_PRIVATE_KEY:     !!env.DKIM_PRIVATE_KEY,
+      SEND_EMAIL:           !!env.SEND_EMAIL,
       EMAIL_WORKER:         !!env.EMAIL_WORKER,
       EMAIL_QUEUE:          !!env.EMAIL_QUEUE,
       WAITLIST_WORKFLOW:    !!env.WAITLIST_WORKFLOW,
@@ -310,12 +308,9 @@ export async function handleSendTest(request: Request, env: Env): Promise<Respon
 
   try {
     await createEmailService({
-      FROM_EMAIL:       env.FROM_EMAIL,
-      RESEND_API_KEY:   env.RESEND_API_KEY,
-      DKIM_DOMAIN:      env.DKIM_DOMAIN,
-      DKIM_SELECTOR:    env.DKIM_SELECTOR,
-      DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
-      EMAIL_WORKER:     env.EMAIL_WORKER,
+      FROM_EMAIL:   env.FROM_EMAIL,
+      SEND_EMAIL:   env.SEND_EMAIL,
+      EMAIL_WORKER: env.EMAIL_WORKER,
     }).sendEmail(payload);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -325,9 +320,9 @@ export async function handleSendTest(request: Request, env: Env): Promise<Respon
 
   const strategy = env.EMAIL_WORKER
     ? 'service-binding (adblock-email)'
-    : env.RESEND_API_KEY
-      ? 'resend'
-      : 'mailchannels-direct';
+    : env.SEND_EMAIL
+      ? 'cf-email-sending'
+      : 'null (no provider configured)';
   return json({
     success:  true,
     to:       parsed.to,

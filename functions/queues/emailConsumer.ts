@@ -16,13 +16,13 @@
  *   4. **Template rendering** — checks `EMAIL_DB` for a custom DB override;
  *      falls back to the compiled default in `src/email/templates/` if none
  *   5. **Email delivery** — calls `createEmailService(env).sendEmail(...)`;
- *      prefers the `EMAIL_WORKER` service binding, falls back to MailChannels
+ *      prefers the `EMAIL_WORKER` service binding, falls back to `SEND_EMAIL`
  *   6. **Dedup key write** — writes the message ID to `EMAIL_DEDUP_KV` (TTL 24h)
  *   7. **D1 delivery log** — writes a row to `email_sends` in `EMAIL_DB`
  *   8. **Analytics event** — writes an `email_sent` data point
  *   9. **ACK** — removes the message from the queue
  *
- * On transient failure (e.g. MailChannels 5xx): `message.retry()` — the
+ * On transient failure (e.g. network error or CF email 5xx): `message.retry()` — the
  * Cloudflare runtime re-enqueues the message up to `max_retries` times (see
  * wrangler.toml).  After `max_retries`, the message is moved to `email-dlq`.
  *
@@ -140,7 +140,7 @@ const CONSUMER_PARAMS_SCHEMA_REGISTRY: Record<string, z.ZodTypeAny> = {
  * Message outcomes:
  *   - `message.ack()`   — permanent success or permanent failure (invalid schema,
  *     unknown template, stale message, missing FROM_EMAIL).  Removes the message.
- *   - `message.retry()` — transient failure (network error, MailChannels 5xx).
+ *   - `message.retry()` — transient failure (network error, CF email error).
  *     Re-enqueues up to `max_retries` times; then automatically routes to DLQ.
  *
  * @param batch - the batch of messages received from the Cloudflare Queue
@@ -355,20 +355,39 @@ async function processMessage(
   }
 
   // Determine which strategy will be used so we can log it accurately.
-  const strategy: 'service-binding' | 'resend' | 'mailchannels' = env.EMAIL_WORKER
+  const strategy: 'service-binding' | 'cf-email-sending' | 'null' = env.EMAIL_WORKER
     ? 'service-binding'
-    : env.RESEND_API_KEY
-      ? 'resend'
-      : 'mailchannels';
+    : env.SEND_EMAIL
+      ? 'cf-email-sending'
+      : 'null';
+
+  // If neither binding is present, NullEmailStrategy would silently drop the
+  // email but still resolve successfully — causing the consumer to log it as
+  // 'sent', write a dedup key, and ACK.  Instead, treat this as a permanent
+  // misconfiguration: log 'invalid', skip dedup + analytics, and ACK early.
+  if (strategy === 'null') {
+    const errorMessage = 'Email delivery not configured: neither EMAIL_WORKER nor SEND_EMAIL is set';
+    console.warn(`[email-queue] ${errorMessage} — skipping message ${id} for ${to}`);
+    if (env.EMAIL_DB) {
+      await logEmailSend(env.EMAIL_DB, {
+        message_id:    id,
+        attempt:       message.attempts,
+        to_address:    to,
+        template_name: template,
+        status:        'invalid',
+        strategy:      'none',
+        error_message: errorMessage,
+      });
+    }
+    message.ack();
+    return;
+  }
 
   try {
     await createEmailService({
-      FROM_EMAIL:       env.FROM_EMAIL,
-      RESEND_API_KEY:   env.RESEND_API_KEY,
-      DKIM_DOMAIN:      env.DKIM_DOMAIN,
-      DKIM_SELECTOR:    env.DKIM_SELECTOR,
-      DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
-      EMAIL_WORKER:     env.EMAIL_WORKER,
+      FROM_EMAIL:   env.FROM_EMAIL,
+      SEND_EMAIL:   env.SEND_EMAIL,
+      EMAIL_WORKER: env.EMAIL_WORKER,
     }).sendEmail({ to, ...rendered });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

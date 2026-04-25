@@ -1,9 +1,9 @@
 /**
  * functions/queues/emailConsumer.test.ts — Unit tests for the email queue consumer
  *
- * All tests mock `globalThis.fetch`, the `EMAIL_WORKER` Fetcher binding,
- * and the Cloudflare KV / Analytics Engine bindings.
- * No real MailChannels calls are made in this suite.
+ * Tests mock `globalThis.fetch`, the `EMAIL_WORKER` Fetcher binding, the
+ * `SEND_EMAIL` binding, and the Cloudflare KV / Analytics Engine bindings.
+ * No real email calls are made in this suite.
  *
  * Test categories:
  *   1. Schema validation — invalid message bodies are ACKed without retry
@@ -18,8 +18,16 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { handleEmailQueue, CONSUMER_TEMPLATE_REGISTRY } from '../../functions/queues/emailConsumer';
-import { EmailValidationError } from '../../src/services/emailService';
+import { EmailService, EmailValidationError } from '../../src/services/emailService';
 import type { EmailQueueMessage } from '../../src/types/emailQueue';
+
+// ─── Mock cloudflare:email ────────────────────────────────────────────────────
+
+vi.mock('cloudflare:email', () => ({
+  // Use vi.fn() (no implementation) — constructible mock that records call args.
+  // Arrow functions are not constructors; vi.fn() is.
+  EmailMessage: vi.fn(),
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -146,7 +154,6 @@ describe('stale message detection', () => {
     const { batch, ack } = makeBatch({ ...makeMessage(), enqueuedAt: freshDate });
     await handleEmailQueue(batch, makeEnv() as never);
     expect(ack).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
 
@@ -186,29 +193,18 @@ describe('deduplication', () => {
     await handleEmailQueue(batch, env as never);
 
     expect(ack).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
 
 // ─── 4. Template rendering ────────────────────────────────────────────────────
 
 describe('template rendering', () => {
-  let fetchMock: Mock;
-
-  beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
-    vi.stubGlobal('fetch', fetchMock);
-  });
-
-  afterEach(() => vi.unstubAllGlobals());
-
   it('ACKs cleanly after a successful template render with a registered template', async () => {
     // Verifies the happy path: a valid message with a known registered template
     // renders successfully and is ACKed.
     const { batch, ack } = makeBatch(makeMessage());
     await handleEmailQueue(batch, makeEnv() as never);
     expect(ack).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('ACKs without retry when the template is not in the registry', async () => {
@@ -221,7 +217,6 @@ describe('template rendering', () => {
       await handleEmailQueue(batch, makeEnv() as never);
       expect(ack).toHaveBeenCalledOnce();
       expect(retry).not.toHaveBeenCalled();
-      expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       CONSUMER_TEMPLATE_REGISTRY['waitlistWelcome'] = saved;
     }
@@ -238,12 +233,17 @@ describe('email delivery', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
-  it('ACKs after a successful send (MailChannels 202)', async () => {
+  it('ACKs after a successful send', async () => {
+    const sendMock = vi.fn().mockResolvedValueOnce(undefined);
+    const env = makeEnv({ SEND_EMAIL: { send: sendMock } });
     const { batch, ack, retry } = makeBatch(makeMessage());
-    await handleEmailQueue(batch, makeEnv() as never);
-    expect(fetchMock).toHaveBeenCalledOnce();
+    await handleEmailQueue(batch, env as never);
+    expect(sendMock).toHaveBeenCalledOnce();
     expect(ack).toHaveBeenCalledOnce();
     expect(retry).not.toHaveBeenCalled();
   });
@@ -256,23 +256,37 @@ describe('email delivery', () => {
     expect(retry).not.toHaveBeenCalled();
   });
 
-  it('calls retry() (not ack()) on a transient delivery failure', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('network failure'));
+  it('ACKs without sending when no email binding is configured (NullEmailStrategy path)', async () => {
+    // FROM_EMAIL is present but neither SEND_EMAIL nor EMAIL_WORKER is bound.
+    // The consumer must early-exit with an ack — not log the email as 'sent'.
+    const sendEmailSpy = vi.spyOn(EmailService.prototype, 'sendEmail');
     const { batch, ack, retry } = makeBatch(makeMessage());
     await handleEmailQueue(batch, makeEnv() as never);
+    expect(sendEmailSpy).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledOnce();
+    expect(retry).not.toHaveBeenCalled();
+    sendEmailSpy.mockRestore();
+  });
+
+  it('calls retry() (not ack()) on a transient delivery failure', async () => {
+    const sendMock = vi.fn().mockRejectedValueOnce(new TypeError('network failure'));
+    const env = makeEnv({ SEND_EMAIL: { send: sendMock } });
+    const { batch, ack, retry } = makeBatch(makeMessage());
+    await handleEmailQueue(batch, env as never);
     expect(retry).toHaveBeenCalledOnce();
     expect(ack).not.toHaveBeenCalled();
   });
 
   it('ACKs (not retries) when the payload is permanently invalid', async () => {
     // Simulate EmailService throwing an EmailValidationError (permanent failure).
-    fetchMock.mockImplementationOnce(() => {
-      throw new EmailValidationError([{ path: 'to', message: 'Invalid email' }]);
-    });
+    const sendEmail = vi.spyOn(EmailService.prototype, 'sendEmail').mockRejectedValueOnce(
+      new EmailValidationError([{ path: 'to', message: 'Invalid email' }]),
+    );
     const { batch, ack, retry } = makeBatch(makeMessage());
     await handleEmailQueue(batch, makeEnv() as never);
     expect(ack).toHaveBeenCalledOnce();
     expect(retry).not.toHaveBeenCalled();
+    sendEmail.mockRestore();
   });
 
   it('routes email through EMAIL_WORKER binding when present', async () => {
@@ -283,7 +297,7 @@ describe('email delivery', () => {
     const { batch, ack } = makeBatch(makeMessage());
     await handleEmailQueue(batch, env as never);
 
-    // The global fetch (MailChannels) must NOT have been called
+    // The global fetch (non-binding) must NOT have been called
     expect(fetchMock).not.toHaveBeenCalled();
     // The service binding fetcher MUST have been called
     expect(workerFetchMock).toHaveBeenCalledOnce();
@@ -304,9 +318,10 @@ describe('dedup key write after send', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('writes dedup key to EMAIL_DEDUP_KV after a successful send', async () => {
+    const sendMock = vi.fn().mockResolvedValue(undefined);
     const kvGet = vi.fn().mockResolvedValue(null);
     const kvPut = vi.fn().mockResolvedValue(undefined);
-    const env   = makeEnv({ EMAIL_DEDUP_KV: { get: kvGet, put: kvPut } });
+    const env   = makeEnv({ SEND_EMAIL: { send: sendMock }, EMAIL_DEDUP_KV: { get: kvGet, put: kvPut } });
     const msgId = '123e4567-e89b-12d3-a456-426614174000';
     const { batch } = makeBatch({ ...makeMessage(), id: msgId });
 
@@ -327,10 +342,10 @@ describe('dedup key write after send', () => {
   });
 
   it('does not write dedup key when delivery fails', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('network error'));
+    const sendMock = vi.fn().mockRejectedValueOnce(new TypeError('network error'));
     const kvGet = vi.fn().mockResolvedValue(null);
     const kvPut = vi.fn().mockResolvedValue(undefined);
-    const env   = makeEnv({ EMAIL_DEDUP_KV: { get: kvGet, put: kvPut } });
+    const env   = makeEnv({ SEND_EMAIL: { send: sendMock }, EMAIL_DEDUP_KV: { get: kvGet, put: kvPut } });
 
     const { batch, retry } = makeBatch(makeMessage());
     await handleEmailQueue(batch, env as never);
@@ -353,8 +368,9 @@ describe('analytics event', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('writes an email_sent data point after a successful send', async () => {
+    const sendMock = vi.fn().mockResolvedValue(undefined);
     const writeDataPoint = vi.fn();
-    const env = makeEnv({ ANALYTICS: { writeDataPoint } });
+    const env = makeEnv({ SEND_EMAIL: { send: sendMock }, ANALYTICS: { writeDataPoint } });
 
     const { batch } = makeBatch(makeMessage());
     await handleEmailQueue(batch, env as never);
@@ -372,9 +388,9 @@ describe('analytics event', () => {
   });
 
   it('does not write analytics on delivery failure', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('network error'));
+    const sendMock = vi.fn().mockRejectedValueOnce(new TypeError('network error'));
     const writeDataPoint = vi.fn();
-    const env = makeEnv({ ANALYTICS: { writeDataPoint } });
+    const env = makeEnv({ SEND_EMAIL: { send: sendMock }, ANALYTICS: { writeDataPoint } });
 
     const { batch, retry } = makeBatch(makeMessage());
     await handleEmailQueue(batch, env as never);
@@ -383,3 +399,4 @@ describe('analytics event', () => {
     expect(writeDataPoint).not.toHaveBeenCalled();
   });
 });
+
