@@ -163,7 +163,7 @@ export async function logEmailSend(
       .prepare(
         `INSERT INTO email_sends
            (message_id, attempt, to_address, template_name, status, strategy, error_message, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`,
       )
       .bind(
         record.message_id,
@@ -244,7 +244,7 @@ export async function listEmailSends(
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  bindings.push(Math.min(limit, 200)); // hard cap at 200 rows per page
+  bindings.push(Math.max(1, Math.min(limit, 200))); // clamp to 1..200 rows per page
 
   try {
     const { results } = await db
@@ -322,13 +322,13 @@ export async function upsertEmailTemplate(
     await db
       .prepare(
         `INSERT INTO email_templates (name, subject, html, text, is_custom, updated_at)
-         VALUES (?, ?, ?, ?, 1, datetime('now'))
+         VALUES (?, ?, ?, ?, 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
          ON CONFLICT(name) DO UPDATE SET
            subject    = excluded.subject,
            html       = excluded.html,
            text       = excluded.text,
            is_custom  = 1,
-           updated_at = datetime('now')`,
+           updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
       )
       .bind(template.name, template.subject, template.html, template.text)
       .run();

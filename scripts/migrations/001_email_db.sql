@@ -9,7 +9,8 @@
 --   email_sends     — immutable delivery log (one row per queue message processed)
 --   email_templates — mutable custom template overrides (managed via /admin/email)
 --
--- All timestamps stored as ISO 8601 UTC strings (SQLite TEXT affinity).
+-- All timestamps stored as ISO 8601 UTC strings
+-- (SQLite TEXT affinity, format: YYYY-MM-DDTHH:MM:SS.sssZ).
 
 -- ─── email_sends ──────────────────────────────────────────────────────────────
 -- Immutable delivery log. One row per message processing attempt.
@@ -51,8 +52,8 @@ CREATE TABLE IF NOT EXISTS email_sends (
   -- Error detail when status = 'failed' or 'invalid'
   error_message TEXT    DEFAULT NULL,
 
-  -- When this row was written (UTC ISO 8601)
-  created_at    TEXT    NOT NULL DEFAULT(datetime('now'))
+  -- When this row was written (ISO 8601 UTC — e.g. 2026-04-25T08:00:00.000Z)
+  created_at    TEXT    NOT NULL DEFAULT(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- Index for the admin logs query (newest-first with optional status/template filters)
@@ -94,6 +95,6 @@ CREATE TABLE IF NOT EXISTS email_templates (
   -- 1 = created/updated via admin API, 0 = seeded default
   is_custom   INTEGER NOT NULL DEFAULT 0 CHECK(is_custom IN (0, 1)),
 
-  -- ISO 8601 UTC timestamp of last modification
-  updated_at  TEXT    NOT NULL DEFAULT(datetime('now'))
+  -- ISO 8601 UTC timestamp of last modification (e.g. 2026-04-25T08:00:00.000Z)
+  updated_at  TEXT    NOT NULL DEFAULT(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );

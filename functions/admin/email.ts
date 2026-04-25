@@ -346,8 +346,8 @@ export async function handleEmailLogs(request: Request, env: Env): Promise<Respo
     throw err;
   }
 
-  // Clamp limit to the same maximum enforced by listEmailSends (200).
-  const clampedLimit = limitStr ? Math.min(parseInt(limitStr, 10) || 50, 200) : 50;
+  // Clamp limit to the safe range enforced by listEmailSends (1..200).
+  const clampedLimit = limitStr ? Math.max(1, Math.min(parseInt(limitStr, 10) || 50, 200)) : 50;
 
   const options: ListEmailSendsOptions = {
     limit:    clampedLimit,

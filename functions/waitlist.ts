@@ -16,7 +16,8 @@ import type { EmailQueueMessage } from '../src/types/emailQueue';
 
 export interface Env {
   DATABASE_URL: string;
-  APOLLO_API_KEY: string;
+  /** Apollo.io API key for contact enrichment. Optional — enrichment is fire-and-forget. */
+  APOLLO_API_KEY?: string;
   FROM_EMAIL?: string;
   DKIM_DOMAIN?: string;
   DKIM_SELECTOR?: string;

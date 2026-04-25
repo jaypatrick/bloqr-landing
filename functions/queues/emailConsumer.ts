@@ -8,9 +8,9 @@
  * ## Consumer pipeline (per message)
  *
  *   1. **Schema validation** — invalid messages are ACKed immediately and
- *      routed to the DLQ (retrying a malformed message is futile)
- *   2. **Stale message check** — skips messages older than `MAX_MESSAGE_AGE_MS`
- *      (24 hours by default) to avoid sending belated confirmations
+ *      dropped permanently (retrying a malformed message is futile)
+ *   2. **Stale message check** — ACKs messages older than `MAX_MESSAGE_AGE_MS`
+ *      (24 hours by default) and skips sending to avoid belated confirmations
  *   3. **Deduplication** — checks `EMAIL_DEDUP_KV` for the message ID; skips
  *      the send if the key exists (prevents duplicate emails on consumer retry)
  *   4. **Template rendering** — checks `EMAIL_DB` for a custom DB override;
@@ -71,7 +71,7 @@ import { SITE_URL } from '../../src/config';
  * a DLQ backlog from triggering a flood of belated confirmation emails after a
  * prolonged outage.
  *
- * Default: 24 hours.  Adjust in `wrangler.toml [vars]` if needed.
+ * Default: 24 hours.  To change it, update this constant in code.
  */
 const MAX_MESSAGE_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -153,7 +153,9 @@ async function processMessage(
         '[email-queue] Invalid message schema — ACKing without retry (message will NOT be retried or routed to DLQ):',
         err.issues,
       );
-      // Log invalid schema to D1 so admin can inspect the raw body.
+      // Log selected fields to D1 so admin can identify and investigate
+      // the failing message.  The raw message body is not persisted — only
+      // the extracted fields (id, to, template) and the validation error string.
       if (env.EMAIL_DB) {
         const rawBody = message.body as Record<string, unknown>;
         await logEmailSend(env.EMAIL_DB, {

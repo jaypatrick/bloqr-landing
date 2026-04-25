@@ -48,12 +48,15 @@ async function migrate(): Promise<void> {
   // email_message_id is the UUID from EmailQueueMessage.id.
   // Nullable because:
   //   1. Existing rows won't have it (historical data)
-  //   2. FROM_EMAIL may not be configured (no email queued)
-  //   3. The Workflow/Queue may not be active
+  //   2. Newly-added rows always have it set — the HTTP handler generates a
+  //      UUID before the INSERT and stores it here regardless of whether
+  //      FROM_EMAIL/Workflow/Queue are active (so it is ready when email
+  //      delivery is enabled later)
   //
-  // The column is set by the HTTP handler AFTER enqueueing to the queue or
-  // creating the Workflow instance.  We use DO NOTHING on conflict so this
-  // is safe to run multiple times.
+  // This column is set atomically in the INSERT so no UPDATE is required
+  // after enqueueing.  The partial index below speeds up admin lookups.
+  //
+  // We use DO NOTHING on column conflict so this is safe to run multiple times.
 
   await sql`
     ALTER TABLE waitlist
@@ -88,8 +91,7 @@ async function migrate(): Promise<void> {
   console.log('  ✓ Migration complete.');
   console.log('');
   console.log('  Next steps:');
-  console.log('    1. Update functions/waitlist.ts to set email_message_id after enqueueing');
-  console.log('    2. Run the same migration on staging/production Neon branches');
+  console.log('    1. Run the same migration on staging/production Neon branches');
   console.log('       by switching DATABASE_URL and re-running this script');
 }
 
