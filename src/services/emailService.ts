@@ -279,7 +279,7 @@ export class EmailService {
     } catch (err) {
       if (err instanceof ZodError) {
         const details = err.issues
-          .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`)
+          .map((issue) => `${issue.path.length > 0 ? issue.path.join('.') : 'root'}: ${issue.message}`)
           .join(', ');
         throw new Error(`Invalid email payload: ${details}`);
       }

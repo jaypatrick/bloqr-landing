@@ -67,11 +67,10 @@ const TEMPLATE_REGISTRY: Record<
   (params: Record<string, unknown>) => { subject: string; html: string; text: string }
 > = {
   waitlistWelcome: (params) => {
-    const email   = typeof params['email']   === 'string' ? params['email']   : 'preview@example.com';
+    const email = typeof params['email'] === 'string' ? params['email'] : 'preview@example.com';
     const segment = typeof params['segment'] === 'string' ? params['segment'] : null;
     return renderWaitlistWelcome(email, segment);
-  },
-};
+  },};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -71,7 +71,8 @@ describe('EmailPayloadSchema', () => {
   });
 
   it('rejects a payload missing the `to` field', () => {
-    const { to: _to, ...withoutTo } = VALID_PAYLOAD;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { to, ...withoutTo } = VALID_PAYLOAD;  // `to` is destructured to remove it
     const result = EmailPayloadSchema.safeParse(withoutTo);
     expect(result.success).toBe(false);
   });
@@ -253,7 +254,8 @@ describe('EmailService.sendEmail', () => {
 
   it('throws with "Invalid email payload" prefix when `to` is missing', async () => {
     const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
-    const { to: _to, ...withoutTo } = VALID_PAYLOAD;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { to, ...withoutTo } = VALID_PAYLOAD;  // `to` is destructured to remove it
     await expect(svc.sendEmail(withoutTo as typeof VALID_PAYLOAD)).rejects.toThrow(
       /Invalid email payload/,
     );

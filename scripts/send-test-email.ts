@@ -141,6 +141,8 @@ async function renderTemplate(
 ): Promise<RenderResult> {
   if (template === 'waitlistWelcome') {
     const { renderWaitlistWelcome } = await import(
+      // TypeScript compiles the .ts source to .js at build time;
+      // `npx tsx` resolves .js imports back to the .ts source at runtime.
       '../src/email/templates/waitlistWelcome.js'
     ) as { renderWaitlistWelcome: (email: string, segment: string | null) => RenderResult };
     return renderWaitlistWelcome(email, segment);

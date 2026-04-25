@@ -8,7 +8,7 @@ import { defineConfig } from 'vitest/config';
  * `globalThis.fetch` is the standard Web Fetch API, available in Node 18+
  * and in the CF Workers runtime.  Tests mock it via `vi.stubGlobal`.
  *
- * Test files: `src/**\/*.test.ts`
+ * Test files: src/**‌/*.test.ts
  */
 export default defineConfig({
   test: {
