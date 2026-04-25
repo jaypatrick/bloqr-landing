@@ -402,6 +402,12 @@ export class EmailService {
    * Renders the waitlist welcome template for `to` and `segment`, then sends
    * via the configured strategy.
    *
+   * **Validation:** `to` is validated as a well-formed email address by the
+   * Zod schema inside `sendEmail()`.  An invalid address throws
+   * `EmailValidationError` before any network call is made.  Callers that
+   * pass the email directly from a Zod-validated request body (e.g. the
+   * waitlist handler) do not need to re-validate here.
+   *
    * Non-critical — callers should fire-and-forget with `.catch()`:
    * ```typescript
    * ctx.waitUntil(

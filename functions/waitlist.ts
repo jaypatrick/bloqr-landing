@@ -13,6 +13,9 @@ import { neon } from '@neondatabase/serverless';
 import { createEmailService } from '../src/services/emailService';
 import type { EmailQueueMessage } from '../src/types/emailQueue';
 
+/** Default sender when FROM_EMAIL is not configured but RESEND_API_KEY is set. */
+const DEFAULT_FROM_EMAIL = 'Bloqr <hello@bloqr.app>';
+
 export interface Env {
   DATABASE_URL: string;
   /** Apollo.io API key for contact enrichment. Optional — enrichment is fire-and-forget. */
@@ -252,7 +255,7 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
         // Strategy 3b: Resend only (no FROM_EMAIL set — use the default sender).
         ctx.waitUntil(
           createEmailService({
-            FROM_EMAIL:     'Bloqr <hello@bloqr.app>',
+            FROM_EMAIL:     DEFAULT_FROM_EMAIL,
             RESEND_API_KEY: env.RESEND_API_KEY,
           })
             .sendWaitlistConfirmation(email, segment)
