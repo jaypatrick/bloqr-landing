@@ -12,7 +12,19 @@
  * Note: functions/waitlist.ts, functions/config.ts, and src/lib/auth.ts
  * still define their own narrower Env types; those are intentionally scoped
  * to what each module needs.
+ *
+ * ## New Cloudflare services (activate by uncommenting wrangler.toml blocks)
+ *
+ * | Binding              | Type                        | Purpose                          |
+ * | -------------------- | --------------------------- | -------------------------------- |
+ * | `EMAIL_QUEUE`        | `Queue`                     | Durable email delivery queue     |
+ * | `EMAIL_DLQ`          | `Queue`                     | Dead letter queue for failed msgs|
+ * | `WAITLIST_WORKFLOW`  | `Workflow`                  | Durable post-signup orchestration|
+ * | `ANALYTICS`          | `AnalyticsEngineDataset`    | Email + signup event tracking    |
+ * | `EMAIL_DEDUP_KV`     | `KVNamespace`               | Email deduplication store        |
  */
+
+import type { EmailQueueMessage } from './emailQueue';
 
 export interface Env {
   // ─── Static asset binding ─────────────────────────────────────────────────
@@ -56,6 +68,32 @@ export interface Env {
   /** Deployment environment tag ("production", "staging", etc.). */
   ENVIRONMENT?: string;
 
+  // ─── Email service (MailChannels via CF Workers — transactional, outbound) ──
+  /** Sender address, e.g. "Bloqr <hello@bloqr.dev>" */
+  FROM_EMAIL?: string;
+  /** Domain used for DKIM signing (e.g. "bloqr.dev"). Must match DNS TXT record. */
+  DKIM_DOMAIN?: string;
+  /** DKIM selector (e.g. "mailchannels"). */
+  DKIM_SELECTOR?: string;
+  /**
+   * DKIM private key (base64-encoded RSA private key).
+   * Set as a Worker Secret: wrangler secret put DKIM_PRIVATE_KEY
+   */
+  DKIM_PRIVATE_KEY?: string;
+  /**
+   * Cloudflare service binding to the dedicated `adblock-email` Worker.
+   * When present, email is routed through the email worker instead of calling
+   * MailChannels directly.
+   *
+   * Wire in wrangler.toml:
+   *   [[services]]
+   *   binding = "EMAIL_WORKER"
+   *   service = "adblock-email"
+   *
+   * @see src/services/emailService.ts — ServiceBindingStrategy
+   */
+  EMAIL_WORKER?: Fetcher;
+
   // ─── Cloudflare Workers bindings ──────────────────────────────────────────
   /**
    * Cloudflare Browser Rendering binding — headless Chromium at the edge.
@@ -66,8 +104,140 @@ export interface Env {
   BROWSER?: Fetcher;
 
   /**
+   * D1 database binding — email delivery log and custom template store.
+   *
+   * Tables:
+   *   - `email_sends`     — immutable delivery log written by the queue consumer
+   *   - `email_templates` — optional custom overrides for hard-coded templates
+   *
+   * Create with `scripts/setup-d1-email.sh` (one-time per environment).
+   *
+   * Wire in wrangler.toml:
+   *   [[d1_databases]]
+   *   binding       = "EMAIL_DB"
+   *   database_name = "bloqr-email"
+   *   database_id   = "<id-from-setup-script>"
+   *
+   * @see src/db/emailDb.ts       — query helpers
+   * @see scripts/setup-d1-email.sh — one-time D1 setup
+   * @see scripts/migrations/001_email_db.sql — schema definition
+   */
+  EMAIL_DB?: D1Database;
+
+  /**
    * D1 database binding — site_config read-through cache.
    * Currently reserved / not yet active in handler code.
    */
   bloqr_config_cache: D1Database;
+
+  // ─── Cloudflare Queues ─────────────────────────────────────────────────────
+  //
+  // Activate by uncommenting the queue blocks in wrangler.toml and running:
+  //   wrangler queues create email-queue
+  //   wrangler queues create email-dlq
+
+  /**
+   * Producer binding for the `email-queue` Cloudflare Queue.
+   *
+   * When present, the waitlist handler publishes `EmailQueueMessage` envelopes
+   * here instead of sending emails directly.  The queue consumer
+   * (`handleEmailQueue` in `src/worker.ts`) delivers them with automatic
+   * retries and dead-letter routing.
+   *
+   * Wire in wrangler.toml:
+   *   [[queues.producers]]
+   *   binding = "EMAIL_QUEUE"
+   *   queue   = "email-queue"
+   *
+   * @see functions/queues/emailConsumer.ts — consumer implementation
+   * @see https://developers.cloudflare.com/queues/
+   */
+  EMAIL_QUEUE?: Queue<EmailQueueMessage>;
+
+  /**
+   * Producer binding for the `email-dlq` dead letter queue.
+   *
+   * Messages that exceed `max_retries` in `email-queue` are automatically
+   * routed here by the CF runtime.  This binding allows handlers to inspect
+   * the DLQ size or republish messages via the admin API.
+   *
+   * Wire in wrangler.toml:
+   *   [[queues.producers]]
+   *   binding = "EMAIL_DLQ"
+   *   queue   = "email-dlq"
+   */
+  EMAIL_DLQ?: Queue<EmailQueueMessage>;
+
+  // ─── Cloudflare Workflows ──────────────────────────────────────────────────
+  //
+  // Activate by uncommenting the [[workflows]] block in wrangler.toml.
+
+  /**
+   * Binding to the `WaitlistSignupWorkflow` Cloudflare Workflow.
+   *
+   * When present, the waitlist HTTP handler calls `.create(params)` after a
+   * successful DB INSERT to trigger durable orchestration of email delivery
+   * and Apollo enrichment.  Each workflow step has its own independent retry
+   * policy and is checkpointed to persistent state.
+   *
+   * Wire in wrangler.toml:
+   *   [[workflows]]
+   *   binding     = "WAITLIST_WORKFLOW"
+   *   name        = "waitlist-signup"
+   *   class_name  = "WaitlistSignupWorkflow"
+   *   script_name = "adblock-landing"
+   *
+   * @see src/workflows/waitlistSignup.ts — workflow class definition
+   * @see https://developers.cloudflare.com/workflows/
+   */
+  WAITLIST_WORKFLOW?: Workflow;
+
+  // ─── Cloudflare Analytics Engine ──────────────────────────────────────────
+  //
+  // Activate by uncommenting the [[analytics_engine_datasets]] block in wrangler.toml.
+
+  /**
+   * Analytics Engine dataset binding for email and signup event tracking.
+   *
+   * Writes structured data points for events such as:
+   *   - `waitlist_signup`         — new signup inserted
+   *   - `email_sent`              — confirmation email delivered
+   *   - `waitlist_workflow_complete` — workflow finished all steps
+   *
+   * These data points are queryable via the Cloudflare Analytics API and
+   * visualisable in the dashboard without a third-party observability platform.
+   *
+   * Wire in wrangler.toml:
+   *   [[analytics_engine_datasets]]
+   *   binding = "ANALYTICS"
+   *   dataset = "bloqr_email_events"
+   *
+   * @see https://developers.cloudflare.com/analytics/analytics-engine/
+   */
+  ANALYTICS?: AnalyticsEngineDataset;
+
+  // ─── KV: Email deduplication ───────────────────────────────────────────────
+  //
+  // Activate by creating the namespace and uncommenting [[kv_namespaces]] in wrangler.toml.
+
+  /**
+   * KV namespace for email deduplication.
+   *
+   * The queue consumer writes `email-sent:<message-id>` keys (TTL: 24 h) after
+   * a successful email send.  On consumer retry, the key presence prevents a
+   * duplicate send even if the Worker crashed between sending and ACKing the
+   * queue message.
+   *
+   * Create the namespace:
+   *   wrangler kv namespace create EMAIL_DEDUP
+   *
+   * Wire in wrangler.toml:
+   *   [[kv_namespaces]]
+   *   binding = "EMAIL_DEDUP_KV"
+   *   id      = "<namespace-id-from-above>"
+   *
+   * @see functions/queues/emailConsumer.ts — consumer dedup logic
+   * @see https://developers.cloudflare.com/kv/
+   */
+  EMAIL_DEDUP_KV?: KVNamespace;
 }

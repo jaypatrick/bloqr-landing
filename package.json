@@ -13,7 +13,9 @@
     "deploy": "astro build && wrangler deploy",
     "sync-blog": "npx tsx scripts/sync-blog-from-db.ts",
     "migrate-blog": "npx tsx scripts/migrate-blog-posts.ts",
-    "migrate:auth": "tsx scripts/migrate-better-auth.ts"
+    "migrate:auth": "tsx scripts/migrate-better-auth.ts",
+    "migrate:email": "npx tsx scripts/migrate-email-schema.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.1.10",
@@ -36,6 +38,7 @@
     "@types/node": "^22.0.0",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
+    "vitest": "^4.1.5",
     "wrangler": "^4.83.0"
   },
   "engines": {

@@ -171,6 +171,120 @@ PUBLIC_CF_BEACON_TOKEN = "c669b516a8e54055b08bf02e3fe8f438"
 # Local dev: values live in .dev.vars (gitignored), then run:
 #   npm run preview   →  wrangler pages dev ./dist
 
+# ─── Email Worker service binding ────────────────────────────────────────────
+# Routes outbound transactional email through the dedicated `adblock-email`
+# Cloudflare Worker instead of calling MailChannels directly.
+#
+# When this binding is present, src/services/emailService.ts uses
+# ServiceBindingStrategy; otherwise it falls back to MailChannelsStrategy.
+#
+# The `adblock-email` worker must exist in the same Cloudflare account.
+# Activate by uncommenting the lines below:
+#
+# [[services]]
+# binding = "EMAIL_WORKER"
+# service = "adblock-email"
+#
+# Additional email env vars (add to [vars] for non-secret values):
+#   FROM_EMAIL = "Bloqr <hello@bloqr.dev>"
+#   DKIM_DOMAIN   = "bloqr.dev"
+#   DKIM_SELECTOR = "mailchannels"
+#
+# DKIM_PRIVATE_KEY is a secret — set with:
+#   wrangler secret put DKIM_PRIVATE_KEY
+#
+# ─── Cloudflare Queues: email-queue ───────────────────────────────────────────
+# Durable, auto-retried email delivery queue.  Messages published here by
+# the waitlist handler (or WaitlistSignupWorkflow) are consumed by the
+# `handleEmailQueue` function in src/worker.ts.
+#
+# Setup (one-time, per environment):
+#   wrangler queues create email-queue
+#   wrangler queues create email-dlq
+#
+# Activate by uncommenting ALL THREE blocks below:
+#
+# [[queues.producers]]
+# binding = "EMAIL_QUEUE"
+# queue   = "email-queue"
+#
+# [[queues.producers]]
+# binding = "EMAIL_DLQ"
+# queue   = "email-dlq"
+#
+# [[queues.consumers]]
+# queue             = "email-queue"
+# max_batch_size    = 10     # messages per consumer invocation
+# max_batch_timeout = 30     # seconds to wait for a full batch
+# max_retries       = 3      # per-message retry limit before DLQ routing
+# dead_letter_queue = "email-dlq"
+#
+# ─── Cloudflare Workflows: waitlist-signup ────────────────────────────────────
+# Durable multi-step orchestration for post-signup side effects (email + Apollo).
+# Requires the email-queue producer binding to also be active (Step 1 publishes
+# to it).  When WAITLIST_WORKFLOW is present it takes priority over EMAIL_QUEUE
+# and direct send in functions/waitlist.ts.
+#
+# Activate by uncommenting the block below:
+#
+# [[workflows]]
+# binding     = "WAITLIST_WORKFLOW"
+# name        = "waitlist-signup"
+# class_name  = "WaitlistSignupWorkflow"
+# script_name = "adblock-landing"
+#
+# ─── Cloudflare Analytics Engine: bloqr_email_events ─────────────────────────
+# Tracks email and signup lifecycle events (email_sent, waitlist_signup, etc.)
+# without needing a third-party observability platform.
+# Events are queryable via the CF Analytics Engine SQL API.
+#
+# Activate by uncommenting the block below:
+#
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+# dataset = "bloqr_email_events"
+#
+# ─── KV: email deduplication ──────────────────────────────────────────────────
+# Prevents duplicate confirmation emails on queue consumer retry.
+# The consumer writes `email-sent:<message-id>` (TTL 24 h) after a
+# successful send.  On retry, the key presence skips re-sending.
+#
+# Setup (one-time, per environment):
+#   wrangler kv namespace create EMAIL_DEDUP
+#   # Copy the id from the output and paste it below
+#
+# Activate by uncommenting and filling in the block below:
+#
+# [[kv_namespaces]]
+# binding = "EMAIL_DEDUP_KV"
+# id      = "<your-kv-namespace-id>"
+#
+# ─── D1: bloqr-email (email delivery log + custom template store) ─────────────
+# Purpose-built D1 SQLite edge database for email persistence.
+#
+# Tables (see scripts/migrations/001_email_db.sql for full schema):
+#   email_sends     — immutable delivery log (one row per queue message processed)
+#                     Writes: queue consumer after each attempt (sent/failed/stale/etc.)
+#                     Reads:  GET /admin/email/logs with optional filters and pagination
+#   email_templates — optional admin-editable template overrides
+#                     Writes: PUT /admin/email/templates (creates or replaces)
+#                     Reads:  queue consumer checks for custom version before compiling
+#                             GET /admin/email/templates (admin listing)
+#                     Delete: DELETE /admin/email/templates/:name (restores default)
+#
+# One-time setup — run scripts/setup-d1-email.sh, or manually:
+#   1. wrangler d1 create bloqr-email
+#   2. Copy the database_id output below
+#   3. wrangler d1 execute bloqr-email --file scripts/migrations/001_email_db.sql
+#   4. wrangler d1 execute bloqr-email --file scripts/migrations/001_email_db.sql --remote
+#
+# Activate by uncommenting the block below:
+#
+# [[d1_databases]]
+# binding       = "EMAIL_DB"
+# database_name = "bloqr-email"
+# database_id   = "<id-from-setup-script>"
+#
 # ─── D1 Cache (site_config read-through cache) — RESERVED / FUTURE WORK ────────
 # Intended to cache site_config rows from Neon for fast edge reads.
 # The Worker does not yet read from or write to this binding; it is provisioned

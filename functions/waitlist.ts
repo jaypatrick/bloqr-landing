@@ -10,15 +10,52 @@
  */
 
 import { neon } from '@neondatabase/serverless';
+import { createEmailService } from '../src/services/emailService';
+import { renderWaitlistWelcome } from '../src/email/templates/waitlistWelcome';
+import type { EmailQueueMessage } from '../src/types/emailQueue';
 
 export interface Env {
   DATABASE_URL: string;
-  APOLLO_API_KEY: string;
+  /** Apollo.io API key for contact enrichment. Optional — enrichment is fire-and-forget. */
+  APOLLO_API_KEY?: string;
+  FROM_EMAIL?: string;
+  DKIM_DOMAIN?: string;
+  DKIM_SELECTOR?: string;
+  DKIM_PRIVATE_KEY?: string;
+  /** Service binding to the `adblock-email` Cloudflare Worker (preferred over direct MailChannels). */
+  EMAIL_WORKER?: Fetcher;
+  /**
+   * Cloudflare Queue producer for durable email delivery.
+   * When present, confirmation emails are enqueued here instead of sent directly.
+   * @see src/types/emailQueue.ts — EmailQueueMessage envelope
+   */
+  EMAIL_QUEUE?: Queue<EmailQueueMessage>;
+  /**
+   * Cloudflare Workflow binding for durable post-signup orchestration.
+   * When present, this takes priority over EMAIL_QUEUE and direct send.
+   * @see src/workflows/waitlistSignup.ts — WaitlistSignupWorkflow
+   */
+  WAITLIST_WORKFLOW?: Workflow;
+  /**
+   * Analytics Engine dataset for signup event tracking.
+   * @see https://developers.cloudflare.com/analytics/analytics-engine/
+   */
+  ANALYTICS?: AnalyticsEngineDataset;
 }
 
 interface WaitlistBody {
   email?: string;
   segment?: string;
+}
+
+/** Type guard for Neon / postgres-js errors that carry a `code` string. */
+function isPgError(err: unknown): err is { code: string } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    typeof err.code === 'string'
+  );
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -111,20 +148,113 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
 
   const sql = neon(env.DATABASE_URL);
 
+  // Generate a message ID up-front so it can be stored in the waitlist row
+  // and used as the queue/workflow message ID, enabling cross-referencing of
+  // signup records with the email_sends delivery log.
+  const emailMessageId = crypto.randomUUID();
+
   // Capture IP and referrer for analytics
   const ip       = request.headers.get('CF-Connecting-IP') ?? null;
   const referrer = request.headers.get('Referer') ?? null;
 
   try {
-    await sql`
-      INSERT INTO waitlist (email, segment, ip, referrer)
-      VALUES (${email}, ${segment}, ${ip}, ${referrer})
-    `;
+    // Try to write email_message_id so signups can be cross-referenced with
+    // the email_sends D1 delivery log.  If the Neon migration hasn't been
+    // applied yet (Postgres error 42703 = undefined_column), fall back to the
+    // legacy INSERT schema so the endpoint keeps working during the rollout.
+    try {
+      await sql`
+        INSERT INTO waitlist (email, segment, ip, referrer, email_message_id)
+        VALUES (${email}, ${segment}, ${ip}, ${referrer}, ${emailMessageId})
+      `;
+    } catch (insertErr: unknown) {
+      // Postgres error 42703 = undefined_column: the email_message_id migration
+      // has not been applied yet.  Retry without the column so signups keep working.
+      if (isPgError(insertErr) && insertErr.code === '42703') {
+        await sql`
+          INSERT INTO waitlist (email, segment, ip, referrer)
+          VALUES (${email}, ${segment}, ${ip}, ${referrer})
+        `;
+      } else {
+        throw insertErr; // re-throw (e.g. unique constraint 23505 → handled by outer catch)
+      }
+    }
 
-    // Fire Apollo sync in the background via waitUntil so it isn't cancelled
-    // after the response is returned.
-    if (env.APOLLO_API_KEY) {
-      ctx.waitUntil(pushToApollo(env.APOLLO_API_KEY, email, segment));
+    // ── Post-insert side effects ───────────────────────────────────────────────
+    //
+    // Priority chain for email delivery and Apollo enrichment:
+    //
+    //   1. WAITLIST_WORKFLOW present → create a durable Workflow instance that
+    //      handles both email (via EMAIL_QUEUE) and Apollo enrichment with
+    //      per-step retry policies and crash recovery.
+    //
+    //   2. EMAIL_QUEUE present (no Workflow) → publish to the Queue for durable
+    //      delivery, and fire Apollo enrichment via ctx.waitUntil.
+    //
+    //   3. Neither binding active (e.g. local dev without npm run preview) →
+    //      fall back to direct email send + direct Apollo via ctx.waitUntil.
+
+    if (env.WAITLIST_WORKFLOW) {
+      // Strategy 1: Durable Workflow orchestrates email + Apollo.
+      // Both side effects run with per-step retry policies and crash recovery.
+      // The HTTP response is already sent — no need to await the workflow.
+      ctx.waitUntil(
+        env.WAITLIST_WORKFLOW.create({
+          // Use the email as the stable workflow ID so a retried HTTP
+          // request does not create a second workflow instance for the
+          // same signup.  If the DB UNIQUE constraint prevents duplicate
+          // INSERTs, this code path will only ever run once per email.
+          id:     `waitlist-${email}`,
+          params: { email, segment, messageId: emailMessageId },
+        }).catch((err: unknown) => console.warn('Workflow create failed:', err)),
+      );
+    } else {
+      // Strategy 2/3: Queue or direct delivery + Apollo enrichment.
+
+      if (env.EMAIL_QUEUE && env.FROM_EMAIL) {
+        // Strategy 2: Publish to the durable Queue.
+        // Use the pre-generated emailMessageId so the waitlist row and the
+        // queue consumer's email_sends log share the same message ID.
+        const message: EmailQueueMessage = {
+          id:         emailMessageId,
+          template:   'waitlistWelcome',
+          to:         email,
+          params:     { email, segment },
+          enqueuedAt: new Date().toISOString(),
+        };
+        ctx.waitUntil(
+          env.EMAIL_QUEUE.send(message)
+            .catch((err: unknown) => console.warn('Email queue publish failed:', err)),
+        );
+      } else if (env.FROM_EMAIL) {
+        // Strategy 3: Direct email send (fallback for local dev / no queue).
+        const { subject, html, text } = renderWaitlistWelcome(email, segment);
+        ctx.waitUntil(
+          createEmailService({
+            FROM_EMAIL:       env.FROM_EMAIL,
+            DKIM_DOMAIN:      env.DKIM_DOMAIN,
+            DKIM_SELECTOR:    env.DKIM_SELECTOR,
+            DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
+            EMAIL_WORKER:     env.EMAIL_WORKER,
+          })
+            .sendEmail({ to: email, subject, html, text })
+            .catch((err: unknown) => console.warn('Waitlist email failed:', err)),
+        );
+      }
+
+      // Apollo enrichment runs whenever the Workflow is not handling it.
+      if (env.APOLLO_API_KEY) {
+        ctx.waitUntil(pushToApollo(env.APOLLO_API_KEY, email, segment));
+      }
+    }
+
+    // Analytics event — always track the signup regardless of email strategy.
+    if (env.ANALYTICS) {
+      env.ANALYTICS.writeDataPoint({
+        blobs:   ['waitlist_signup', email, segment ?? 'none'],
+        doubles: [1],
+        indexes: ['waitlist_signup'],
+      });
     }
 
     return json({ success: true });
