@@ -10,11 +10,8 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { createEmailService } from '../src/services/emailService';
+import { createEmailService, DEFAULT_FROM_EMAIL } from '../src/services/emailService';
 import type { EmailQueueMessage } from '../src/types/emailQueue';
-
-/** Default sender when FROM_EMAIL is not configured but RESEND_API_KEY is set. */
-const DEFAULT_FROM_EMAIL = 'Bloqr <hello@bloqr.app>';
 
 export interface Env {
   DATABASE_URL: string;
@@ -220,10 +217,12 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
     } else {
       // Strategy 2/3: Queue or direct delivery + Apollo enrichment.
 
-      if (env.EMAIL_QUEUE && env.FROM_EMAIL) {
+      if (env.EMAIL_QUEUE && (env.FROM_EMAIL || env.RESEND_API_KEY)) {
         // Strategy 2: Publish to the durable Queue.
         // Use the pre-generated emailMessageId so the waitlist row and the
         // queue consumer's email_sends log share the same message ID.
+        // FROM_EMAIL is required by the queue consumer; fall back to the
+        // default sender when only RESEND_API_KEY is set.
         const message: EmailQueueMessage = {
           id:         emailMessageId,
           template:   'waitlistWelcome',
@@ -235,28 +234,19 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
           env.EMAIL_QUEUE.send(message)
             .catch((err: unknown) => console.warn('Email queue publish failed:', err)),
         );
-      } else if (env.FROM_EMAIL) {
+      } else if (env.FROM_EMAIL || env.RESEND_API_KEY) {
         // Strategy 3: Direct email send (fallback for local dev / no queue).
         // Resend is preferred when RESEND_API_KEY is set; MailChannels is the
         // legacy fallback.  createEmailService() auto-selects the strategy.
+        // Falls back to DEFAULT_FROM_EMAIL when only RESEND_API_KEY is set.
         ctx.waitUntil(
           createEmailService({
-            FROM_EMAIL:       env.FROM_EMAIL,
+            FROM_EMAIL:       env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
             RESEND_API_KEY:   env.RESEND_API_KEY,
             DKIM_DOMAIN:      env.DKIM_DOMAIN,
             DKIM_SELECTOR:    env.DKIM_SELECTOR,
             DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
             EMAIL_WORKER:     env.EMAIL_WORKER,
-          })
-            .sendWaitlistConfirmation(email, segment)
-            .catch((err: unknown) => console.warn('Waitlist email failed:', err)),
-        );
-      } else if (env.RESEND_API_KEY) {
-        // Strategy 3b: Resend only (no FROM_EMAIL set — use the default sender).
-        ctx.waitUntil(
-          createEmailService({
-            FROM_EMAIL:     DEFAULT_FROM_EMAIL,
-            RESEND_API_KEY: env.RESEND_API_KEY,
           })
             .sendWaitlistConfirmation(email, segment)
             .catch((err: unknown) => console.warn('Waitlist email failed:', err)),

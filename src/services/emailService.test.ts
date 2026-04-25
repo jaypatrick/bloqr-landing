@@ -20,6 +20,7 @@ import {
   ResendStrategy,
   ServiceBindingStrategy,
   createEmailService,
+  DEFAULT_FROM_EMAIL,
   type EmailEnv,
 } from './emailService';
 import { EmailPayloadSchema } from './emailSchemas';
@@ -43,6 +44,15 @@ const DKIM_ENV: EmailEnv = {
   DKIM_SELECTOR:   'mailchannels',
   DKIM_PRIVATE_KEY: 'base64-private-key',
 };
+
+// ─── 0. Module-level exports ──────────────────────────────────────────────────
+
+describe('DEFAULT_FROM_EMAIL', () => {
+  it('is exported and is a non-empty string', () => {
+    expect(DEFAULT_FROM_EMAIL).toBeTypeOf('string');
+    expect(DEFAULT_FROM_EMAIL.length).toBeGreaterThan(0);
+  });
+});
 
 // ─── 1. EmailPayloadSchema ────────────────────────────────────────────────────
 
@@ -395,6 +405,17 @@ describe('ResendStrategy', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const strategy = new ResendStrategy();
     await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('logs a warning when the Resend SDK throws a network error', async () => {
+    fetchMock.mockRejectedValue(new TypeError('network failure'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const strategy = new ResendStrategy();
+    // The Resend SDK converts fetch rejections into a { error } response, so
+    // the error branch handles it and throws 'Resend send failed (unknown): ...'
+    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow(/Resend send failed/);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });

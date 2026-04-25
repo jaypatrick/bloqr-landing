@@ -71,6 +71,12 @@ import {
 export interface Env extends AuthEnv {
   DATABASE_URL?: string;
   FROM_EMAIL?:        string;
+  /**
+   * Resend API key for outbound transactional email.
+   * When present (and EMAIL_WORKER is absent), ResendStrategy is used.
+   * Set as a Worker Secret — never add to wrangler.toml [vars].
+   */
+  RESEND_API_KEY?:    string;
   DKIM_DOMAIN?:       string;
   DKIM_SELECTOR?:     string;
   DKIM_PRIVATE_KEY?:  string;
@@ -304,11 +310,12 @@ export async function handleSendTest(request: Request, env: Env): Promise<Respon
 
   try {
     await createEmailService({
-      FROM_EMAIL:      env.FROM_EMAIL,
-      DKIM_DOMAIN:     env.DKIM_DOMAIN,
-      DKIM_SELECTOR:   env.DKIM_SELECTOR,
+      FROM_EMAIL:       env.FROM_EMAIL,
+      RESEND_API_KEY:   env.RESEND_API_KEY,
+      DKIM_DOMAIN:      env.DKIM_DOMAIN,
+      DKIM_SELECTOR:    env.DKIM_SELECTOR,
       DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
-      EMAIL_WORKER:    env.EMAIL_WORKER,
+      EMAIL_WORKER:     env.EMAIL_WORKER,
     }).sendEmail(payload);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -316,7 +323,11 @@ export async function handleSendTest(request: Request, env: Env): Promise<Respon
     return json({ error: `Failed to send test email: ${message}` }, 500);
   }
 
-  const strategy = env.EMAIL_WORKER ? 'service-binding (adblock-email)' : 'mailchannels-direct';
+  const strategy = env.EMAIL_WORKER
+    ? 'service-binding (adblock-email)'
+    : env.RESEND_API_KEY
+      ? 'resend'
+      : 'mailchannels-direct';
   return json({
     success:  true,
     to:       parsed.to,

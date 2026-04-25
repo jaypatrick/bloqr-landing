@@ -173,6 +173,18 @@ export interface EmailSendStrategy {
   send(payload: EmailPayload, env: EmailEnv): Promise<void>;
 }
 
+// ─── Shared default sender ────────────────────────────────────────────────────
+
+/**
+ * Default sender address used when `FROM_EMAIL` is not explicitly configured
+ * but `RESEND_API_KEY` is set (direct waitlist send path only).
+ *
+ * Other send paths (queue consumer, admin send-test) still require `FROM_EMAIL`
+ * to be set explicitly.  Import this constant from call sites that need to fall
+ * back to it to keep the sender address in a single place.
+ */
+export const DEFAULT_FROM_EMAIL = 'Bloqr <hello@bloqr.app>';
+
 /**
  * Delivers via the `adblock-email` Worker service binding.
  *
@@ -317,18 +329,29 @@ export class ResendStrategy implements EmailSendStrategy {
 
     const resend = new Resend(env.RESEND_API_KEY);
 
-    const { error } = await resend.emails.send({
-      from:    env.FROM_EMAIL,
-      to:      [payload.to],
-      subject: payload.subject,
-      html:    payload.html,
-      text:    payload.text,
-    });
+    try {
+      const { error } = await resend.emails.send({
+        from:    env.FROM_EMAIL,
+        to:      [payload.to],
+        subject: payload.subject,
+        html:    payload.html,
+        text:    payload.text,
+      });
 
-    if (error) {
-      const msg = `Resend send failed (${error.statusCode ?? 'unknown'}): ${error.message}`;
-      console.warn(msg);
-      throw new Error(msg);
+      if (error) {
+        const msg = `Resend send failed (${error.statusCode ?? 'unknown'}): ${error.message}`;
+        console.warn(msg);
+        throw new Error(msg);
+      }
+    } catch (err: unknown) {
+      // Re-log and re-throw errors thrown by the SDK itself (network failures,
+      // fetch rejections, etc.) that aren't already handled by the error branch
+      // above.  Guards against double-logging: only log here if the error is not
+      // a wrapped Error from the branch above.
+      if (!(err instanceof Error && err.message.startsWith('Resend send failed'))) {
+        console.warn('Resend request threw:', err);
+      }
+      throw err;
     }
   }
 }
@@ -440,9 +463,13 @@ export class EmailService {
  *
  * @example
  * ```typescript
- * // In a Worker handler:
+ * // In a Worker handler (FROM_EMAIL set in wrangler.toml [vars] or .dev.vars):
  * if (env.RESEND_API_KEY || env.FROM_EMAIL) {
- *   const svc = createEmailService(env);
+ *   const svc = createEmailService({
+ *     FROM_EMAIL:     env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
+ *     RESEND_API_KEY: env.RESEND_API_KEY,
+ *     EMAIL_WORKER:   env.EMAIL_WORKER,
+ *   });
  *   ctx.waitUntil(
  *     svc.sendWaitlistConfirmation(email, segment)
  *        .catch((err) => console.warn('Email failed:', err)),

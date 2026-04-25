@@ -355,13 +355,16 @@ async function processMessage(
   }
 
   // Determine which strategy will be used so we can log it accurately.
-  const strategy: 'service-binding' | 'mailchannels' = env.EMAIL_WORKER
+  const strategy: 'service-binding' | 'resend' | 'mailchannels' = env.EMAIL_WORKER
     ? 'service-binding'
-    : 'mailchannels';
+    : env.RESEND_API_KEY
+      ? 'resend'
+      : 'mailchannels';
 
   try {
     await createEmailService({
       FROM_EMAIL:       env.FROM_EMAIL,
+      RESEND_API_KEY:   env.RESEND_API_KEY,
       DKIM_DOMAIN:      env.DKIM_DOMAIN,
       DKIM_SELECTOR:    env.DKIM_SELECTOR,
       DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,

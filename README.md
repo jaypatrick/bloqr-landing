@@ -107,11 +107,13 @@ Bloqr uses **Resend** for outbound transactional email (waitlist confirmations) 
    ```sh
    wrangler secret put RESEND_API_KEY
    ```
-4. Set `FROM_EMAIL` (optional — defaults to `Bloqr <hello@bloqr.app>` if not set):
+4. Set `FROM_EMAIL` explicitly for all email flows:
    ```sh
    # In .dev.vars for local dev, or wrangler.toml [vars] for non-secret values
    FROM_EMAIL=Bloqr <hello@bloqr.app>
    ```
+
+The direct waitlist send path falls back to `Bloqr <hello@bloqr.app>` when only `RESEND_API_KEY` is set and `FROM_EMAIL` is absent. All other send paths (queue consumer, admin send-test) require `FROM_EMAIL` to be set explicitly.
 
 `createEmailService(env)` automatically selects `ResendStrategy` when `RESEND_API_KEY` is present (preferred over MailChannels fallback).
 
