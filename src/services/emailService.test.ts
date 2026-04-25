@@ -139,25 +139,24 @@ describe('MailChannelsStrategy', () => {
     expect(person.dkim_private_key).toBeUndefined();
   });
 
-  it('does not throw when MailChannels returns a non-2xx status', async () => {
+  it('throws when MailChannels returns a non-2xx status', async () => {
     fetchMock.mockResolvedValue(new Response('Bad request', { status: 400 }));
     const strategy = new MailChannelsStrategy();
-    // Must resolve, not reject
-    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).resolves.toBeUndefined();
+    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow(/MailChannels send failed/);
   });
 
-  it('does not throw when fetch itself rejects (network failure)', async () => {
+  it('throws when fetch itself rejects (network failure)', async () => {
     fetchMock.mockRejectedValue(new TypeError('network failure'));
     const strategy = new MailChannelsStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).resolves.toBeUndefined();
+    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow();
   });
 
-  it('logs a warning on non-2xx response', async () => {
+  it('logs a warning on non-2xx response before throwing', async () => {
     fetchMock.mockResolvedValue(new Response('error', { status: 500 }));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const strategy = new MailChannelsStrategy();
-    await strategy.send(VALID_PAYLOAD, MINIMAL_ENV);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('500'), expect.anything());
+    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow();
+    expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
 });
@@ -209,19 +208,19 @@ describe('ServiceBindingStrategy', () => {
     expect(body['dkimDomain']).toBeUndefined();
   });
 
-  it('does not throw when the service binding returns a non-2xx status', async () => {
+  it('throws when the service binding returns a non-2xx status', async () => {
     const { fetcher } = makeWorkerFetcher(500);
     const env: EmailEnv = { ...MINIMAL_ENV, EMAIL_WORKER: fetcher };
     const strategy = new ServiceBindingStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, env)).resolves.toBeUndefined();
+    await expect(strategy.send(VALID_PAYLOAD, env)).rejects.toThrow(/adblock-email service binding returned 500/);
   });
 
-  it('does not throw when the service binding fetch rejects', async () => {
+  it('throws when the service binding fetch rejects', async () => {
     const fetcherMock = vi.fn().mockRejectedValue(new Error('binding unavailable'));
     const fetcher = { fetch: fetcherMock } as unknown as Fetcher;
     const env: EmailEnv = { ...MINIMAL_ENV, EMAIL_WORKER: fetcher };
     const strategy = new ServiceBindingStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, env)).resolves.toBeUndefined();
+    await expect(strategy.send(VALID_PAYLOAD, env)).rejects.toThrow('binding unavailable');
   });
 
   it('throws when EMAIL_WORKER is absent', async () => {
@@ -277,10 +276,10 @@ describe('EmailService.sendEmail', () => {
     ).rejects.toThrow(/to:/);
   });
 
-  it('does not throw when the MailChannels response is non-2xx', async () => {
+  it('throws when the MailChannels response is non-2xx', async () => {
     fetchMock.mockResolvedValue(new Response('Bad request', { status: 400 }));
     const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
-    await expect(svc.sendEmail(VALID_PAYLOAD)).resolves.toBeUndefined();
+    await expect(svc.sendEmail(VALID_PAYLOAD)).rejects.toThrow(/MailChannels send failed/);
   });
 });
 

@@ -12,6 +12,7 @@
 import { neon } from '@neondatabase/serverless';
 import { createEmailService } from '../src/services/emailService';
 import { renderWaitlistWelcome } from '../src/email/templates/waitlistWelcome';
+import type { EmailQueueMessage } from '../src/types/emailQueue';
 
 export interface Env {
   DATABASE_URL: string;
@@ -22,6 +23,23 @@ export interface Env {
   DKIM_PRIVATE_KEY?: string;
   /** Service binding to the `adblock-email` Cloudflare Worker (preferred over direct MailChannels). */
   EMAIL_WORKER?: Fetcher;
+  /**
+   * Cloudflare Queue producer for durable email delivery.
+   * When present, confirmation emails are enqueued here instead of sent directly.
+   * @see src/types/emailQueue.ts — EmailQueueMessage envelope
+   */
+  EMAIL_QUEUE?: Queue<EmailQueueMessage>;
+  /**
+   * Cloudflare Workflow binding for durable post-signup orchestration.
+   * When present, this takes priority over EMAIL_QUEUE and direct send.
+   * @see src/workflows/waitlistSignup.ts — WaitlistSignupWorkflow
+   */
+  WAITLIST_WORKFLOW?: Workflow;
+  /**
+   * Analytics Engine dataset for signup event tracking.
+   * @see https://developers.cloudflare.com/analytics/analytics-engine/
+   */
+  ANALYTICS?: AnalyticsEngineDataset;
 }
 
 interface WaitlistBody {
@@ -129,27 +147,75 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
       VALUES (${email}, ${segment}, ${ip}, ${referrer})
     `;
 
-    // Fire Apollo sync in the background via waitUntil so it isn't cancelled
-    // after the response is returned.
-    if (env.APOLLO_API_KEY) {
-      ctx.waitUntil(pushToApollo(env.APOLLO_API_KEY, email, segment));
+    // ── Post-insert side effects ───────────────────────────────────────────────
+    //
+    // Priority chain for email delivery and Apollo enrichment:
+    //
+    //   1. WAITLIST_WORKFLOW present → create a durable Workflow instance that
+    //      handles both email (via EMAIL_QUEUE) and Apollo enrichment with
+    //      per-step retry policies and crash recovery.
+    //
+    //   2. EMAIL_QUEUE present (no Workflow) → publish to the Queue for durable
+    //      delivery, and fire Apollo enrichment via ctx.waitUntil.
+    //
+    //   3. Neither binding active (e.g. local dev without npm run preview) →
+    //      fall back to direct email send + direct Apollo via ctx.waitUntil.
+
+    if (env.WAITLIST_WORKFLOW) {
+      // Strategy 1: Durable Workflow orchestrates email + Apollo.
+      // Both side effects run with per-step retry policies and crash recovery.
+      // The HTTP response is already sent — no need to await the workflow.
+      ctx.waitUntil(
+        env.WAITLIST_WORKFLOW.create({
+          id:     `waitlist-${email}-${Date.now()}`,
+          params: { email, segment },
+        }).catch((err: unknown) => console.warn('Workflow create failed:', err)),
+      );
+    } else {
+      // Strategy 2/3: Queue or direct delivery + Apollo enrichment.
+
+      if (env.EMAIL_QUEUE && env.FROM_EMAIL) {
+        // Strategy 2: Publish to the durable Queue.
+        const message: EmailQueueMessage = {
+          id:         crypto.randomUUID(),
+          template:   'waitlistWelcome',
+          to:         email,
+          params:     { email, segment },
+          enqueuedAt: new Date().toISOString(),
+        };
+        ctx.waitUntil(
+          env.EMAIL_QUEUE.send(message)
+            .catch((err: unknown) => console.warn('Email queue publish failed:', err)),
+        );
+      } else if (env.FROM_EMAIL) {
+        // Strategy 3: Direct email send (fallback for local dev / no queue).
+        const { subject, html, text } = renderWaitlistWelcome(email, segment);
+        ctx.waitUntil(
+          createEmailService({
+            FROM_EMAIL:       env.FROM_EMAIL,
+            DKIM_DOMAIN:      env.DKIM_DOMAIN,
+            DKIM_SELECTOR:    env.DKIM_SELECTOR,
+            DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
+            EMAIL_WORKER:     env.EMAIL_WORKER,
+          })
+            .sendEmail({ to: email, subject, html, text })
+            .catch((err: unknown) => console.warn('Waitlist email failed:', err)),
+        );
+      }
+
+      // Apollo enrichment runs whenever the Workflow is not handling it.
+      if (env.APOLLO_API_KEY) {
+        ctx.waitUntil(pushToApollo(env.APOLLO_API_KEY, email, segment));
+      }
     }
 
-    // Fire confirmation email in the background — never blocks the response.
-    // Prefers the EMAIL_WORKER service binding (adblock-email) over direct MailChannels.
-    if (env.FROM_EMAIL) {
-      const { subject, html, text } = renderWaitlistWelcome(email, segment);
-      ctx.waitUntil(
-        createEmailService({
-          FROM_EMAIL:       env.FROM_EMAIL,
-          DKIM_DOMAIN:      env.DKIM_DOMAIN,
-          DKIM_SELECTOR:    env.DKIM_SELECTOR,
-          DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
-          EMAIL_WORKER:     env.EMAIL_WORKER,
-        })
-          .sendEmail({ to: email, subject, html, text })
-          .catch((err: unknown) => console.warn('Waitlist email failed:', err)),
-      );
+    // Analytics event — always track the signup regardless of email strategy.
+    if (env.ANALYTICS) {
+      env.ANALYTICS.writeDataPoint({
+        blobs:   ['waitlist_signup', email, segment ?? 'none'],
+        doubles: [1],
+        indexes: ['waitlist_signup'],
+      });
     }
 
     return json({ success: true });

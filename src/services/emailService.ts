@@ -122,9 +122,10 @@ export interface EmailSendStrategy {
 /**
  * Delivers via the `adblock-email` Worker service binding.
  *
- * Forwards a JSON payload to `env.EMAIL_WORKER.fetch()`.  The service binding
- * handles MailChannels (or an alternative provider) on its own.  A non-2xx
- * response is treated as a warning — it is logged but does not propagate.
+ * Forwards a JSON payload to `env.EMAIL_WORKER.fetch()`.  A non-2xx response
+ * or network error throws so callers (e.g. the queue consumer) can choose to
+ * retry.  HTTP handler callers that use `ctx.waitUntil` should wrap with
+ * `.catch((err) => console.warn('Email failed:', err))`.
  */
 export class ServiceBindingStrategy implements EmailSendStrategy {
   async send(payload: EmailPayload, env: EmailEnv): Promise<void> {
@@ -160,13 +161,17 @@ export class ServiceBindingStrategy implements EmailSendStrategy {
         }),
       );
     } catch (err) {
+      // Re-throw so queue consumers can call message.retry().
+      // HTTP handler callers must wrap with .catch().
       console.warn('adblock-email service binding request failed:', err);
-      return;
+      throw err;
     }
 
     if (!res.ok) {
       const text = await res.text().catch(() => '(no body)');
-      console.warn(`adblock-email service binding returned ${res.status}:`, text);
+      const msg  = `adblock-email service binding returned ${res.status}: ${text}`;
+      console.warn(msg);
+      throw new Error(msg);
     }
   }
 }
@@ -177,9 +182,10 @@ const MAILCHANNELS_API = 'https://api.mailchannels.net/tx/v1/send';
 /**
  * Delivers directly to the MailChannels TX API.
  *
- * Used when the `EMAIL_WORKER` service binding is not present.  A non-2xx
- * response is treated as a warning — logged but not thrown — so callers using
- * `ctx.waitUntil` receive a clean resolution.
+ * Used when the `EMAIL_WORKER` service binding is not present.  Network errors
+ * and non-2xx responses are logged then re-thrown so queue consumers can call
+ * `message.retry()`.  HTTP handler callers that use `ctx.waitUntil` should
+ * wrap with `.catch((err) => console.warn('Email failed:', err))`.
  */
 export class MailChannelsStrategy implements EmailSendStrategy {
   async send(payload: EmailPayload, env: EmailEnv): Promise<void> {
@@ -215,15 +221,17 @@ export class MailChannelsStrategy implements EmailSendStrategy {
         body:    JSON.stringify(body),
       });
     } catch (err) {
-      // Network or CF-side failure — log and resolve so ctx.waitUntil callers
-      // don't see an unhandled rejection.
+      // Re-throw so queue consumers can call message.retry().
+      // HTTP handler callers must wrap with .catch().
       console.warn('MailChannels request failed:', err);
-      return;
+      throw err;
     }
 
     if (!res.ok) {
       const text = await res.text().catch(() => '(no body)');
-      console.warn(`MailChannels send failed (${res.status}):`, text);
+      const msg  = `MailChannels send failed (${res.status}): ${text}`;
+      console.warn(msg);
+      throw new Error(msg);
     }
   }
 }
@@ -264,13 +272,15 @@ export class EmailService {
    * Validates `payload` with the `EmailPayloadSchema` Zod schema, then
    * delegates to the configured send strategy.
    *
-   * @throws {Error} If the payload fails validation. The message includes the
-   *   failing field path and Zod error message, e.g.
+   * @throws {Error} If the payload fails Zod validation. The message includes
+   *   the failing field path and Zod error message, e.g.
    *   `"Invalid email payload: to: Invalid email"`.
    *
-   * Non-2xx responses from MailChannels / the service binding are treated as
-   * warnings and logged via `console.warn` — they do **not** throw, so callers
-   * using `ctx.waitUntil` receive a clean resolution.
+   * @throws {Error} If the delivery strategy encounters a network error or
+   *   returns a non-2xx response.  The error message includes the HTTP status
+   *   code and response body.  Queue consumers should catch this and call
+   *   `message.retry()` for transient failures.  HTTP handler callers that use
+   *   `ctx.waitUntil` must wrap with `.catch((err) => console.warn(...))`.
    */
   async sendEmail(payload: EmailPayload): Promise<void> {
     let validated: EmailPayload;

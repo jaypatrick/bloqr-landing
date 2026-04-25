@@ -19,10 +19,12 @@
  *   GET     /api/browser-health → Browser Rendering binding health check (requires auth)
  *   POST    /api/auth/*     → Better Auth handler (all auth endpoints)
  *   GET     /api/auth/*     → Better Auth handler (session checks, OAuth callbacks)
+ *   Queue   email-queue     → handleEmailQueue (durable email delivery consumer)
  *   *                       → env.ASSETS.fetch(request) (static site)
  */
 
 import type { Env } from './types/env';
+import type { EmailQueueMessage } from './types/emailQueue';
 import { handleOptions as waitlistOptions, handlePost as waitlistPost } from '../functions/waitlist';
 import { handleOptions as configGetOptions, handleGet as configGet } from '../functions/config';
 import { handleOptions as configPostOptions, handlePost as configPost } from '../functions/admin/config';
@@ -35,6 +37,13 @@ import {
 } from '../functions/admin/email';
 import { handleAuth } from './lib/auth';
 import { isAuthConfigured, isAuthorized } from '../functions/admin/_auth-guard';
+import { handleEmailQueue } from '../functions/queues/emailConsumer';
+
+// ─── Cloudflare Workflows export ──────────────────────────────────────────────
+// WaitlistSignupWorkflow must be exported at the module top level so Wrangler
+// registers it as a Workflow class in the Worker bundle.  Without this export
+// the [[workflows]] binding in wrangler.toml cannot resolve `class_name`.
+export { WaitlistSignupWorkflow } from './workflows/waitlistSignup';
 
 /**
  * Returns the response unchanged if the request host matches the canonical domain.
@@ -191,4 +200,24 @@ export default {
     response = applyCSP(response);
     return applyRobotsTag(response, url.hostname, env.CANONICAL_DOMAIN);
   },
-} satisfies ExportedHandler<Env>;
+
+  /**
+   * Queue consumer — processes batches from the `email-queue` Cloudflare Queue.
+   *
+   * Activated when `[[queues.consumers]]` is configured in `wrangler.toml`.
+   * Each message is an `EmailQueueMessage` envelope containing a template name,
+   * recipient, and render parameters.  The consumer renders and delivers the
+   * email, writes a dedup key to `EMAIL_DEDUP_KV`, and ACKs on success.
+   * Transient failures call `message.retry()` — messages exceeding `max_retries`
+   * are automatically routed to the `email-dlq` dead letter queue.
+   *
+   * @see functions/queues/emailConsumer.ts — consumer implementation
+   * @see https://developers.cloudflare.com/queues/
+   */
+  async queue(
+    batch: MessageBatch<EmailQueueMessage>,
+    env: Env,
+  ): Promise<void> {
+    return handleEmailQueue(batch, env);
+  },
+} satisfies ExportedHandler<Env, EmailQueueMessage>;

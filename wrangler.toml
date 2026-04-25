@@ -193,6 +193,72 @@ PUBLIC_CF_BEACON_TOKEN = "c669b516a8e54055b08bf02e3fe8f438"
 # DKIM_PRIVATE_KEY is a secret — set with:
 #   wrangler secret put DKIM_PRIVATE_KEY
 #
+# ─── Cloudflare Queues: email-queue ───────────────────────────────────────────
+# Durable, auto-retried email delivery queue.  Messages published here by
+# the waitlist handler (or WaitlistSignupWorkflow) are consumed by the
+# `handleEmailQueue` function in src/worker.ts.
+#
+# Setup (one-time, per environment):
+#   wrangler queues create email-queue
+#   wrangler queues create email-dlq
+#
+# Activate by uncommenting ALL THREE blocks below:
+#
+# [[queues.producers]]
+# binding = "EMAIL_QUEUE"
+# queue   = "email-queue"
+#
+# [[queues.producers]]
+# binding = "EMAIL_DLQ"
+# queue   = "email-dlq"
+#
+# [[queues.consumers]]
+# queue             = "email-queue"
+# max_batch_size    = 10     # messages per consumer invocation
+# max_batch_timeout = 30     # seconds to wait for a full batch
+# max_retries       = 3      # per-message retry limit before DLQ routing
+# dead_letter_queue = "email-dlq"
+#
+# ─── Cloudflare Workflows: waitlist-signup ────────────────────────────────────
+# Durable multi-step orchestration for post-signup side effects (email + Apollo).
+# Requires the email-queue producer binding to also be active (Step 1 publishes
+# to it).  When WAITLIST_WORKFLOW is present it takes priority over EMAIL_QUEUE
+# and direct send in functions/waitlist.ts.
+#
+# Activate by uncommenting the block below:
+#
+# [[workflows]]
+# binding     = "WAITLIST_WORKFLOW"
+# name        = "waitlist-signup"
+# class_name  = "WaitlistSignupWorkflow"
+# script_name = "adblock-landing"
+#
+# ─── Cloudflare Analytics Engine: bloqr_email_events ─────────────────────────
+# Tracks email and signup lifecycle events (email_sent, waitlist_signup, etc.)
+# without needing a third-party observability platform.
+# Events are queryable via the CF Analytics Engine SQL API.
+#
+# Activate by uncommenting the block below:
+#
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+# dataset = "bloqr_email_events"
+#
+# ─── KV: email deduplication ──────────────────────────────────────────────────
+# Prevents duplicate confirmation emails on queue consumer retry.
+# The consumer writes `email-sent:<message-id>` (TTL 24 h) after a
+# successful send.  On retry, the key presence skips re-sending.
+#
+# Setup (one-time, per environment):
+#   wrangler kv namespace create EMAIL_DEDUP
+#   # Copy the id from the output and paste it below
+#
+# Activate by uncommenting and filling in the block below:
+#
+# [[kv_namespaces]]
+# binding = "EMAIL_DEDUP_KV"
+# id      = "<your-kv-namespace-id>"
+#
 # ─── D1 Cache (site_config read-through cache) — RESERVED / FUTURE WORK ────────
 # Intended to cache site_config rows from Neon for fast edge reads.
 # The Worker does not yet read from or write to this binding; it is provisioned

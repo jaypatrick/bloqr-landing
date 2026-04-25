@@ -50,6 +50,14 @@ export interface Env extends AuthEnv {
   DKIM_PRIVATE_KEY?:  string;
   /** Service binding to the `adblock-email` Cloudflare Worker. */
   EMAIL_WORKER?: Fetcher;
+  /** Cloudflare Queue producer binding for durable email delivery. */
+  EMAIL_QUEUE?: Queue<unknown>;
+  /** Cloudflare Workflow binding for durable post-signup orchestration. */
+  WAITLIST_WORKFLOW?: Workflow;
+  /** Analytics Engine dataset for email event tracking. */
+  ANALYTICS?: AnalyticsEngineDataset;
+  /** KV namespace for email deduplication. */
+  EMAIL_DEDUP_KV?: KVNamespace;
 }
 
 // ─── Template registry ────────────────────────────────────────────────────────
@@ -110,18 +118,40 @@ export async function handleStatus(request: Request, env: Env): Promise<Response
     return json({ error: 'Forbidden.' }, 403);
   }
 
-  const strategy = env.EMAIL_WORKER ? 'service-binding (adblock-email)' : 'mailchannels-direct';
+  const strategy = env.EMAIL_WORKER
+    ? 'service-binding (adblock-email)'
+    : 'mailchannels-direct';
+
+  // Determine the active email pipeline strategy
+  const pipeline = env.WAITLIST_WORKFLOW
+    ? 'workflow → queue → send'
+    : env.EMAIL_QUEUE
+      ? 'queue → send'
+      : 'direct-send';
 
   return json({
     configured: {
-      FROM_EMAIL:       !!env.FROM_EMAIL,
-      DKIM_DOMAIN:      !!env.DKIM_DOMAIN,
-      DKIM_SELECTOR:    !!env.DKIM_SELECTOR,
-      DKIM_PRIVATE_KEY: !!env.DKIM_PRIVATE_KEY,
-      EMAIL_WORKER:     !!env.EMAIL_WORKER,
+      FROM_EMAIL:           !!env.FROM_EMAIL,
+      DKIM_DOMAIN:          !!env.DKIM_DOMAIN,
+      DKIM_SELECTOR:        !!env.DKIM_SELECTOR,
+      DKIM_PRIVATE_KEY:     !!env.DKIM_PRIVATE_KEY,
+      EMAIL_WORKER:         !!env.EMAIL_WORKER,
+      EMAIL_QUEUE:          !!env.EMAIL_QUEUE,
+      WAITLIST_WORKFLOW:    !!env.WAITLIST_WORKFLOW,
+      ANALYTICS:            !!env.ANALYTICS,
+      EMAIL_DEDUP_KV:       !!env.EMAIL_DEDUP_KV,
     },
-    /** The delivery strategy that will be used for outbound email. */
+    /**
+     * The delivery strategy used for outbound email.
+     * One of: 'service-binding (adblock-email)' | 'mailchannels-direct'
+     */
     sendStrategy: strategy,
+    /**
+     * The overall email pipeline: how the confirmation email flows from the
+     * waitlist signup to the recipient's inbox.
+     * One of: 'workflow → queue → send' | 'queue → send' | 'direct-send'
+     */
+    pipelineStrategy: pipeline,
     /**
      * Whether the service is ready to send emails.
      * True when at least FROM_EMAIL is set.
