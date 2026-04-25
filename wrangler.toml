@@ -215,20 +215,20 @@ name = "SEND_EMAIL"
 #
 # Activate by uncommenting ALL THREE blocks below:
 #
-# [[queues.producers]]
-# binding = "EMAIL_QUEUE"
-# queue   = "email-queue"
+[[queues.producers]]
+binding = "EMAIL_QUEUE"
+queue   = "email-queue"
 #
-# [[queues.producers]]
-# binding = "EMAIL_DLQ"
-# queue   = "email-dlq"
+[[queues.producers]]
+binding = "EMAIL_DLQ"
+queue   = "email-dlq"
 #
-# [[queues.consumers]]
-# queue             = "email-queue"
-# max_batch_size    = 10     # messages per consumer invocation
-# max_batch_timeout = 30     # seconds to wait for a full batch
-# max_retries       = 3      # per-message retry limit before DLQ routing
-# dead_letter_queue = "email-dlq"
+[[queues.consumers]]
+queue             = "email-queue"
+max_batch_size    = 10     # messages per consumer invocation
+max_batch_timeout = 30     # seconds to wait for a full batch
+max_retries       = 3      # per-message retry limit before DLQ routing
+dead_letter_queue = "email-dlq"
 #
 # ─── Cloudflare Workflows: waitlist-signup ────────────────────────────────────
 # Durable multi-step orchestration for post-signup side effects (email + Apollo).
@@ -238,11 +238,11 @@ name = "SEND_EMAIL"
 #
 # Activate by uncommenting the block below:
 #
-# [[workflows]]
-# binding     = "WAITLIST_WORKFLOW"
-# name        = "waitlist-signup"
-# class_name  = "WaitlistSignupWorkflow"
-# script_name = "adblock-landing"
+[[workflows]]
+binding     = "WAITLIST_WORKFLOW"
+name        = "waitlist-signup"
+class_name  = "WaitlistSignupWorkflow"
+script_name = "adblock-landing"
 #
 # ─── Cloudflare Analytics Engine: bloqr_email_events ─────────────────────────
 # Tracks email and signup lifecycle events (email_sent, waitlist_signup, etc.)
@@ -251,9 +251,9 @@ name = "SEND_EMAIL"
 #
 # Activate by uncommenting the block below:
 #
-# [[analytics_engine_datasets]]
-# binding = "ANALYTICS"
-# dataset = "bloqr_email_events"
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "bloqr_email_events"
 #
 # ─── KV: email deduplication ──────────────────────────────────────────────────
 # Prevents duplicate confirmation emails on queue consumer retry.
@@ -266,9 +266,9 @@ name = "SEND_EMAIL"
 #
 # Activate by uncommenting and filling in the block below:
 #
-# [[kv_namespaces]]
-# binding = "EMAIL_DEDUP_KV"
-# id      = "<your-kv-namespace-id>"
+[[kv_namespaces]]
+binding = "EMAIL_DEDUP_KV"
+id      = "e6bd43ebed9c445fa1e85a0f9b3d39b9"
 #
 # ─── D1: bloqr-email (email delivery log + custom template store) ─────────────
 # Purpose-built D1 SQLite edge database for email persistence.
@@ -291,10 +291,10 @@ name = "SEND_EMAIL"
 #
 # Activate by uncommenting the block below:
 #
-# [[d1_databases]]
-# binding       = "EMAIL_DB"
-# database_name = "bloqr-email"
-# database_id   = "<id-from-setup-script>"
+[[d1_databases]]
+binding       = "EMAIL_DB"
+database_name = "bloqr-email"
+database_id   = "662fc37a-9246-476a-ac5c-2bf0c52124c3"
 #
 # ─── D1 Cache (site_config read-through cache) — RESERVED / FUTURE WORK ────────
 # Intended to cache site_config rows from Neon for fast edge reads.
