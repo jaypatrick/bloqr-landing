@@ -95,6 +95,38 @@ The Worker handles a small set of server-side routes. Everything else falls thro
 
 ---
 
+## Email Setup (Resend + Cloudflare Email Routing)
+
+Bloqr uses **Resend** for outbound transactional email (waitlist confirmations) and **Cloudflare Email Routing** for inbound forwarding. They operate independently and do not conflict.
+
+### Outbound — Resend
+
+1. Create an account at [resend.com](https://resend.com) and add `bloqr.app` as a sending domain.
+2. The Resend dashboard will provide **SPF** and **DKIM** DNS records. Add these to the `bloqr.app` Cloudflare DNS zone.
+3. Obtain an API key and set it as a Worker Secret — **never** add it to `wrangler.toml [vars]`:
+   ```sh
+   wrangler secret put RESEND_API_KEY
+   ```
+4. Set `FROM_EMAIL` (optional — defaults to `Bloqr <hello@bloqr.app>` if not set):
+   ```sh
+   # In .dev.vars for local dev, or wrangler.toml [vars] for non-secret values
+   FROM_EMAIL=Bloqr <hello@bloqr.app>
+   ```
+
+`createEmailService(env)` automatically selects `ResendStrategy` when `RESEND_API_KEY` is present (preferred over MailChannels fallback).
+
+### Inbound — Cloudflare Email Routing
+
+Cloudflare Email Routing forwards inbound messages to your personal inbox. Configure it in the **Cloudflare dashboard → Email → Email Routing** — no code changes are required. This is independent of the Resend outbound flow.
+
+### Security checklist
+
+- `RESEND_API_KEY` must be a **Worker Secret** — never appears in `[vars]` or committed config.
+- All waitlist request fields are Zod-validated before any email is sent.
+- Email delivery errors are fire-and-forget — they never block the `200` waitlist response.
+
+---
+
 ## Brand and Voice
 
 Bloqr has a specific voice. Before writing copy, UI labels, or any user-facing text, read:

@@ -26,12 +26,18 @@ GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
 # ─── Email (MailChannels transactional email) ─────────────────────────────────
 # FROM_EMAIL sets the sender address for confirmation emails.
 # DKIM_* are optional; omit to send without DKIM signing.
-FROM_EMAIL=Bloqr <hello@bloqr.dev>
-DKIM_DOMAIN=bloqr.dev
+FROM_EMAIL=Bloqr <hello@bloqr.app>
+DKIM_DOMAIN=bloqr.app
 DKIM_SELECTOR=mailchannels
 # DKIM_PRIVATE_KEY is a base64-encoded RSA private key — set as a Worker Secret
 # (wrangler secret put DKIM_PRIVATE_KEY) and add locally in .dev.vars:
 # DKIM_PRIVATE_KEY=<base64-private-key>
+
+# ─── Resend (preferred outbound email provider) ───────────────────────────────
+# RESEND_API_KEY is used by ResendStrategy when EMAIL_WORKER binding is absent.
+# Obtain your key from https://resend.com/api-keys
+# Set as a Worker Secret in production: wrangler secret put RESEND_API_KEY
+# RESEND_API_KEY=re_your_resend_api_key_here
 
 # ─── Neon migration note ──────────────────────────────────────────────────────
 # After setting DATABASE_URL, run the email schema migration to add

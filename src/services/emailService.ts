@@ -31,8 +31,10 @@
  *   );
  */
 
+import { Resend } from 'resend';
 import { ZodError } from 'zod';
 import { EmailPayloadSchema, type EmailPayload } from './emailSchemas';
+import { renderWaitlistWelcome } from '../email/templates/waitlistWelcome';
 
 // ─── Error types ─────────────────────────────────────────────────────────────
 
@@ -90,10 +92,24 @@ export { EmailPayloadSchema } from './emailSchemas';
  *   [[services]]
  *   binding = "EMAIL_WORKER"
  *   service = "adblock-email"
+ *
+ * ### Resend (preferred outbound provider)
+ * When `RESEND_API_KEY` is present and `EMAIL_WORKER` is absent, the
+ * `ResendStrategy` is selected automatically.  Add the domain to Resend
+ * and set SPF/DKIM DNS records before enabling.
+ *
+ * Set as a Worker Secret:  `wrangler secret put RESEND_API_KEY`
  */
 export interface EmailEnv {
-  /** Sender address, e.g. `"Bloqr <hello@bloqr.dev>"` */
+  /** Sender address, e.g. `"Bloqr <hello@bloqr.app>"` */
   FROM_EMAIL: string;
+  /**
+   * Resend API key for outbound transactional email.
+   * When present (and `EMAIL_WORKER` is absent), the `ResendStrategy` is used.
+   * Set as a Worker Secret — never put this in `wrangler.toml [vars]`.
+   * `wrangler secret put RESEND_API_KEY`
+   */
+  RESEND_API_KEY?: string;
   /** Domain used for DKIM signing (e.g. `"bloqr.dev"`). Must match the DNS TXT record. */
   DKIM_DOMAIN?: string;
   /** DKIM selector (e.g. `"mailchannels"`). Must match the DNS TXT record. */
@@ -274,6 +290,49 @@ export class MailChannelsStrategy implements EmailSendStrategy {
   }
 }
 
+// ─── ResendStrategy ───────────────────────────────────────────────────────────
+
+/**
+ * Delivers via the Resend HTTP API (https://resend.com).
+ *
+ * Preferred over `MailChannelsStrategy` when `env.RESEND_API_KEY` is present
+ * and `env.EMAIL_WORKER` is absent.  Uses the official `resend` npm package
+ * which is compatible with the Cloudflare Workers runtime (HTTP-only, no TCP).
+ *
+ * A Resend error is logged then re-thrown so queue consumers can call
+ * `message.retry()` for transient failures.  HTTP handler callers that use
+ * `ctx.waitUntil` should wrap with `.catch((err) => console.warn(...))`.
+ *
+ * Prerequisites:
+ *   1. Add `bloqr.app` (or your sending domain) in the Resend dashboard.
+ *   2. Add the SPF/DKIM DNS records Resend provides to your Cloudflare zone.
+ *   3. Set `RESEND_API_KEY` as a Worker Secret:
+ *        `wrangler secret put RESEND_API_KEY`
+ */
+export class ResendStrategy implements EmailSendStrategy {
+  async send(payload: EmailPayload, env: EmailEnv): Promise<void> {
+    if (!env.RESEND_API_KEY) {
+      throw new Error('ResendStrategy requires RESEND_API_KEY');
+    }
+
+    const resend = new Resend(env.RESEND_API_KEY);
+
+    const { error } = await resend.emails.send({
+      from:    env.FROM_EMAIL,
+      to:      [payload.to],
+      subject: payload.subject,
+      html:    payload.html,
+      text:    payload.text,
+    });
+
+    if (error) {
+      const msg = `Resend send failed (${error.statusCode ?? 'unknown'}): ${error.message}`;
+      console.warn(msg);
+      throw new Error(msg);
+    }
+  }
+}
+
 // ─── EmailService ─────────────────────────────────────────────────────────────
 
 /**
@@ -338,6 +397,26 @@ export class EmailService {
 
     await this.strategy.send(validated, this.env);
   }
+
+  /**
+   * Renders the waitlist welcome template for `to` and `segment`, then sends
+   * via the configured strategy.
+   *
+   * Non-critical — callers should fire-and-forget with `.catch()`:
+   * ```typescript
+   * ctx.waitUntil(
+   *   emailService.sendWaitlistConfirmation(email, segment)
+   *     .catch((err) => console.error('[waitlist] email notification failed:', err)),
+   * );
+   * ```
+   *
+   * @param to      Recipient email address.
+   * @param segment Signup segment (controls personalised copy), or null.
+   */
+  async sendWaitlistConfirmation(to: string, segment: string | null): Promise<void> {
+    const { subject, html, text } = renderWaitlistWelcome(to, segment);
+    return this.sendEmail({ to, subject, html, text });
+  }
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -345,28 +424,35 @@ export class EmailService {
 /**
  * Creates an `EmailService` configured for the current Worker environment.
  *
- * Strategy selection:
+ * Strategy selection (in priority order):
  * - **`EMAIL_WORKER` present** → `ServiceBindingStrategy` (routes through the
  *   `adblock-email` Worker via a Cloudflare service binding).
- * - **`EMAIL_WORKER` absent** → `MailChannelsStrategy` (calls the MailChannels
- *   TX API directly — correct for CF Workers).
+ * - **`RESEND_API_KEY` present** → `ResendStrategy` (calls the Resend HTTP API
+ *   directly — compatible with CF Workers, preferred for outbound email).
+ * - **Neither present** → `MailChannelsStrategy` (calls the MailChannels
+ *   TX API directly — legacy fallback for CF Workers).
  *
  * @example
  * ```typescript
  * // In a Worker handler:
- * if (env.FROM_EMAIL) {
+ * if (env.RESEND_API_KEY || env.FROM_EMAIL) {
  *   const svc = createEmailService(env);
  *   ctx.waitUntil(
- *     svc.sendEmail({ to: email, subject, html, text })
+ *     svc.sendWaitlistConfirmation(email, segment)
  *        .catch((err) => console.warn('Email failed:', err)),
  *   );
  * }
  * ```
  */
 export function createEmailService(env: EmailEnv): EmailService {
-  const strategy: EmailSendStrategy = env.EMAIL_WORKER
-    ? new ServiceBindingStrategy()
-    : new MailChannelsStrategy();
+  let strategy: EmailSendStrategy;
+  if (env.EMAIL_WORKER) {
+    strategy = new ServiceBindingStrategy();
+  } else if (env.RESEND_API_KEY) {
+    strategy = new ResendStrategy();
+  } else {
+    strategy = new MailChannelsStrategy();
+  }
   return new EmailService(env, strategy);
 }
 

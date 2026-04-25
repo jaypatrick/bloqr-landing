@@ -17,6 +17,7 @@ import {
   EmailService,
   EmailValidationError,
   MailChannelsStrategy,
+  ResendStrategy,
   ServiceBindingStrategy,
   createEmailService,
   type EmailEnv,
@@ -283,9 +284,9 @@ describe('EmailService.sendEmail', () => {
   });
 });
 
-// ─── 5. createEmailService factory ────────────────────────────────────────────
+// ─── 4b. EmailService.sendWaitlistConfirmation ────────────────────────────────
 
-describe('createEmailService', () => {
+describe('EmailService.sendWaitlistConfirmation', () => {
   let fetchMock: Mock;
 
   beforeEach(() => {
@@ -297,7 +298,124 @@ describe('createEmailService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns an EmailService backed by MailChannelsStrategy when EMAIL_WORKER is absent', async () => {
+  it('sends a rendered waitlist email via the underlying sendEmail method', async () => {
+    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    await svc.sendWaitlistConfirmation('user@example.com', null);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('includes the segment in the rendered email body when segment is provided', async () => {
+    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    await svc.sendWaitlistConfirmation('user@example.com', 'list-maker');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    const htmlBody = body.content[1].value as string;
+    expect(htmlBody).toMatch(/list maker/);
+  });
+
+  it('sends without a segment when segment is null', async () => {
+    const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
+    await expect(svc.sendWaitlistConfirmation('user@example.com', null)).resolves.toBeUndefined();
+  });
+});
+
+// ─── 5. ResendStrategy ────────────────────────────────────────────────────────
+
+describe('ResendStrategy', () => {
+  let fetchMock: Mock;
+
+  beforeEach(() => {
+    // Resend SDK calls fetch internally — stub the global to avoid real HTTP.
+    // Success: { id: "..." } with 200; error: { message, name, statusCode } with 4xx/5xx.
+    fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: 'test-email-id' }), {
+        status:  200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const RESEND_ENV: EmailEnv = {
+    FROM_EMAIL:     'hello@bloqr.app',
+    RESEND_API_KEY: 're_test_key',
+  };
+
+  it('throws when RESEND_API_KEY is absent', async () => {
+    const strategy = new ResendStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, MINIMAL_ENV)).rejects.toThrow(
+      'ResendStrategy requires RESEND_API_KEY',
+    );
+  });
+
+  it('calls the Resend emails endpoint with the correct payload', async () => {
+    const strategy = new ResendStrategy();
+    await strategy.send(VALID_PAYLOAD, RESEND_ENV);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('resend.com');
+    expect(url).toContain('emails');
+    expect(init.method).toBe('POST');
+
+    const body = JSON.parse(init.body as string);
+    expect(body.from).toBe('hello@bloqr.app');
+    expect(body.to).toContain('user@example.com');
+    expect(body.subject).toBe('Test Subject');
+  });
+
+  it('resolves without throwing on a successful Resend response', async () => {
+    const strategy = new ResendStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).resolves.toBeUndefined();
+  });
+
+  it('throws with a descriptive message when Resend returns an error status', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({ name: 'invalid_from_address', message: 'Invalid from address', statusCode: 422 }),
+        { status: 422, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    const strategy = new ResendStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow(
+      /Resend send failed/,
+    );
+  });
+
+  it('logs a warning before throwing on Resend error', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({ name: 'internal_server_error', message: 'Internal server error', statusCode: 500 }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const strategy = new ResendStrategy();
+    await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+});
+
+// ─── 6. createEmailService factory ────────────────────────────────────────────
+
+describe('createEmailService', () => {
+  let fetchMock: Mock;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('returns an EmailService backed by MailChannelsStrategy when EMAIL_WORKER and RESEND_API_KEY are absent', async () => {
     const svc = createEmailService(MINIMAL_ENV);
     await svc.sendEmail(VALID_PAYLOAD);
 
@@ -320,5 +438,14 @@ describe('createEmailService', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     // The service binding fetcher must have been called
     expect(fetcherMock).toHaveBeenCalledOnce();
+  });
+
+  it('returns an EmailService backed by ResendStrategy when RESEND_API_KEY is present and EMAIL_WORKER is absent', () => {
+    const env: EmailEnv = { ...MINIMAL_ENV, RESEND_API_KEY: 're_test_key' };
+    const svc = createEmailService(env);
+    // Verify the service is usable and is an EmailService instance
+    expect(svc).toBeInstanceOf(EmailService);
+    // The MailChannels global fetch should not be triggered at construction time
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

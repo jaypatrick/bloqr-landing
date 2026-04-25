@@ -69,8 +69,26 @@ export interface Env {
   ENVIRONMENT?: string;
 
   // ─── Email service (MailChannels via CF Workers — transactional, outbound) ──
-  /** Sender address, e.g. "Bloqr <hello@bloqr.dev>" */
+  /** Sender address, e.g. "Bloqr <hello@bloqr.app>" */
   FROM_EMAIL?: string;
+  /**
+   * Resend API key for outbound transactional email.
+   *
+   * When present (and `EMAIL_WORKER` is absent), `createEmailService()` selects
+   * `ResendStrategy` over `MailChannelsStrategy`.
+   *
+   * Set as a Worker Secret — never put the value in `wrangler.toml [vars]`:
+   *   wrangler secret put RESEND_API_KEY
+   *
+   * DNS prerequisites:
+   *   - Add `bloqr.app` in the Resend dashboard to obtain SPF/DKIM records.
+   *   - Add those records to the Cloudflare zone for `bloqr.app`.
+   *   - Cloudflare Email Routing handles inbound forwarding separately
+   *     (configured in the CF dashboard — no code changes needed).
+   *
+   * @see src/services/emailService.ts — ResendStrategy
+   */
+  RESEND_API_KEY?: string;
   /** Domain used for DKIM signing (e.g. "bloqr.dev"). Must match DNS TXT record. */
   DKIM_DOMAIN?: string;
   /** DKIM selector (e.g. "mailchannels"). */
