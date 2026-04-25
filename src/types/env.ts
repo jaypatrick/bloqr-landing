@@ -56,6 +56,19 @@ export interface Env {
   /** Deployment environment tag ("production", "staging", etc.). */
   ENVIRONMENT?: string;
 
+  // ─── Email service (MailChannels via CF Workers — transactional, outbound) ──
+  /** Sender address, e.g. "Bloqr <hello@bloqr.dev>" */
+  FROM_EMAIL?: string;
+  /** Domain used for DKIM signing (e.g. "bloqr.dev"). Must match DNS TXT record. */
+  DKIM_DOMAIN?: string;
+  /** DKIM selector (e.g. "mailchannels"). */
+  DKIM_SELECTOR?: string;
+  /**
+   * DKIM private key (base64-encoded RSA private key).
+   * Set as a Worker Secret: wrangler secret put DKIM_PRIVATE_KEY
+   */
+  DKIM_PRIVATE_KEY?: string;
+
   // ─── Cloudflare Workers bindings ──────────────────────────────────────────
   /**
    * Cloudflare Browser Rendering binding — headless Chromium at the edge.

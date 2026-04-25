@@ -10,10 +10,16 @@
  */
 
 import { neon } from '@neondatabase/serverless';
+import { createEmailService } from '../src/services/emailService';
+import { renderWaitlistWelcome } from '../src/email/templates/waitlistWelcome';
 
 export interface Env {
   DATABASE_URL: string;
   APOLLO_API_KEY: string;
+  FROM_EMAIL?: string;
+  DKIM_DOMAIN?: string;
+  DKIM_SELECTOR?: string;
+  DKIM_PRIVATE_KEY?: string;
 }
 
 interface WaitlistBody {
@@ -125,6 +131,21 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
     // after the response is returned.
     if (env.APOLLO_API_KEY) {
       ctx.waitUntil(pushToApollo(env.APOLLO_API_KEY, email, segment));
+    }
+
+    // Fire confirmation email in the background — never blocks the response.
+    if (env.FROM_EMAIL) {
+      const { subject, html, text } = renderWaitlistWelcome(email, segment);
+      ctx.waitUntil(
+        createEmailService({
+          FROM_EMAIL:      env.FROM_EMAIL,
+          DKIM_DOMAIN:     env.DKIM_DOMAIN,
+          DKIM_SELECTOR:   env.DKIM_SELECTOR,
+          DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
+        })
+          .sendEmail({ to: email, subject, html, text })
+          .catch((err: unknown) => console.warn('Waitlist email failed:', err)),
+      );
     }
 
     return json({ success: true });
