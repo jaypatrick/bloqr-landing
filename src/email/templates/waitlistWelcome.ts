@@ -6,7 +6,7 @@
  * No external images or tracking pixels.
  */
 
-const SITE_URL = 'https://bloqr.dev';
+import { SITE_URL } from '../../config';
 
 const SEGMENT_LABELS: Record<string, string> = {
   'list-maker':     'list maker',
@@ -19,7 +19,7 @@ export function renderWaitlistWelcome(
   segment: string | null,
 ): { html: string; text: string; subject: string } {
   const segmentLabel = segment ? SEGMENT_LABELS[segment] ?? null : null;
-  const personalisedLine = segmentLabel
+  const personalizedLine = segmentLabel
     ? `We're onboarding ${segmentLabel}s first — you're in the right place.`
     : "We're onboarding list makers and privacy vendors first, then everyone else.";
 
@@ -28,7 +28,7 @@ export function renderWaitlistWelcome(
   const text = [
     "You're on the Bloqr waitlist.",
     '',
-    personalisedLine,
+    personalizedLine,
     '',
     "We'll reach out when your spot opens. No spam. One email when it's ready.",
     '',
@@ -59,7 +59,7 @@ export function renderWaitlistWelcome(
 <div class="wrap">
   <div class="logo">Bloqr</div>
   <h1>You're on the waitlist.</h1>
-  <p>${personalisedLine}</p>
+  <p>${personalizedLine}</p>
   <p>We'll reach out when your spot opens. No spam. One email when it's ready.</p>
   <p class="tagline">Internet Hygiene. Automated.</p>
   <div class="footer">

@@ -73,7 +73,7 @@ export class EmailService {
       validated = EmailPayloadSchema.parse(payload);
     } catch (err) {
       if (err instanceof ZodError) {
-        throw new Error('Invalid email payload');
+        throw new Error(`Invalid email payload: ${err.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
       }
       throw err;
     }
@@ -94,8 +94,8 @@ export class EmailService {
 
     const body: MailChannelsBody = {
       personalizations: [personalization],
-      from:    { email: this.env.FROM_EMAIL },
-      subject: validated.subject,
+      from:             { email: this.env.FROM_EMAIL },
+      subject:          validated.subject,
       content: [
         { type: 'text/plain', value: validated.text },
         { type: 'text/html',  value: validated.html  },
