@@ -54,7 +54,7 @@ function isPgError(err: unknown): err is { code: string } {
     typeof err === 'object' &&
     err !== null &&
     'code' in err &&
-    typeof (err as Record<string, unknown>)['code'] === 'string'
+    typeof err.code === 'string'
   );
 }
 

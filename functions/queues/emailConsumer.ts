@@ -273,7 +273,7 @@ async function processMessage(
     const validation = paramsValidator.safeParse(params);
     if (!validation.success) {
       const detail = validation.error.issues
-        .map((i: z.ZodIssue) => `${i.path.join('.')}: ${i.message}`)
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
         .join(', ');
       console.error(
         `[email-queue] Invalid params for template "${template}" (message ${id}) — ACKing without retry:`,
