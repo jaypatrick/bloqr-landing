@@ -79,10 +79,11 @@ export interface EmailSendRow {
   /**
    * Delivery strategy used.
    * - `service-binding` — routed through `EMAIL_WORKER` (adblock-email)
+   * - `resend`          — direct Resend HTTP API call
    * - `mailchannels`    — direct MailChannels TX API call
    * - `none`            — skipped (stale, dedup, invalid, or FROM_EMAIL absent)
    */
-  strategy: 'service-binding' | 'mailchannels' | 'none';
+  strategy: 'service-binding' | 'resend' | 'mailchannels' | 'none';
   /** Error message if `status === 'failed'` or `status === 'invalid'`. */
   error_message: string | null;
   /** ISO 8601 UTC timestamp when this row was created. */

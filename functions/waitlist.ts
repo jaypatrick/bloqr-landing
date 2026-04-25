@@ -10,8 +10,7 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { createEmailService } from '../src/services/emailService';
-import { renderWaitlistWelcome } from '../src/email/templates/waitlistWelcome';
+import { createEmailService, DEFAULT_FROM_EMAIL } from '../src/services/emailService';
 import type { EmailQueueMessage } from '../src/types/emailQueue';
 
 export interface Env {
@@ -22,6 +21,13 @@ export interface Env {
   DKIM_DOMAIN?: string;
   DKIM_SELECTOR?: string;
   DKIM_PRIVATE_KEY?: string;
+  /**
+   * Resend API key for outbound transactional email.
+   * When present (and EMAIL_WORKER is absent), ResendStrategy is used.
+   * Set as a Worker Secret — never add to wrangler.toml [vars].
+   * wrangler secret put RESEND_API_KEY
+   */
+  RESEND_API_KEY?: string;
   /** Service binding to the `adblock-email` Cloudflare Worker (preferred over direct MailChannels). */
   EMAIL_WORKER?: Fetcher;
   /**
@@ -215,6 +221,7 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
         // Strategy 2: Publish to the durable Queue.
         // Use the pre-generated emailMessageId so the waitlist row and the
         // queue consumer's email_sends log share the same message ID.
+        // FROM_EMAIL is required by the queue consumer — do not queue without it.
         const message: EmailQueueMessage = {
           id:         emailMessageId,
           template:   'waitlistWelcome',
@@ -226,18 +233,22 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
           env.EMAIL_QUEUE.send(message)
             .catch((err: unknown) => console.warn('Email queue publish failed:', err)),
         );
-      } else if (env.FROM_EMAIL) {
+      } else if (env.FROM_EMAIL || env.RESEND_API_KEY) {
         // Strategy 3: Direct email send (fallback for local dev / no queue).
-        const { subject, html, text } = renderWaitlistWelcome(email, segment);
+        // Resend is preferred when RESEND_API_KEY is set; MailChannels is the
+        // legacy fallback.  createEmailService() auto-selects the strategy.
+        // Falls back to DEFAULT_FROM_EMAIL when only RESEND_API_KEY is set
+        // (no FROM_EMAIL configured) — this path never involves the queue.
         ctx.waitUntil(
           createEmailService({
-            FROM_EMAIL:       env.FROM_EMAIL,
+            FROM_EMAIL:       env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
+            RESEND_API_KEY:   env.RESEND_API_KEY,
             DKIM_DOMAIN:      env.DKIM_DOMAIN,
             DKIM_SELECTOR:    env.DKIM_SELECTOR,
             DKIM_PRIVATE_KEY: env.DKIM_PRIVATE_KEY,
             EMAIL_WORKER:     env.EMAIL_WORKER,
           })
-            .sendEmail({ to: email, subject, html, text })
+            .sendWaitlistConfirmation(email, segment)
             .catch((err: unknown) => console.warn('Waitlist email failed:', err)),
         );
       }
