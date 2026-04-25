@@ -32,6 +32,42 @@
 import { ZodError } from 'zod';
 import { EmailPayloadSchema, type EmailPayload } from './emailSchemas';
 
+// ─── Error types ─────────────────────────────────────────────────────────────
+
+/**
+ * Thrown by `EmailService.sendEmail()` when Zod payload validation fails.
+ *
+ * Use `instanceof EmailValidationError` to distinguish permanent validation
+ * failures (which should be ACKed, not retried) from transient delivery errors
+ * (which should be retried).
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await emailService.sendEmail(payload);
+ * } catch (err) {
+ *   if (err instanceof EmailValidationError) {
+ *     // Permanent failure — ACK the queue message, do not retry
+ *     message.ack();
+ *   } else {
+ *     // Transient failure — retry
+ *     message.retry();
+ *   }
+ * }
+ * ```
+ */
+export class EmailValidationError extends Error {
+  /** Structured list of failing field paths + messages from Zod. */
+  readonly issues: Array<{ path: string; message: string }>;
+
+  constructor(issues: Array<{ path: string; message: string }>) {
+    const details = issues.map((i) => `${i.path}: ${i.message}`).join(', ');
+    super(`Invalid email payload: ${details}`);
+    this.name = 'EmailValidationError';
+    this.issues = issues;
+  }
+}
+
 // ─── Re-export EmailPayload so callers only need one import ───────────────────
 export type { EmailPayload } from './emailSchemas';
 export { EmailPayloadSchema } from './emailSchemas';
@@ -288,10 +324,12 @@ export class EmailService {
       validated = EmailPayloadSchema.parse(payload);
     } catch (err) {
       if (err instanceof ZodError) {
-        const details = err.issues
-          .map((issue) => `${issue.path.length > 0 ? issue.path.join('.') : 'root'}: ${issue.message}`)
-          .join(', ');
-        throw new Error(`Invalid email payload: ${details}`);
+        throw new EmailValidationError(
+          err.issues.map((issue) => ({
+            path:    issue.path.length > 0 ? issue.path.join('.') : 'root',
+            message: issue.message,
+          })),
+        );
       }
       throw err;
     }

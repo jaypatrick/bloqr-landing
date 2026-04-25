@@ -152,7 +152,7 @@ export class WaitlistSignupWorkflow
           enqueuedAt: new Date().toISOString(),
         };
 
-        await (this.env.EMAIL_QUEUE as Queue<EmailQueueMessage>).send(message);
+        await this.env.EMAIL_QUEUE.send(message);
 
         return { queued: true, messageId };
       },

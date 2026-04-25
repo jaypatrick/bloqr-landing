@@ -18,6 +18,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { handleEmailQueue } from '../../functions/queues/emailConsumer';
+import { EmailValidationError } from '../../src/services/emailService';
 import type { EmailQueueMessage } from '../../src/types/emailQueue';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -251,9 +252,9 @@ describe('email delivery', () => {
   });
 
   it('ACKs (not retries) when the payload is permanently invalid', async () => {
-    // Simulate EmailService throwing an "Invalid email payload" validation error.
+    // Simulate EmailService throwing an EmailValidationError (permanent failure).
     fetchMock.mockImplementationOnce(() => {
-      throw new Error('Invalid email payload: to: Invalid email');
+      throw new EmailValidationError([{ path: 'to', message: 'Invalid email' }]);
     });
     const { batch, ack, retry } = makeBatch(makeMessage());
     await handleEmailQueue(batch, makeEnv() as never);

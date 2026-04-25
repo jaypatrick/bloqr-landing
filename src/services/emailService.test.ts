@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import {
   EmailService,
+  EmailValidationError,
   MailChannelsStrategy,
   ServiceBindingStrategy,
   createEmailService,
@@ -255,25 +256,24 @@ describe('EmailService.sendEmail', () => {
     const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { to, ...withoutTo } = VALID_PAYLOAD;  // `to` is destructured to remove it
-    await expect(svc.sendEmail(withoutTo as typeof VALID_PAYLOAD)).rejects.toThrow(
-      /Invalid email payload/,
-    );
+    const err = await svc.sendEmail(withoutTo as typeof VALID_PAYLOAD).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EmailValidationError);
+    expect((err as Error).message).toMatch(/Invalid email payload/);
   });
 
   it('throws with "Invalid email payload" prefix when `to` is not a valid email', async () => {
     const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
-    await expect(
-      svc.sendEmail({ ...VALID_PAYLOAD, to: 'not-valid' }),
-    ).rejects.toThrow(/Invalid email payload/);
+    const err = await svc.sendEmail({ ...VALID_PAYLOAD, to: 'not-valid' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EmailValidationError);
     // No network call should have been made
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('includes the failing field path in the error message', async () => {
     const svc = new EmailService(MINIMAL_ENV, new MailChannelsStrategy());
-    await expect(
-      svc.sendEmail({ ...VALID_PAYLOAD, to: 'not-valid' }),
-    ).rejects.toThrow(/to:/);
+    const err = await svc.sendEmail({ ...VALID_PAYLOAD, to: 'not-valid' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EmailValidationError);
+    expect((err as Error).message).toMatch(/to:/);
   });
 
   it('throws when the MailChannels response is non-2xx', async () => {

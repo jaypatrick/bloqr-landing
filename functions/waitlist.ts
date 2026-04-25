@@ -167,7 +167,11 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
       // The HTTP response is already sent — no need to await the workflow.
       ctx.waitUntil(
         env.WAITLIST_WORKFLOW.create({
-          id:     `waitlist-${email}-${Date.now()}`,
+          // Use the email as the stable workflow ID so a retried HTTP
+          // request does not create a second workflow instance for the
+          // same signup.  If the DB UNIQUE constraint prevents duplicate
+          // INSERTs, this code path will only ever run once per email.
+          id:     `waitlist-${email}`,
           params: { email, segment },
         }).catch((err: unknown) => console.warn('Workflow create failed:', err)),
       );

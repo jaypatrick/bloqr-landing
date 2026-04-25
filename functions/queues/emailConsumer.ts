@@ -54,7 +54,7 @@
 
 import { ZodError } from 'zod';
 import { EmailQueueMessageSchema, type EmailQueueMessage } from '../../src/types/emailQueue';
-import { createEmailService } from '../../src/services/emailService';
+import { createEmailService, EmailValidationError } from '../../src/services/emailService';
 import { renderWaitlistWelcome } from '../../src/email/templates/waitlistWelcome';
 import type { Env } from '../../src/types/env';
 
@@ -97,7 +97,11 @@ const CONSUMER_TEMPLATE_REGISTRY: Record<
 > = {
   waitlistWelcome: (params) =>
     renderWaitlistWelcome(
-      params['email'] ?? 'unknown@example.com',
+      // `email` is validated as present in the schema and rendered params must
+      // match the template contract.  A missing `email` key at this point means
+      // the queue message was malformed despite passing schema validation — treat
+      // it as a programmer error by throwing so the consumer can ACK without retry.
+      params['email'] ?? (() => { throw new Error('waitlistWelcome: params.email is required'); })(),
       params['segment'] ?? null,
     ),
 };
@@ -220,8 +224,9 @@ async function processMessage(
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[email-queue] Send failed for message ${id} (to: ${to}): ${msg}`);
 
-    // Payload validation errors (e.g. invalid `to` address) are permanent.
-    if (msg.startsWith('Invalid email payload')) {
+    // EmailValidationError is a permanent failure — retrying cannot fix a bad
+    // payload.  ACK to remove the message rather than filling the DLQ with it.
+    if (err instanceof EmailValidationError) {
       message.ack();
       return;
     }
