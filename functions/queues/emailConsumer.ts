@@ -9,17 +9,18 @@
  *
  *   1. **Schema validation** — invalid messages are ACKed immediately and
  *      routed to the DLQ (retrying a malformed message is futile)
- *   2. **Deduplication** — checks `EMAIL_DEDUP_KV` for the message ID; skips
- *      the send if the key exists (prevents duplicate emails on consumer retry)
- *   3. **Stale message check** — skips messages older than `MAX_MESSAGE_AGE_MS`
+ *   2. **Stale message check** — skips messages older than `MAX_MESSAGE_AGE_MS`
  *      (24 hours by default) to avoid sending belated confirmations
- *   4. **Template rendering** — looks up and calls the render function for the
- *      message's template name; unknown templates → ACK (not retried)
+ *   3. **Deduplication** — checks `EMAIL_DEDUP_KV` for the message ID; skips
+ *      the send if the key exists (prevents duplicate emails on consumer retry)
+ *   4. **Template rendering** — checks `EMAIL_DB` for a custom DB override;
+ *      falls back to the compiled default in `src/email/templates/` if none
  *   5. **Email delivery** — calls `createEmailService(env).sendEmail(...)`;
  *      prefers the `EMAIL_WORKER` service binding, falls back to MailChannels
  *   6. **Dedup key write** — writes the message ID to `EMAIL_DEDUP_KV` (TTL 24h)
- *   7. **Analytics event** — writes an `email_sent` data point
- *   8. **ACK** — removes the message from the queue
+ *   7. **D1 delivery log** — writes a row to `email_sends` in `EMAIL_DB`
+ *   8. **Analytics event** — writes an `email_sent` data point
+ *   9. **ACK** — removes the message from the queue
  *
  * On transient failure (e.g. MailChannels 5xx): `message.retry()` — the
  * Cloudflare runtime re-enqueues the message up to `max_retries` times (see
@@ -56,6 +57,8 @@ import { ZodError } from 'zod';
 import { EmailQueueMessageSchema, type EmailQueueMessage } from '../../src/types/emailQueue';
 import { createEmailService, EmailValidationError } from '../../src/services/emailService';
 import { renderWaitlistWelcome } from '../../src/email/templates/waitlistWelcome';
+import { logEmailSend, getEmailTemplate } from '../../src/db/emailDb';
+import type { EmailSendStatus } from '../../src/db/emailDb';
 import type { Env } from '../../src/types/env';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
@@ -149,6 +152,18 @@ async function processMessage(
         '[email-queue] Invalid message schema — ACKing without retry (routes to DLQ):',
         err.issues,
       );
+      // Log invalid schema to D1 so admin can inspect the raw body.
+      if (env.EMAIL_DB) {
+        const rawBody = message.body as Record<string, unknown>;
+        await logEmailSend(env.EMAIL_DB, {
+          message_id:    typeof rawBody['id'] === 'string' ? rawBody['id'] : 'unknown',
+          to_address:    typeof rawBody['to'] === 'string' ? rawBody['to'] : 'unknown',
+          template_name: typeof rawBody['template'] === 'string' ? rawBody['template'] : 'unknown',
+          status:        'invalid',
+          strategy:      'none',
+          error_message: `Schema validation failed: ${err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+        });
+      }
       // ACK: schema violations cannot be fixed by retrying.
       message.ack();
       return;
@@ -164,6 +179,16 @@ async function processMessage(
     console.warn(
       `[email-queue] Message ${id} is stale (${Math.round(ageMs / 60_000)} min old) — skipping`,
     );
+    if (env.EMAIL_DB) {
+      await logEmailSend(env.EMAIL_DB, {
+        message_id:    id,
+        to_address:    to,
+        template_name: template,
+        status:        'stale',
+        strategy:      'none',
+        error_message: `Message age ${Math.round(ageMs / 60_000)} min exceeds 24h limit`,
+      });
+    }
     message.ack();
     return;
   }
@@ -177,17 +202,40 @@ async function processMessage(
     const alreadySent = await env.EMAIL_DEDUP_KV.get(dedupKey).catch(() => null);
     if (alreadySent !== null) {
       console.info(`[email-queue] Skipping duplicate message ${id} (already delivered)`);
+      if (env.EMAIL_DB) {
+        await logEmailSend(env.EMAIL_DB, {
+          message_id:    id,
+          to_address:    to,
+          template_name: template,
+          status:        'deduplicated',
+          strategy:      'none',
+          error_message: null,
+        });
+      }
       message.ack();
       return;
     }
   }
 
   // ── 4. Template rendering ───────────────────────────────────────────────────
+  // Check EMAIL_DB for a custom template override before using the hard-coded
+  // default.  This allows subject lines and copy to be updated via the admin
+  // UI without a code deploy.
   const renderer = CONSUMER_TEMPLATE_REGISTRY[template];
   if (!renderer) {
     console.error(
       `[email-queue] Unknown template "${template}" for message ${id} — ACKing without retry`,
     );
+    if (env.EMAIL_DB) {
+      await logEmailSend(env.EMAIL_DB, {
+        message_id:    id,
+        to_address:    to,
+        template_name: template,
+        status:        'invalid',
+        strategy:      'none',
+        error_message: `Unknown template: "${template}"`,
+      });
+    }
     // ACK: unknown templates cannot be fixed by retrying.
     message.ack();
     return;
@@ -195,9 +243,36 @@ async function processMessage(
 
   let rendered: { subject: string; html: string; text: string };
   try {
-    rendered = renderer(params);
+    // Check for a custom DB override first — it takes priority over the
+    // compiled default.  If EMAIL_DB is not configured or no override exists
+    // the compiled template is used.
+    let customTemplate: { subject: string; html: string; text: string } | null = null;
+    if (env.EMAIL_DB) {
+      const dbTemplate = await getEmailTemplate(env.EMAIL_DB, template);
+      if (dbTemplate) {
+        // Substitute {{email}} and {{site_url}} placeholders in the DB template.
+        const email   = params['email'] ?? to;
+        const siteUrl = params['site_url'] ?? '';
+        customTemplate = {
+          subject: dbTemplate.subject,
+          html:    dbTemplate.html.replace(/\{\{email\}\}/g, email).replace(/\{\{site_url\}\}/g, siteUrl),
+          text:    dbTemplate.text.replace(/\{\{email\}\}/g, email).replace(/\{\{site_url\}\}/g, siteUrl),
+        };
+      }
+    }
+    rendered = customTemplate ?? renderer(params);
   } catch (err) {
     console.error(`[email-queue] Template render error for "${template}" (message ${id}):`, err);
+    if (env.EMAIL_DB) {
+      await logEmailSend(env.EMAIL_DB, {
+        message_id:    id,
+        to_address:    to,
+        template_name: template,
+        status:        'invalid',
+        strategy:      'none',
+        error_message: err instanceof Error ? err.message : String(err),
+      });
+    }
     // Render errors are not transient — ACK to avoid retry loops.
     message.ack();
     return;
@@ -208,9 +283,24 @@ async function processMessage(
     // FROM_EMAIL is required to send.  ACK (not retry) to drain the queue
     // rather than spinning on retries that will always fail.
     console.warn(`[email-queue] FROM_EMAIL not configured — skipping message ${id} for ${to}`);
+    if (env.EMAIL_DB) {
+      await logEmailSend(env.EMAIL_DB, {
+        message_id:    id,
+        to_address:    to,
+        template_name: template,
+        status:        'invalid',
+        strategy:      'none',
+        error_message: 'FROM_EMAIL not configured',
+      });
+    }
     message.ack();
     return;
   }
+
+  // Determine which strategy will be used so we can log it accurately.
+  const strategy: 'service-binding' | 'mailchannels' = env.EMAIL_WORKER
+    ? 'service-binding'
+    : 'mailchannels';
 
   try {
     await createEmailService({
@@ -223,6 +313,18 @@ async function processMessage(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[email-queue] Send failed for message ${id} (to: ${to}): ${msg}`);
+
+    // Log the failed attempt to D1.
+    if (env.EMAIL_DB) {
+      await logEmailSend(env.EMAIL_DB, {
+        message_id:    id,
+        to_address:    to,
+        template_name: template,
+        status:        (err instanceof EmailValidationError ? 'invalid' : 'failed') as EmailSendStatus,
+        strategy,
+        error_message: msg,
+      });
+    }
 
     // EmailValidationError is a permanent failure — retrying cannot fix a bad
     // payload.  ACK to remove the message rather than filling the DLQ with it.
@@ -246,16 +348,29 @@ async function processMessage(
     );
   }
 
-  // ── 7. Analytics event ──────────────────────────────────────────────────────
+  // ── 7. D1 delivery log ──────────────────────────────────────────────────────
+  // Log the successful send to EMAIL_DB for admin history and audit trail.
+  if (env.EMAIL_DB) {
+    await logEmailSend(env.EMAIL_DB, {
+      message_id:    id,
+      to_address:    to,
+      template_name: template,
+      status:        'sent',
+      strategy,
+      error_message: null,
+    });
+  }
+
+  // ── 8. Analytics event ──────────────────────────────────────────────────────
   if (env.ANALYTICS) {
     env.ANALYTICS.writeDataPoint({
-      blobs:   ['email_sent', template, to],
+      blobs:   ['email_sent', template, to, strategy],
       doubles: [1],
       indexes: ['email_sent'],
     });
   }
 
-  // ── 8. ACK ──────────────────────────────────────────────────────────────────
+  // ── 9. ACK ──────────────────────────────────────────────────────────────────
   message.ack();
-  console.info(`[email-queue] Delivered ${template} to ${to} (message ${id})`);
+  console.info(`[email-queue] Delivered ${template} to ${to} via ${strategy} (message ${id})`);
 }

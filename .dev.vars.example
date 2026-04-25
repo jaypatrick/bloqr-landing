@@ -22,3 +22,18 @@ GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
 # BETTER_AUTH_TRUSTED_ORIGINS — optional; comma-separated trusted origins for cross-app SSO
 # Not needed until app.bloqr.dev / docs.bloqr.dev are live
 # BETTER_AUTH_TRUSTED_ORIGINS=https://app.bloqr.dev,https://docs.bloqr.dev
+
+# ─── Email (MailChannels transactional email) ─────────────────────────────────
+# FROM_EMAIL sets the sender address for confirmation emails.
+# DKIM_* are optional; omit to send without DKIM signing.
+FROM_EMAIL=Bloqr <hello@bloqr.dev>
+DKIM_DOMAIN=bloqr.dev
+DKIM_SELECTOR=mailchannels
+# DKIM_PRIVATE_KEY is a base64-encoded RSA private key — set as a Worker Secret
+# (wrangler secret put DKIM_PRIVATE_KEY) and add locally in .dev.vars:
+# DKIM_PRIVATE_KEY=<base64-private-key>
+
+# ─── Neon migration note ──────────────────────────────────────────────────────
+# After setting DATABASE_URL, run the email schema migration to add
+# email_message_id to the waitlist table:
+#   npm run migrate:email

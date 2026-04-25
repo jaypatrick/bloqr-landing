@@ -14,6 +14,7 @@
     "sync-blog": "npx tsx scripts/sync-blog-from-db.ts",
     "migrate-blog": "npx tsx scripts/migrate-blog-posts.ts",
     "migrate:auth": "tsx scripts/migrate-better-auth.ts",
+    "migrate:email": "npx tsx scripts/migrate-email-schema.ts",
     "test": "vitest run"
   },
   "dependencies": {

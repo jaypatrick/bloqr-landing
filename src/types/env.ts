@@ -104,6 +104,27 @@ export interface Env {
   BROWSER?: Fetcher;
 
   /**
+   * D1 database binding — email delivery log and custom template store.
+   *
+   * Tables:
+   *   - `email_sends`     — immutable delivery log written by the queue consumer
+   *   - `email_templates` — optional custom overrides for hard-coded templates
+   *
+   * Create with `scripts/setup-d1-email.sh` (one-time per environment).
+   *
+   * Wire in wrangler.toml:
+   *   [[d1_databases]]
+   *   binding       = "EMAIL_DB"
+   *   database_name = "bloqr-email"
+   *   database_id   = "<id-from-setup-script>"
+   *
+   * @see src/db/emailDb.ts       — query helpers
+   * @see scripts/setup-d1-email.sh — one-time D1 setup
+   * @see scripts/migrations/001_email_db.sql — schema definition
+   */
+  EMAIL_DB?: D1Database;
+
+  /**
    * D1 database binding — site_config read-through cache.
    * Currently reserved / not yet active in handler code.
    */

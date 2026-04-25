@@ -259,6 +259,32 @@ PUBLIC_CF_BEACON_TOKEN = "c669b516a8e54055b08bf02e3fe8f438"
 # binding = "EMAIL_DEDUP_KV"
 # id      = "<your-kv-namespace-id>"
 #
+# ─── D1: bloqr-email (email delivery log + custom template store) ─────────────
+# Purpose-built D1 SQLite edge database for email persistence.
+#
+# Tables (see scripts/migrations/001_email_db.sql for full schema):
+#   email_sends     — immutable delivery log (one row per queue message processed)
+#                     Writes: queue consumer after each attempt (sent/failed/stale/etc.)
+#                     Reads:  GET /admin/email/logs with optional filters and pagination
+#   email_templates — optional admin-editable template overrides
+#                     Writes: PUT /admin/email/templates (creates or replaces)
+#                     Reads:  queue consumer checks for custom version before compiling
+#                             GET /admin/email/templates (admin listing)
+#                     Delete: DELETE /admin/email/templates/:name (restores default)
+#
+# One-time setup — run scripts/setup-d1-email.sh, or manually:
+#   1. wrangler d1 create bloqr-email
+#   2. Copy the database_id output below
+#   3. wrangler d1 execute bloqr-email --file scripts/migrations/001_email_db.sql
+#   4. wrangler d1 execute bloqr-email --file scripts/migrations/001_email_db.sql --remote
+#
+# Activate by uncommenting the block below:
+#
+# [[d1_databases]]
+# binding       = "EMAIL_DB"
+# database_name = "bloqr-email"
+# database_id   = "<id-from-setup-script>"
+#
 # ─── D1 Cache (site_config read-through cache) — RESERVED / FUTURE WORK ────────
 # Intended to cache site_config rows from Neon for fast edge reads.
 # The Worker does not yet read from or write to this binding; it is provisioned

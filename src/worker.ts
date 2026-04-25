@@ -15,6 +15,10 @@
  *   GET     /admin/email/status  → email config status (requires auth)
  *   GET     /admin/email/preview → render template preview (requires auth)
  *   POST    /admin/email/send-test → send test email (requires auth)
+ *   GET     /admin/email/logs   → delivery log from D1 (requires auth)
+ *   GET     /admin/email/templates → list template overrides from D1 (requires auth)
+ *   PUT     /admin/email/templates → upsert custom template override (requires auth)
+ *   DELETE  /admin/email/templates/:name → delete template override (requires auth)
  *   OPTIONS /admin/email/*       → CORS preflight
  *   GET     /api/browser-health → Browser Rendering binding health check (requires auth)
  *   POST    /api/auth/*     → Better Auth handler (all auth endpoints)
@@ -34,6 +38,10 @@ import {
   handleStatus as emailAdminStatus,
   handlePreview as emailAdminPreview,
   handleSendTest as emailAdminSendTest,
+  handleEmailLogs as emailAdminLogs,
+  handleListTemplates as emailAdminListTemplates,
+  handleUpsertTemplate as emailAdminUpsertTemplate,
+  handleDeleteTemplate as emailAdminDeleteTemplate,
 } from '../functions/admin/email';
 import { handleAuth } from './lib/auth';
 import { isAuthConfigured, isAuthorized } from '../functions/admin/_auth-guard';
@@ -135,6 +143,19 @@ export default {
     } else if (url.pathname === '/admin/email/send-test') {
       if (request.method === 'OPTIONS') response = emailAdminOptions();
       else if (request.method === 'POST') response = await emailAdminSendTest(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/admin/email/logs') {
+      if (request.method === 'OPTIONS') response = emailAdminOptions();
+      else if (request.method === 'GET') response = await emailAdminLogs(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/admin/email/templates') {
+      if (request.method === 'OPTIONS') response = emailAdminOptions();
+      else if (request.method === 'GET') response = await emailAdminListTemplates(request, env);
+      else if (request.method === 'PUT') response = await emailAdminUpsertTemplate(request, env);
+      else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname.startsWith('/admin/email/templates/')) {
+      if (request.method === 'OPTIONS') response = emailAdminOptions();
+      else if (request.method === 'DELETE') response = await emailAdminDeleteTemplate(request, env);
       else response = new Response('Method Not Allowed', { status: 405 });
     } else if (url.pathname === '/api/browser-health') {
       if (request.method === 'OPTIONS') {

@@ -1,10 +1,15 @@
 /**
- * functions/admin/email.ts — GET/POST/OPTIONS /admin/email/* handlers
+ * functions/admin/email.ts — GET/POST/PUT/DELETE/OPTIONS /admin/email/* handlers
  *
- * Admin-only API for email template previewing and test sends.
+ * Admin-only API for email configuration, template management, send logs,
+ * template previewing, and test sends.
  * Auth: Better Auth session (primary) or legacy ADMIN_SECRET bearer token (fallback).
  *
  * Routes handled here (wired in src/worker.ts):
+ *
+ *   GET  /admin/email/status
+ *        Returns the current email configuration status — which env vars are
+ *        present, which send strategy will be used, and pipeline strategy.
  *
  *   GET  /admin/email/preview?template=&email=&segment=
  *        Returns the rendered HTML and plain-text bodies for a template without
@@ -15,20 +20,32 @@
  *        Renders a template and delivers it to a real email address via
  *        createEmailService(env).  Requires FROM_EMAIL to be configured.
  *
- *   GET  /admin/email/status
- *        Returns the current email configuration status — which env vars are
- *        present, which send strategy will be used.  Safe to call at any time.
+ *   GET  /admin/email/logs
+ *        Lists recent email delivery attempts from the D1 `email_sends` table.
+ *        Supports query params: limit, after_id, status, template, to.
+ *        Requires EMAIL_DB binding.
+ *
+ *   GET  /admin/email/templates
+ *        Lists all available templates with their current custom/default state
+ *        from the D1 `email_templates` table.  Requires EMAIL_DB binding.
+ *
+ *   PUT  /admin/email/templates
+ *        Creates or updates a custom template override in D1.
+ *        Body: { name: string; subject: string; html: string; text: string }
+ *
+ *   DELETE /admin/email/templates/:name
+ *        Removes a custom template override, restoring the compiled default.
  *
  *   OPTIONS /admin/email/*
  *        CORS preflight.
  *
  * All mutating endpoints require admin authentication.
- * The preview and status endpoints are admin-only too (they reveal config state).
+ * The preview, status, logs, and templates endpoints are admin-only too.
  *
  * Exported as plain functions for import by src/worker.ts.
  */
 
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 import type { AuthEnv } from '../../src/lib/auth';
 import { isAuthConfigured, isAuthorized } from './_auth-guard';
 import { createEmailService } from '../../src/services/emailService';
@@ -39,6 +56,13 @@ import {
   type EmailTemplateName,
   type EmailPayload,
 } from '../../src/services/emailSchemas';
+import {
+  listEmailSends,
+  listEmailTemplates,
+  upsertEmailTemplate,
+  deleteEmailTemplate,
+  type ListEmailSendsOptions,
+} from '../../src/db/emailDb';
 
 // ─── Env ──────────────────────────────────────────────────────────────────────
 
@@ -58,6 +82,8 @@ export interface Env extends AuthEnv {
   ANALYTICS?: AnalyticsEngineDataset;
   /** KV namespace for email deduplication. */
   EMAIL_DEDUP_KV?: KVNamespace;
+  /** D1 database for email delivery log and custom template store. */
+  EMAIL_DB?: D1Database;
 }
 
 // ─── Template registry ────────────────────────────────────────────────────────
@@ -98,7 +124,7 @@ export function handleOptions(): Response {
   return new Response(null, {
     headers: {
       'Access-Control-Allow-Origin':  '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
@@ -140,17 +166,11 @@ export async function handleStatus(request: Request, env: Env): Promise<Response
       WAITLIST_WORKFLOW:    !!env.WAITLIST_WORKFLOW,
       ANALYTICS:            !!env.ANALYTICS,
       EMAIL_DEDUP_KV:       !!env.EMAIL_DEDUP_KV,
+      EMAIL_DB:             !!env.EMAIL_DB,
     },
-    /**
-     * The delivery strategy used for outbound email.
-     * One of: 'service-binding (adblock-email)' | 'mailchannels-direct'
-     */
+    /** The delivery strategy used for outbound email. */
     sendStrategy: strategy,
-    /**
-     * The overall email pipeline: how the confirmation email flows from the
-     * waitlist signup to the recipient's inbox.
-     * One of: 'workflow → queue → send' | 'queue → send' | 'direct-send'
-     */
+    /** The overall email pipeline strategy. */
     pipelineStrategy: pipeline,
     /**
      * Whether the service is ready to send emails.
@@ -268,5 +288,220 @@ export async function handleSendTest(request: Request, env: Env): Promise<Respon
     template: parsed.template,
     subject,
     strategy,
+  });
+}
+
+// ─── GET /admin/email/logs ────────────────────────────────────────────────────
+
+/**
+ * Lists recent email delivery attempts from the D1 `email_sends` table.
+ *
+ * Query params (all optional):
+ *   - `limit`    — max rows to return (1–200, default 50)
+ *   - `after_id` — row id for cursor-based pagination (exclusive)
+ *   - `status`   — filter by delivery status (sent|failed|stale|deduplicated|invalid)
+ *   - `template` — filter by template name (e.g. waitlistWelcome)
+ *   - `to`       — filter by recipient email address
+ *
+ * Requires `EMAIL_DB` to be configured.
+ */
+export async function handleEmailLogs(request: Request, env: Env): Promise<Response> {
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ error: 'Forbidden.' }, 403);
+  }
+
+  if (!env.EMAIL_DB) {
+    return json(
+      {
+        error:    'EMAIL_DB is not configured.',
+        hint:     'Run scripts/setup-d1-email.sh and uncomment the [[d1_databases]] block for bloqr-email in wrangler.toml.',
+        rows:     [],
+        total:    0,
+      },
+      503,
+    );
+  }
+
+  const url      = new URL(request.url);
+  const limitStr = url.searchParams.get('limit');
+  const afterStr = url.searchParams.get('after_id');
+
+  const StatusSchema = z.enum(['sent', 'failed', 'stale', 'deduplicated', 'invalid']).optional();
+
+  // Clamp limit to the same maximum enforced by listEmailSends (200).
+  const clampedLimit = limitStr ? Math.min(parseInt(limitStr, 10) || 50, 200) : 50;
+
+  const options: ListEmailSendsOptions = {
+    limit:    clampedLimit,
+    afterId:  afterStr ? parseInt(afterStr, 10) || undefined : undefined,
+    status:   StatusSchema.parse(url.searchParams.get('status') ?? undefined),
+    template: url.searchParams.get('template') ?? undefined,
+    to:       url.searchParams.get('to') ?? undefined,
+  };
+
+  const rows = await listEmailSends(env.EMAIL_DB, options);
+  // Only set a cursor when the full page was returned — meaning there may be more rows.
+  const nextCursor = rows.length === clampedLimit && rows.length > 0
+    ? rows[rows.length - 1]!.id
+    : null;
+
+  return json({
+    rows,
+    total:      rows.length,
+    nextCursor,
+  });
+}
+
+// ─── GET /admin/email/templates ───────────────────────────────────────────────
+
+/**
+ * Lists all email templates with their current custom/default state.
+ * Requires `EMAIL_DB` to be configured.
+ */
+export async function handleListTemplates(request: Request, env: Env): Promise<Response> {
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ error: 'Forbidden.' }, 403);
+  }
+
+  if (!env.EMAIL_DB) {
+    return json(
+      {
+        error:     'EMAIL_DB is not configured.',
+        hint:      'Run scripts/setup-d1-email.sh and uncomment the [[d1_databases]] block for bloqr-email in wrangler.toml.',
+        templates: [],
+      },
+      503,
+    );
+  }
+
+  const templates = await listEmailTemplates(env.EMAIL_DB);
+  return json({ templates, total: templates.length });
+}
+
+// ─── Upsert template body schema ──────────────────────────────────────────────
+
+const UpsertTemplateBodySchema = z.object({
+  /** Template name — must match an entry in EmailTemplateNameSchema. */
+  name:    z.string().min(1),
+  /** Email subject line (non-empty). */
+  subject: z.string().min(1),
+  /** Full HTML body (non-empty). Supports {{email}} and {{site_url}} placeholders. */
+  html:    z.string().min(1),
+  /** Plain-text fallback body (non-empty). */
+  text:    z.string().min(1),
+});
+
+// ─── PUT /admin/email/templates ───────────────────────────────────────────────
+
+/**
+ * Creates or updates a custom template override in D1.
+ * The queue consumer will use this override for the given template name.
+ *
+ * Request body (JSON):
+ *   { name: string; subject: string; html: string; text: string }
+ *
+ * Requires `EMAIL_DB` to be configured.
+ */
+export async function handleUpsertTemplate(request: Request, env: Env): Promise<Response> {
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ error: 'Forbidden.' }, 403);
+  }
+
+  if (!env.EMAIL_DB) {
+    return json(
+      {
+        error: 'EMAIL_DB is not configured.',
+        hint:  'Run scripts/setup-d1-email.sh and uncomment the [[d1_databases]] block for bloqr-email in wrangler.toml.',
+      },
+      503,
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON.' }, 400);
+  }
+
+  let parsed: ReturnType<typeof UpsertTemplateBodySchema.parse>;
+  try {
+    parsed = UpsertTemplateBodySchema.parse(body);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return json({ error: 'Validation failed.', details: err.issues }, 400);
+    }
+    throw err;
+  }
+
+  const ok = await upsertEmailTemplate(env.EMAIL_DB, {
+    name:    parsed.name,
+    subject: parsed.subject,
+    html:    parsed.html,
+    text:    parsed.text,
+  });
+
+  if (!ok) {
+    return json({ error: 'Failed to save template override. Check Worker logs for details.' }, 500);
+  }
+
+  return json({
+    success:  true,
+    name:     parsed.name,
+    message:  `Template "${parsed.name}" saved. The queue consumer will use this version on next delivery.`,
+  });
+}
+
+// ─── DELETE /admin/email/templates/:name ──────────────────────────────────────
+
+/**
+ * Removes a custom template override from D1, restoring the compiled default.
+ * The `name` is read from the URL path: `/admin/email/templates/<name>`.
+ *
+ * Requires `EMAIL_DB` to be configured.
+ */
+export async function handleDeleteTemplate(request: Request, env: Env): Promise<Response> {
+  if (!isAuthConfigured(env)) {
+    return json({ error: 'Admin access is not configured.' }, 503);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ error: 'Forbidden.' }, 403);
+  }
+
+  if (!env.EMAIL_DB) {
+    return json(
+      {
+        error: 'EMAIL_DB is not configured.',
+        hint:  'Run scripts/setup-d1-email.sh and uncomment the [[d1_databases]] block for bloqr-email in wrangler.toml.',
+      },
+      503,
+    );
+  }
+
+  const url  = new URL(request.url);
+  // Path: /admin/email/templates/<name>
+  const name = url.pathname.split('/').pop();
+  if (!name || name.trim() === '') {
+    return json({ error: 'Template name is required in the URL path.' }, 400);
+  }
+
+  const ok = await deleteEmailTemplate(env.EMAIL_DB, name);
+  if (!ok) {
+    return json({ error: 'Failed to delete template override. Check Worker logs for details.' }, 500);
+  }
+
+  return json({
+    success: true,
+    name,
+    message: `Custom override for "${name}" removed. Compiled default will be used on next delivery.`,
   });
 }
