@@ -217,12 +217,11 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
     } else {
       // Strategy 2/3: Queue or direct delivery + Apollo enrichment.
 
-      if (env.EMAIL_QUEUE && (env.FROM_EMAIL || env.RESEND_API_KEY)) {
+      if (env.EMAIL_QUEUE && env.FROM_EMAIL) {
         // Strategy 2: Publish to the durable Queue.
         // Use the pre-generated emailMessageId so the waitlist row and the
         // queue consumer's email_sends log share the same message ID.
-        // FROM_EMAIL is required by the queue consumer; fall back to the
-        // default sender when only RESEND_API_KEY is set.
+        // FROM_EMAIL is required by the queue consumer — do not queue without it.
         const message: EmailQueueMessage = {
           id:         emailMessageId,
           template:   'waitlistWelcome',
@@ -238,7 +237,8 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
         // Strategy 3: Direct email send (fallback for local dev / no queue).
         // Resend is preferred when RESEND_API_KEY is set; MailChannels is the
         // legacy fallback.  createEmailService() auto-selects the strategy.
-        // Falls back to DEFAULT_FROM_EMAIL when only RESEND_API_KEY is set.
+        // Falls back to DEFAULT_FROM_EMAIL when only RESEND_API_KEY is set
+        // (no FROM_EMAIL configured) — this path never involves the queue.
         ctx.waitUntil(
           createEmailService({
             FROM_EMAIL:       env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,

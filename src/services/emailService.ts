@@ -329,29 +329,21 @@ export class ResendStrategy implements EmailSendStrategy {
 
     const resend = new Resend(env.RESEND_API_KEY);
 
-    try {
-      const { error } = await resend.emails.send({
-        from:    env.FROM_EMAIL,
-        to:      [payload.to],
-        subject: payload.subject,
-        html:    payload.html,
-        text:    payload.text,
-      });
+    // The Resend SDK converts all failures — including network errors and
+    // fetch rejections — into `{ error }` objects rather than throwing.
+    // Log and throw here so queue consumers can call `message.retry()`.
+    const { error } = await resend.emails.send({
+      from:    env.FROM_EMAIL,
+      to:      [payload.to],
+      subject: payload.subject,
+      html:    payload.html,
+      text:    payload.text,
+    });
 
-      if (error) {
-        const msg = `Resend send failed (${error.statusCode ?? 'unknown'}): ${error.message}`;
-        console.warn(msg);
-        throw new Error(msg);
-      }
-    } catch (err: unknown) {
-      // Re-log and re-throw errors thrown by the SDK itself (network failures,
-      // fetch rejections, etc.) that aren't already handled by the error branch
-      // above.  Guards against double-logging: only log here if the error is not
-      // a wrapped Error from the branch above.
-      if (!(err instanceof Error && err.message.startsWith('Resend send failed'))) {
-        console.warn('Resend request threw:', err);
-      }
-      throw err;
+    if (error) {
+      const msg = `Resend send failed (${error.statusCode ?? 'unknown'}): ${error.message}`;
+      console.warn(msg);
+      throw new Error(msg);
     }
   }
 }

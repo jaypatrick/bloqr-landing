@@ -409,12 +409,13 @@ describe('ResendStrategy', () => {
     warnSpy.mockRestore();
   });
 
-  it('logs a warning when the Resend SDK throws a network error', async () => {
+  it('logs a warning when the Resend SDK converts a network error into an error response', async () => {
+    // The Resend SDK converts network failures into { error } objects (never throws directly).
+    // Simulate that by returning a 0/unknown status that the SDK surfaces as an error.
     fetchMock.mockRejectedValue(new TypeError('network failure'));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const strategy = new ResendStrategy();
-    // The Resend SDK converts fetch rejections into a { error } response, so
-    // the error branch handles it and throws 'Resend send failed (unknown): ...'
+    // SDK wraps the rejection into { error: { statusCode: undefined, message: '...' } }
     await expect(strategy.send(VALID_PAYLOAD, RESEND_ENV)).rejects.toThrow(/Resend send failed/);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
