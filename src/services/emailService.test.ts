@@ -173,7 +173,7 @@ describe('CfEmailSendingStrategy', () => {
       SEND_EMAIL: { send: sendMock },
     };
     await strategy.send(VALID_PAYLOAD, displayEnv);
-    const [from] = vi.mocked(EmailMessage).mock.calls[0] as [string, string, string];
+    const [from] = vi.mocked(EmailMessage).mock.lastCall as [string, string, string];
     expect(from).toBe('hello@bloqr.dev');
   });
 

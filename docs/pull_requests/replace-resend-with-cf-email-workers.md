@@ -9,8 +9,9 @@ Cloudflare Email Routing handles DKIM/SPF automatically.
 - **`CfEmailSendingStrategy`** — new default delivery path via the `SEND_EMAIL`
   Workers binding (`cloudflare:email`). Builds a raw multipart/alternative MIME
   message, RFC 2047-encodes non-ASCII subjects, and calls `env.SEND_EMAIL.send()`.
-- **`NullEmailStrategy`** — silent no-op fallback when no binding is configured
-  (replaces the implicit MailChannels fallback used in local dev / CI).
+- **`NullEmailStrategy`** — no-op fallback that logs a warning when email is
+  dropped because no binding is configured (replaces the implicit MailChannels
+  fallback used in local dev / CI).
 - **`ServiceBindingStrategy`** — unchanged; still preferred when the `EMAIL_WORKER`
   (adblock-email) service binding is present.
 - `resend` npm package removed.

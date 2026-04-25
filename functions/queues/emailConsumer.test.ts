@@ -239,8 +239,11 @@ describe('email delivery', () => {
   });
 
   it('ACKs after a successful send', async () => {
+    const sendMock = vi.fn().mockResolvedValueOnce(undefined);
+    const env = makeEnv({ SEND_EMAIL: { send: sendMock } });
     const { batch, ack, retry } = makeBatch(makeMessage());
-    await handleEmailQueue(batch, makeEnv() as never);
+    await handleEmailQueue(batch, env as never);
+    expect(sendMock).toHaveBeenCalledOnce();
     expect(ack).toHaveBeenCalledOnce();
     expect(retry).not.toHaveBeenCalled();
   });

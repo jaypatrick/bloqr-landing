@@ -16,7 +16,7 @@
  *     `EMAIL_WORKER` nor `SEND_EMAIL` is configured (local dev without bindings,
  *     CI, etc.).
  *
- * Both strategies validate the payload with Zod before any network call.
+ * The service validates the payload with Zod before attempting delivery.
  * Invalid payloads throw `EmailValidationError` — treat as permanent failures.
  * Delivery failures (including non-2xx responses) are thrown so queue consumers
  * and other retry-capable callers can retry the operation.
@@ -173,6 +173,14 @@ function encodeSubjectRfc2047(subject: string): string {
 }
 
 /**
+ * Strips CR and LF from a MIME header field value to prevent header injection.
+ * Applies to `To` and `Subject` fields before they are embedded in the raw message.
+ */
+function stripHeaderInjection(value: string): string {
+  return value.replace(/[\r\n]/g, '');
+}
+
+/**
  * Builds a minimal multipart/alternative MIME message string suitable for
  * passing directly to `new EmailMessage(from, to, rawMime)`.
  */
@@ -183,11 +191,13 @@ function buildRawMimeMessage(
   text:    string,
   html:    string,
 ): string {
+  const safeTo      = stripHeaderInjection(to);
+  const safeSubject = stripHeaderInjection(subject);
   const boundary = `----bloqr-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
   const lines = [
     `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${encodeSubjectRfc2047(subject)}`,
+    `To: ${safeTo}`,
+    `Subject: ${encodeSubjectRfc2047(safeSubject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
