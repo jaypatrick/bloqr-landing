@@ -188,6 +188,7 @@ FROM_EMAIL = "Bloqr <hello@bloqr.dev>"
 # @see https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/
 [[send_email]]
 name = "SEND_EMAIL"
+remote = true
 # destination_address = "hello@bloqr.dev"
 
 # ─── Email Worker service binding ────────────────────────────────────────────
