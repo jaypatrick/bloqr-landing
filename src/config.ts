@@ -38,7 +38,9 @@ export const CANONICAL_DOMAIN = 'bloqr.dev';
  * falls back to the value in EXTERNAL_URLS.
  */
 export const SITE_URL: string =
-  (import.meta.env.SITE_URL as string | undefined) ?? EXTERNAL_URLS.landing;
+  (typeof import.meta.env !== 'undefined'
+    ? (import.meta.env.SITE_URL as string | undefined)
+    : undefined) ?? EXTERNAL_URLS.landing;
 
 /**
  * LINKS — all external and internal URLs consumed by components and pages.
