@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
-import { handleEmailQueue } from '../../functions/queues/emailConsumer';
+import { handleEmailQueue, CONSUMER_TEMPLATE_REGISTRY } from '../../functions/queues/emailConsumer';
 import { EmailValidationError } from '../../src/services/emailService';
 import type { EmailQueueMessage } from '../../src/types/emailQueue';
 
@@ -202,16 +202,29 @@ describe('template rendering', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
-  it('ACKs without retry when the template name is unknown (schema passes)', async () => {
-    // Force the template field to bypass Zod by using a known valid name, then
-    // make the CONSUMER_TEMPLATE_REGISTRY not find it — we simulate this by
-    // passing a schema-valid name that happens not to be in the registry.
-    // Since 'waitlistWelcome' IS registered, we verify the inverse: a valid
-    // message with a known template renders and ACKs cleanly.
+  it('ACKs cleanly after a successful template render with a registered template', async () => {
+    // Verifies the happy path: a valid message with a known registered template
+    // renders successfully and is ACKed.
     const { batch, ack } = makeBatch(makeMessage());
     await handleEmailQueue(batch, makeEnv() as never);
     expect(ack).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('ACKs without retry when the template is not in the registry', async () => {
+    // Remove 'waitlistWelcome' from the registry to simulate an in-flight
+    // message for a template that was subsequently removed from the codebase.
+    const saved = CONSUMER_TEMPLATE_REGISTRY['waitlistWelcome'];
+    try {
+      delete (CONSUMER_TEMPLATE_REGISTRY as Record<string, unknown>)['waitlistWelcome'];
+      const { batch, ack, retry } = makeBatch(makeMessage());
+      await handleEmailQueue(batch, makeEnv() as never);
+      expect(ack).toHaveBeenCalledOnce();
+      expect(retry).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      CONSUMER_TEMPLATE_REGISTRY['waitlistWelcome'] = saved;
+    }
   });
 });
 

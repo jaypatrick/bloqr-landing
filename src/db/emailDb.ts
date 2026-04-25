@@ -183,9 +183,12 @@ export async function logEmailSend(
 }
 
 /**
- * Fetches a single `email_sends` row by `message_id`.
+ * Fetches the most recent `email_sends` row for a given `message_id`.
  *
- * @returns The row, or `null` if not found or on error.
+ * Because a single `message_id` may have multiple rows (one per delivery
+ * attempt), this returns the latest row (`ORDER BY id DESC LIMIT 1`).
+ *
+ * @returns The latest row, or `null` if not found or on error.
  */
 export async function getEmailSend(
   db: D1Database,
@@ -193,7 +196,7 @@ export async function getEmailSend(
 ): Promise<EmailSendRow | null> {
   try {
     const result = await db
-      .prepare('SELECT * FROM email_sends WHERE message_id = ? LIMIT 1')
+      .prepare('SELECT * FROM email_sends WHERE message_id = ? ORDER BY id DESC LIMIT 1')
       .bind(messageId)
       .first<EmailSendRow>();
     return result ?? null;

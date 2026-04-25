@@ -148,10 +148,27 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
   const referrer = request.headers.get('Referer') ?? null;
 
   try {
-    await sql`
-      INSERT INTO waitlist (email, segment, ip, referrer, email_message_id)
-      VALUES (${email}, ${segment}, ${ip}, ${referrer}, ${emailMessageId})
-    `;
+    // Try to write email_message_id so signups can be cross-referenced with
+    // the email_sends D1 delivery log.  If the Neon migration hasn't been
+    // applied yet (Postgres error 42703 = undefined_column), fall back to the
+    // legacy INSERT schema so the endpoint keeps working during the rollout.
+    try {
+      await sql`
+        INSERT INTO waitlist (email, segment, ip, referrer, email_message_id)
+        VALUES (${email}, ${segment}, ${ip}, ${referrer}, ${emailMessageId})
+      `;
+    } catch (insertErr: unknown) {
+      const pgCode = (insertErr as Record<string, unknown>)?.['code'];
+      if (pgCode === '42703') {
+        // Column doesn't exist yet — migration pending.  Use legacy schema.
+        await sql`
+          INSERT INTO waitlist (email, segment, ip, referrer)
+          VALUES (${email}, ${segment}, ${ip}, ${referrer})
+        `;
+      } else {
+        throw insertErr; // re-throw (e.g. unique constraint 23505 → handled by outer catch)
+      }
+    }
 
     // ── Post-insert side effects ───────────────────────────────────────────────
     //

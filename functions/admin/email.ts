@@ -54,6 +54,7 @@ import {
   SendTestEmailBodySchema,
   PreviewEmailQuerySchema,
   EmailTemplateNameSchema,
+  WaitlistWelcomeParamsSchema,
   type EmailTemplateName,
   type EmailPayload,
 } from '../../src/services/emailSchemas';
@@ -106,6 +107,21 @@ const TEMPLATE_REGISTRY: Record<
     const segment = typeof params['segment'] === 'string' ? params['segment'] : null;
     return renderWaitlistWelcome(email, segment);
   },};
+
+/**
+ * Maps template names to per-template Zod schemas for validating the `params`
+ * field on send-test and preview requests.
+ *
+ * Validation happens before rendering so bad params return a 400 rather than
+ * producing a silently malformed email.  Defaults are supplied by the caller
+ * before parsing (e.g. `email` defaults to the `to` recipient).
+ *
+ * To add a new template: export a params schema from `src/services/emailSchemas.ts`
+ * and add an entry here.
+ */
+const PARAMS_SCHEMA_REGISTRY: Record<EmailTemplateName, z.ZodTypeAny> = {
+  waitlistWelcome: WaitlistWelcomeParamsSchema,
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -263,8 +279,26 @@ export async function handleSendTest(request: Request, env: Env): Promise<Respon
     throw err;
   }
 
-  const renderFn = TEMPLATE_REGISTRY[parsed.template];
-  const { subject, html, text } = renderFn(parsed.params ?? {});
+  const renderFn      = TEMPLATE_REGISTRY[parsed.template];
+  const paramsSchema  = PARAMS_SCHEMA_REGISTRY[parsed.template];
+
+  // Validate template-specific params, defaulting `email` to the recipient and
+  // `segment` to null so callers need only provide non-default overrides.
+  let templateParams: Record<string, unknown>;
+  try {
+    templateParams = paramsSchema.parse({
+      email:   parsed.to, // use recipient as the default footer email
+      segment: null,
+      ...parsed.params,
+    });
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return json({ error: 'Invalid template params.', details: err.issues }, 400);
+    }
+    throw err;
+  }
+
+  const { subject, html, text } = renderFn(templateParams);
 
   const payload: EmailPayload = { to: parsed.to, subject, html, text };
 

@@ -53,9 +53,10 @@
  * @see https://developers.cloudflare.com/queues/
  */
 
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 import { EmailQueueMessageSchema, type EmailQueueMessage } from '../../src/types/emailQueue';
 import { createEmailService, EmailValidationError } from '../../src/services/emailService';
+import { WaitlistWelcomeParamsSchema } from '../../src/services/emailSchemas';
 import { renderWaitlistWelcome } from '../../src/email/templates/waitlistWelcome';
 import { logEmailSend, getEmailTemplate } from '../../src/db/emailDb';
 import type { EmailSendStatus } from '../../src/db/emailDb';
@@ -90,24 +91,42 @@ const DEDUP_TTL_SECONDS = 86_400; // 24 hours
  *
  * **Must be kept in sync with `functions/admin/email.ts → TEMPLATE_REGISTRY`.**
  *
+ * Exported so tests can temporarily remove entries to simulate the
+ * "template in schema but not in registry" scenario (e.g. a template that was
+ * removed from code but whose queue messages are still in flight).
+ *
  * To add a new template:
  *   1. Create `src/email/templates/<name>.ts` exporting a render function.
  *   2. Add the name to `EmailTemplateNameSchema` in `src/services/emailSchemas.ts`.
  *   3. Register it here AND in `functions/admin/email.ts`.
  */
-const CONSUMER_TEMPLATE_REGISTRY: Record<
+export const CONSUMER_TEMPLATE_REGISTRY: Record<
   string,
   (params: Record<string, string | null>) => { subject: string; html: string; text: string }
 > = {
   waitlistWelcome: (params) =>
     renderWaitlistWelcome(
-      // `email` is validated as present in the schema and rendered params must
-      // match the template contract.  A missing `email` key at this point means
-      // the queue message was malformed despite passing schema validation — treat
-      // it as a programmer error by throwing so the consumer can ACK without retry.
+      // `email` is validated by CONSUMER_PARAMS_SCHEMA_REGISTRY before this
+      // function is called.  The null-coalesce throw here is a last-resort
+      // defensive guard; in practice it should never trigger.
       params['email'] ?? (() => { throw new Error('waitlistWelcome: params.email is required'); })(),
       params['segment'] ?? null,
     ),
+};
+
+/**
+ * Maps template names to per-template Zod schemas for validating `params`
+ * extracted from queue messages before rendering.
+ *
+ * Validation happens in step 4 of `processMessage` — before calling the
+ * renderer.  Invalid params are treated as permanent failures (ACK, no retry)
+ * because retrying a message with a bad `email` address cannot fix the problem.
+ *
+ * To add a new template: export a params schema from `src/services/emailSchemas.ts`
+ * and add an entry here.
+ */
+const CONSUMER_PARAMS_SCHEMA_REGISTRY: Record<string, z.ZodTypeAny> = {
+  waitlistWelcome: WaitlistWelcomeParamsSchema,
 };
 
 // ─── Public consumer ──────────────────────────────────────────────────────────
@@ -246,6 +265,34 @@ async function processMessage(
     // ACK: unknown templates cannot be fixed by retrying.
     message.ack();
     return;
+  }
+
+  // Validate template-specific params (e.g. email must be a valid address).
+  // A bad `email` value can never be fixed by retrying — ACK immediately.
+  const paramsValidator = CONSUMER_PARAMS_SCHEMA_REGISTRY[template];
+  if (paramsValidator) {
+    const validation = paramsValidator.safeParse(params);
+    if (!validation.success) {
+      const detail = validation.error.issues
+        .map((i: z.ZodIssue) => `${i.path.join('.')}: ${i.message}`)
+        .join(', ');
+      console.error(
+        `[email-queue] Invalid params for template "${template}" (message ${id}): ${detail}`,
+      );
+      if (env.EMAIL_DB) {
+        await logEmailSend(env.EMAIL_DB, {
+          message_id:    id,
+          attempt:       message.attempts,
+          to_address:    to,
+          template_name: template,
+          status:        'invalid',
+          strategy:      'none',
+          error_message: `Invalid params: ${detail}`,
+        });
+      }
+      message.ack();
+      return;
+    }
   }
 
   let rendered: { subject: string; html: string; text: string };
