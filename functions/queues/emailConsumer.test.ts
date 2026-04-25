@@ -256,6 +256,18 @@ describe('email delivery', () => {
     expect(retry).not.toHaveBeenCalled();
   });
 
+  it('ACKs without sending when no email binding is configured (NullEmailStrategy path)', async () => {
+    // FROM_EMAIL is present but neither SEND_EMAIL nor EMAIL_WORKER is bound.
+    // The consumer must early-exit with an ack — not log the email as 'sent'.
+    const sendEmailSpy = vi.spyOn(EmailService.prototype, 'sendEmail');
+    const { batch, ack, retry } = makeBatch(makeMessage());
+    await handleEmailQueue(batch, makeEnv() as never);
+    expect(sendEmailSpy).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledOnce();
+    expect(retry).not.toHaveBeenCalled();
+    sendEmailSpy.mockRestore();
+  });
+
   it('calls retry() (not ack()) on a transient delivery failure', async () => {
     const sendMock = vi.fn().mockRejectedValueOnce(new TypeError('network failure'));
     const env = makeEnv({ SEND_EMAIL: { send: sendMock } });
@@ -306,9 +318,10 @@ describe('dedup key write after send', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('writes dedup key to EMAIL_DEDUP_KV after a successful send', async () => {
+    const sendMock = vi.fn().mockResolvedValue(undefined);
     const kvGet = vi.fn().mockResolvedValue(null);
     const kvPut = vi.fn().mockResolvedValue(undefined);
-    const env   = makeEnv({ EMAIL_DEDUP_KV: { get: kvGet, put: kvPut } });
+    const env   = makeEnv({ SEND_EMAIL: { send: sendMock }, EMAIL_DEDUP_KV: { get: kvGet, put: kvPut } });
     const msgId = '123e4567-e89b-12d3-a456-426614174000';
     const { batch } = makeBatch({ ...makeMessage(), id: msgId });
 
@@ -355,8 +368,9 @@ describe('analytics event', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('writes an email_sent data point after a successful send', async () => {
+    const sendMock = vi.fn().mockResolvedValue(undefined);
     const writeDataPoint = vi.fn();
-    const env = makeEnv({ ANALYTICS: { writeDataPoint } });
+    const env = makeEnv({ SEND_EMAIL: { send: sendMock }, ANALYTICS: { writeDataPoint } });
 
     const { batch } = makeBatch(makeMessage());
     await handleEmailQueue(batch, env as never);

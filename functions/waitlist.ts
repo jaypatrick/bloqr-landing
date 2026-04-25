@@ -236,7 +236,7 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
         // when SEND_EMAIL is present, NullEmailStrategy otherwise).
         ctx.waitUntil(
           createEmailService({
-            FROM_EMAIL:   env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
+            FROM_EMAIL:   env.FROM_EMAIL,
             SEND_EMAIL:   env.SEND_EMAIL,
             EMAIL_WORKER: env.EMAIL_WORKER,
           })

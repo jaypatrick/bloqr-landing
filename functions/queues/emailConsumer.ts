@@ -361,6 +361,28 @@ async function processMessage(
       ? 'cf-email-sending'
       : 'null';
 
+  // If neither binding is present, NullEmailStrategy would silently drop the
+  // email but still resolve successfully — causing the consumer to log it as
+  // 'sent', write a dedup key, and ACK.  Instead, treat this as a permanent
+  // misconfiguration: log 'invalid', skip dedup + analytics, and ACK early.
+  if (strategy === 'null') {
+    const errorMessage = 'Email delivery not configured: neither EMAIL_WORKER nor SEND_EMAIL is set';
+    console.warn(`[email-queue] ${errorMessage} — skipping message ${id} for ${to}`);
+    if (env.EMAIL_DB) {
+      await logEmailSend(env.EMAIL_DB, {
+        message_id:    id,
+        attempt:       message.attempts,
+        to_address:    to,
+        template_name: template,
+        status:        'invalid',
+        strategy:      'none',
+        error_message: errorMessage,
+      });
+    }
+    message.ack();
+    return;
+  }
+
   try {
     await createEmailService({
       FROM_EMAIL:   env.FROM_EMAIL,
