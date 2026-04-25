@@ -78,12 +78,12 @@ export interface EmailSendRow {
   status: EmailSendStatus;
   /**
    * Delivery strategy used.
-   * - `service-binding` — routed through `EMAIL_WORKER` (adblock-email)
-   * - `resend`          — direct Resend HTTP API call
-   * - `mailchannels`    — direct MailChannels TX API call
-   * - `none`            — skipped (stale, dedup, invalid, or FROM_EMAIL absent)
+   * - `service-binding`  — routed through `EMAIL_WORKER` (adblock-email)
+   * - `cf-email-sending` — delivered via the native `SEND_EMAIL` CF binding
+   * - `null`             — NullEmailStrategy (no provider configured)
+   * - `none`             — skipped (stale, dedup, invalid, or FROM_EMAIL absent)
    */
-  strategy: 'service-binding' | 'resend' | 'mailchannels' | 'none';
+  strategy: 'service-binding' | 'cf-email-sending' | 'null' | 'none';
   /** Error message if `status === 'failed'` or `status === 'invalid'`. */
   error_message: string | null;
   /** ISO 8601 UTC timestamp when this row was created. */

@@ -1,16 +1,20 @@
 /**
  * src/services/emailService.ts — Transactional email for the Bloqr Worker
  *
- * Supports two delivery strategies — automatically selected at runtime:
+ * Supports three delivery strategies — automatically selected at runtime:
  *
  *  1. **Service binding** (`EMAIL_WORKER`): Routes the request through the
  *     dedicated `adblock-email` Cloudflare Worker via a service binding.
  *     Preferred when the binding is present because it centralises delivery
  *     logic, retries, and logging in a single place.
  *
- *  2. **MailChannels direct** (fallback): POSTs directly to the MailChannels
- *     TX API (`https://api.mailchannels.net/tx/v1/send`).  Used when the
- *     service binding is absent (local dev without `npm run preview`, CI, etc.).
+ *  2. **CF Email Sending** (`SEND_EMAIL`): Delivers directly via the native
+ *     Cloudflare Email Workers binding (`cloudflare:email`, `[[send_email]]`
+ *     in `wrangler.toml`).  No third-party API key required.
+ *
+ *  3. **Null (no-op)**: Logs a warning and drops the email.  Used when neither
+ *     `EMAIL_WORKER` nor `SEND_EMAIL` is configured (local dev without bindings,
+ *     CI, etc.).
  *
  * Both strategies validate the payload with Zod before any network call.
  * Invalid payloads throw `EmailValidationError` — treat as permanent failures.
@@ -31,7 +35,7 @@
  *   );
  */
 
-import { Resend } from 'resend';
+import { EmailMessage } from 'cloudflare:email';
 import { ZodError } from 'zod';
 import { EmailPayloadSchema, type EmailPayload } from './emailSchemas';
 import { renderWaitlistWelcome } from '../email/templates/waitlistWelcome';
@@ -79,87 +83,127 @@ export { EmailPayloadSchema } from './emailSchemas';
 // ─── Environment ──────────────────────────────────────────────────────────────
 
 /**
+ * Local definition of the CF `SEND_EMAIL` Workers binding.
+ * Defined locally to avoid a hard dependency on `@cloudflare/workers-types`
+ * in this service module.
+ *
+ * Wire in wrangler.toml:
+ *   [[send_email]]
+ *   name = "SEND_EMAIL"
+ *
+ * @see https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/
+ */
+interface SendEmailBinding {
+  send(message: unknown): Promise<void>;
+}
+
+/**
  * Minimum environment bindings required by the email service.
  *
- * `FROM_EMAIL` is the only strictly required field.  DKIM fields are optional
- * but must ALL be present together to enable DKIM signing; if any one is
- * missing the service sends without DKIM rather than failing.
+ * `FROM_EMAIL` is the only strictly required field.
  *
  * `EMAIL_WORKER` is the service binding to the `adblock-email` Cloudflare
  * Worker.  When present the service forwards the payload there instead of
- * calling MailChannels directly.  Wire it in `wrangler.toml`:
+ * calling the CF Email Sending binding.  Wire it in `wrangler.toml`:
  *
  *   [[services]]
  *   binding = "EMAIL_WORKER"
  *   service = "adblock-email"
  *
- * ### Resend (preferred outbound provider)
- * When `RESEND_API_KEY` is present and `EMAIL_WORKER` is absent, the
- * `ResendStrategy` is selected automatically.  Add the domain to Resend
- * and set SPF/DKIM DNS records before enabling.
- *
- * Set as a Worker Secret:  `wrangler secret put RESEND_API_KEY`
+ * `SEND_EMAIL` is the native CF Email Workers binding.  When present (and
+ * `EMAIL_WORKER` is absent), `CfEmailSendingStrategy` is selected.
  */
 export interface EmailEnv {
-  /** Sender address, e.g. `"Bloqr <hello@bloqr.app>"` */
+  /** Sender address, e.g. `"Bloqr <hello@bloqr.dev>"` */
   FROM_EMAIL: string;
-  /**
-   * Resend API key for outbound transactional email.
-   * When present (and `EMAIL_WORKER` is absent), the `ResendStrategy` is used.
-   * Set as a Worker Secret — never put this in `wrangler.toml [vars]`.
-   * `wrangler secret put RESEND_API_KEY`
-   */
-  RESEND_API_KEY?: string;
-  /** Domain used for DKIM signing (e.g. `"bloqr.dev"`). Must match the DNS TXT record. */
-  DKIM_DOMAIN?: string;
-  /** DKIM selector (e.g. `"mailchannels"`). Must match the DNS TXT record. */
-  DKIM_SELECTOR?: string;
-  /**
-   * DKIM private key (base64-encoded RSA private key).
-   * Set as a Worker Secret: `wrangler secret put DKIM_PRIVATE_KEY`
-   * Never put this in `wrangler.toml [vars]` or source code.
-   */
-  DKIM_PRIVATE_KEY?: string;
   /**
    * Cloudflare service binding to the `adblock-email` Worker.
    * When present, email delivery is routed through this binding instead of
-   * calling MailChannels directly.
+   * calling the CF Email Sending binding directly.
    */
   EMAIL_WORKER?: Fetcher;
-}
-
-// ─── MailChannels internal types ─────────────────────────────────────────────
-
-interface MailChannelsPersonalization {
-  to:                [{ email: string }];
-  dkim_domain?:      string;
-  dkim_selector?:    string;
-  dkim_private_key?: string;
-}
-
-interface MailChannelsBody {
-  personalizations: MailChannelsPersonalization[];
-  from:             { email: string };
-  subject:          string;
-  content:          { type: string; value: string }[];
+  /**
+   * Cloudflare Email Workers `SEND_EMAIL` binding.
+   * When present (and `EMAIL_WORKER` is absent), `CfEmailSendingStrategy` is used.
+   */
+  SEND_EMAIL?: SendEmailBinding;
 }
 
 // ─── Service binding payload ──────────────────────────────────────────────────
 
 /**
  * JSON body sent to the `adblock-email` worker via the service binding.
- * The worker receives this and forwards to MailChannels (or any provider it
- * chooses), allowing the delivery implementation to be updated independently.
+ * The worker receives this and forwards to its configured provider,
+ * allowing the delivery implementation to be updated independently.
  */
 interface EmailWorkerPayload {
-  to:               string;
-  from:             string;
-  subject:          string;
-  html:             string;
-  text:             string;
-  dkimDomain?:      string;
-  dkimSelector?:    string;
-  dkimPrivateKey?:  string;
+  to:      string;
+  from:    string;
+  subject: string;
+  html:    string;
+  text:    string;
+}
+
+// ─── MIME helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Parses a display-name email address (RFC 5322) into its name and email parts.
+ *
+ * @example
+ * parseEmailAddress('Bloqr <hello@bloqr.dev>') // { name: 'Bloqr', email: 'hello@bloqr.dev' }
+ * parseEmailAddress('hello@bloqr.dev')          // { name: '', email: 'hello@bloqr.dev' }
+ */
+function parseEmailAddress(displayAddress: string): { name: string; email: string } {
+  const match = displayAddress.match(/^(.+?)\s*<([^>]+)>$/);
+  if (match) {
+    return { name: match[1]!.trim(), email: match[2]!.trim() };
+  }
+  return { name: '', email: displayAddress.trim() };
+}
+
+/**
+ * RFC 2047 Base64 encoding for non-ASCII email subjects.
+ * Returns the subject unchanged if it contains only printable ASCII.
+ */
+function encodeSubjectRfc2047(subject: string): string {
+  if (/^[\x20-\x7E]*$/.test(subject)) return subject;
+  const bytes  = new TextEncoder().encode(subject);
+  const binary = Array.from(bytes).map((b) => String.fromCharCode(b)).join('');
+  return `=?UTF-8?B?${btoa(binary)}?=`;
+}
+
+/**
+ * Builds a minimal multipart/alternative MIME message string suitable for
+ * passing directly to `new EmailMessage(from, to, rawMime)`.
+ */
+function buildRawMimeMessage(
+  from:    string,
+  to:      string,
+  subject: string,
+  text:    string,
+  html:    string,
+): string {
+  const boundary = `----bloqr-${Date.now()}`;
+  const lines = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${encodeSubjectRfc2047(subject)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    '',
+    text,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    html,
+    '',
+    `--${boundary}--`,
+  ];
+  return lines.join('\r\n');
 }
 
 // ─── Send strategies ─────────────────────────────────────────────────────────
@@ -177,13 +221,13 @@ export interface EmailSendStrategy {
 
 /**
  * Default sender address used when `FROM_EMAIL` is not explicitly configured
- * but `RESEND_API_KEY` is set (direct waitlist send path only).
+ * (direct waitlist send path only).
  *
  * Other send paths (queue consumer, admin send-test) still require `FROM_EMAIL`
  * to be set explicitly.  Import this constant from call sites that need to fall
  * back to it to keep the sender address in a single place.
  */
-export const DEFAULT_FROM_EMAIL = 'Bloqr <hello@bloqr.app>';
+export const DEFAULT_FROM_EMAIL = 'Bloqr <hello@bloqr.dev>';
 
 /**
  * Delivers via the `adblock-email` Worker service binding.
@@ -199,22 +243,12 @@ export class ServiceBindingStrategy implements EmailSendStrategy {
       throw new Error('ServiceBindingStrategy requires EMAIL_WORKER binding');
     }
 
-    const hasDkim =
-      env.DKIM_DOMAIN      != null &&
-      env.DKIM_SELECTOR    != null &&
-      env.DKIM_PRIVATE_KEY != null;
-
     const body: EmailWorkerPayload = {
       to:      payload.to,
       from:    env.FROM_EMAIL,
       subject: payload.subject,
       html:    payload.html,
       text:    payload.text,
-      ...(hasDkim && {
-        dkimDomain:     env.DKIM_DOMAIN,
-        dkimSelector:   env.DKIM_SELECTOR,
-        dkimPrivateKey: env.DKIM_PRIVATE_KEY,
-      }),
     };
 
     let res: Response;
@@ -242,109 +276,49 @@ export class ServiceBindingStrategy implements EmailSendStrategy {
   }
 }
 
-/** URL of the MailChannels TX Send API. */
-const MAILCHANNELS_API = 'https://api.mailchannels.net/tx/v1/send';
-
 /**
- * Delivers directly to the MailChannels TX API.
+ * Delivers via the native Cloudflare Email Workers `SEND_EMAIL` binding.
  *
- * Used when the `EMAIL_WORKER` service binding is not present.  Network errors
- * and non-2xx responses are logged then re-thrown so queue consumers can call
- * `message.retry()`.  HTTP handler callers that use `ctx.waitUntil` should
- * wrap with `.catch((err) => console.warn('Email failed:', err))`.
+ * Constructs a raw MIME message and sends it through the CF Email Routing
+ * infrastructure.  No third-party API key required — delivery authority is
+ * granted by the binding itself.
+ *
+ * Prerequisites:
+ *   1. Enable Cloudflare Email Routing on the bloqr.dev zone.
+ *   2. Verify the sending address as an allowed sender in Email Routing.
+ *   3. Add `[[send_email]] name = "SEND_EMAIL"` to `wrangler.toml`.
+ *
+ * @see https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/
  */
-export class MailChannelsStrategy implements EmailSendStrategy {
+export class CfEmailSendingStrategy implements EmailSendStrategy {
   async send(payload: EmailPayload, env: EmailEnv): Promise<void> {
-    const hasDkim =
-      env.DKIM_DOMAIN      != null &&
-      env.DKIM_SELECTOR    != null &&
-      env.DKIM_PRIVATE_KEY != null;
-
-    const personalization: MailChannelsPersonalization = {
-      to: [{ email: payload.to }],
-      ...(hasDkim && {
-        dkim_domain:      env.DKIM_DOMAIN,
-        dkim_selector:    env.DKIM_SELECTOR,
-        dkim_private_key: env.DKIM_PRIVATE_KEY,
-      }),
-    };
-
-    const body: MailChannelsBody = {
-      personalizations: [personalization],
-      from:             { email: env.FROM_EMAIL },
-      subject:          payload.subject,
-      content: [
-        { type: 'text/plain', value: payload.text },
-        { type: 'text/html',  value: payload.html  },
-      ],
-    };
-
-    let res: Response;
-    try {
-      res = await fetch(MAILCHANNELS_API, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(body),
-      });
-    } catch (err) {
-      // Re-throw so queue consumers can call message.retry().
-      // HTTP handler callers must wrap with .catch().
-      console.warn('MailChannels request failed:', err);
-      throw err;
+    if (!env.SEND_EMAIL) {
+      throw new Error('CfEmailSendingStrategy requires SEND_EMAIL binding');
     }
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '(no body)');
-      const msg  = `MailChannels send failed (${res.status}): ${text}`;
+    const sanitized    = env.FROM_EMAIL.replace(/[\r\n]/g, '');
+    const envelopeFrom = parseEmailAddress(sanitized).email;
+    const rawMime      = buildRawMimeMessage(sanitized, payload.to, payload.subject, payload.text, payload.html);
+    const message      = new EmailMessage(envelopeFrom, payload.to, rawMime);
+    try {
+      await env.SEND_EMAIL.send(message);
+    } catch (err) {
+      const msg = `CF Email Sending failed: ${err instanceof Error ? err.message : String(err)}`;
       console.warn(msg);
       throw new Error(msg);
     }
   }
 }
 
-// ─── ResendStrategy ───────────────────────────────────────────────────────────
-
 /**
- * Delivers via the Resend HTTP API (https://resend.com).
- *
- * Preferred over `MailChannelsStrategy` when `env.RESEND_API_KEY` is present
- * and `env.EMAIL_WORKER` is absent.  Uses the official `resend` npm package
- * which is compatible with the Cloudflare Workers runtime (HTTP-only, no TCP).
- *
- * A Resend error is logged then re-thrown so queue consumers can call
- * `message.retry()` for transient failures.  HTTP handler callers that use
- * `ctx.waitUntil` should wrap with `.catch((err) => console.warn(...))`.
- *
- * Prerequisites:
- *   1. Add `bloqr.app` (or your sending domain) in the Resend dashboard.
- *   2. Add the SPF/DKIM DNS records Resend provides to your Cloudflare zone.
- *   3. Set `RESEND_API_KEY` as a Worker Secret:
- *        `wrangler secret put RESEND_API_KEY`
+ * No-op fallback strategy used when neither `EMAIL_WORKER` nor `SEND_EMAIL`
+ * is configured.  Logs a warning and resolves without sending — prevents
+ * crashes in local dev or CI where email bindings are absent.
  */
-export class ResendStrategy implements EmailSendStrategy {
-  async send(payload: EmailPayload, env: EmailEnv): Promise<void> {
-    if (!env.RESEND_API_KEY) {
-      throw new Error('ResendStrategy requires RESEND_API_KEY');
-    }
-
-    const resend = new Resend(env.RESEND_API_KEY);
-
-    // The Resend SDK converts all failures — including network errors and
-    // fetch rejections — into `{ error }` objects rather than throwing.
-    // Log and throw here so queue consumers can call `message.retry()`.
-    const { error } = await resend.emails.send({
-      from:    env.FROM_EMAIL,
-      to:      [payload.to],
-      subject: payload.subject,
-      html:    payload.html,
-      text:    payload.text,
-    });
-
-    if (error) {
-      const msg = `Resend send failed (${error.statusCode ?? 'unknown'}): ${error.message}`;
-      console.warn(msg);
-      throw new Error(msg);
-    }
+export class NullEmailStrategy implements EmailSendStrategy {
+  async send(payload: EmailPayload, _env: EmailEnv): Promise<void> {
+    console.warn(
+      `[email] NullEmailStrategy: no send provider configured — dropping email to ${payload.to}`,
+    );
   }
 }
 
@@ -448,35 +422,32 @@ export class EmailService {
  * Strategy selection (in priority order):
  * - **`EMAIL_WORKER` present** → `ServiceBindingStrategy` (routes through the
  *   `adblock-email` Worker via a Cloudflare service binding).
- * - **`RESEND_API_KEY` present** → `ResendStrategy` (calls the Resend HTTP API
- *   directly — compatible with CF Workers, preferred for outbound email).
- * - **Neither present** → `MailChannelsStrategy` (calls the MailChannels
- *   TX API directly — legacy fallback for CF Workers).
+ * - **`SEND_EMAIL` present** → `CfEmailSendingStrategy` (delivers via the
+ *   native CF Email Routing binding — no third-party API key required).
+ * - **Neither present** → `NullEmailStrategy` (logs a warning, drops the email).
  *
  * @example
  * ```typescript
- * // In a Worker handler (FROM_EMAIL set in wrangler.toml [vars] or .dev.vars):
- * if (env.RESEND_API_KEY || env.FROM_EMAIL) {
- *   const svc = createEmailService({
- *     FROM_EMAIL:     env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
- *     RESEND_API_KEY: env.RESEND_API_KEY,
- *     EMAIL_WORKER:   env.EMAIL_WORKER,
- *   });
- *   ctx.waitUntil(
- *     svc.sendWaitlistConfirmation(email, segment)
- *        .catch((err) => console.warn('Email failed:', err)),
- *   );
- * }
+ * // In a Worker handler (FROM_EMAIL set in wrangler.toml [vars]):
+ * const svc = createEmailService({
+ *   FROM_EMAIL:   env.FROM_EMAIL ?? DEFAULT_FROM_EMAIL,
+ *   SEND_EMAIL:   env.SEND_EMAIL,
+ *   EMAIL_WORKER: env.EMAIL_WORKER,
+ * });
+ * ctx.waitUntil(
+ *   svc.sendWaitlistConfirmation(email, segment)
+ *      .catch((err) => console.warn('Email failed:', err)),
+ * );
  * ```
  */
 export function createEmailService(env: EmailEnv): EmailService {
   let strategy: EmailSendStrategy;
   if (env.EMAIL_WORKER) {
     strategy = new ServiceBindingStrategy();
-  } else if (env.RESEND_API_KEY) {
-    strategy = new ResendStrategy();
+  } else if (env.SEND_EMAIL) {
+    strategy = new CfEmailSendingStrategy();
   } else {
-    strategy = new MailChannelsStrategy();
+    strategy = new NullEmailStrategy();
   }
   return new EmailService(env, strategy);
 }
