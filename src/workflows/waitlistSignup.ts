@@ -71,6 +71,17 @@ export interface WaitlistWorkflowParams {
   email: string;
   /** Validated waitlist segment, or `null` if the user did not select one. */
   segment: string | null;
+  /**
+   * Pre-generated UUID for the queue message.
+   *
+   * Passed from the HTTP handler so the `waitlist.email_message_id` column
+   * and the queue consumer's `email_sends` row share the same ID.  Enables
+   * correlation between a signup record and its delivery log.
+   *
+   * When absent (e.g. workflow instances created before this field was added),
+   * the workflow generates a fresh UUID for backward compatibility.
+   */
+  messageId?: string;
 }
 
 // ─── Private helpers ───────────────────────────────────────────────────────────
@@ -145,7 +156,11 @@ export class WaitlistSignupWorkflow
           return { queued: false, messageId: null };
         }
 
-        const messageId = crypto.randomUUID();
+        // Use the pre-generated message ID from params so the waitlist row's
+        // email_message_id matches the queue message and email_sends log row.
+        // Fall back to a new UUID for backward compatibility with workflow
+        // instances created before this field was added.
+        const messageId = event.payload.messageId ?? crypto.randomUUID();
         const message: EmailQueueMessage = {
           id:         messageId,
           template:   'waitlistWelcome',

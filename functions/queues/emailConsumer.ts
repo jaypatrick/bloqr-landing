@@ -44,7 +44,7 @@
  *
  * export default {
  *   async fetch(request, env, ctx) { ... },
- *   async queue(batch, env, ctx) { return handleEmailQueue(batch, env, ctx); },
+ *   async queue(batch, env, ctx) { return handleEmailQueue(batch, env); },
  * } satisfies ExportedHandler<Env, EmailQueueMessage>;
  * ```
  *
@@ -60,6 +60,7 @@ import { renderWaitlistWelcome } from '../../src/email/templates/waitlistWelcome
 import { logEmailSend, getEmailTemplate } from '../../src/db/emailDb';
 import type { EmailSendStatus } from '../../src/db/emailDb';
 import type { Env } from '../../src/types/env';
+import { SITE_URL } from '../../src/config';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -149,7 +150,7 @@ async function processMessage(
   } catch (err) {
     if (err instanceof ZodError) {
       console.error(
-        '[email-queue] Invalid message schema — ACKing without retry (routes to DLQ):',
+        '[email-queue] Invalid message schema — ACKing without retry (message will NOT be retried or routed to DLQ):',
         err.issues,
       );
       // Log invalid schema to D1 so admin can inspect the raw body.
@@ -157,6 +158,7 @@ async function processMessage(
         const rawBody = message.body as Record<string, unknown>;
         await logEmailSend(env.EMAIL_DB, {
           message_id:    typeof rawBody['id'] === 'string' ? rawBody['id'] : 'unknown',
+          attempt:       message.attempts,
           to_address:    typeof rawBody['to'] === 'string' ? rawBody['to'] : 'unknown',
           template_name: typeof rawBody['template'] === 'string' ? rawBody['template'] : 'unknown',
           status:        'invalid',
@@ -182,6 +184,7 @@ async function processMessage(
     if (env.EMAIL_DB) {
       await logEmailSend(env.EMAIL_DB, {
         message_id:    id,
+        attempt:       message.attempts,
         to_address:    to,
         template_name: template,
         status:        'stale',
@@ -205,6 +208,7 @@ async function processMessage(
       if (env.EMAIL_DB) {
         await logEmailSend(env.EMAIL_DB, {
           message_id:    id,
+          attempt:       message.attempts,
           to_address:    to,
           template_name: template,
           status:        'deduplicated',
@@ -229,6 +233,7 @@ async function processMessage(
     if (env.EMAIL_DB) {
       await logEmailSend(env.EMAIL_DB, {
         message_id:    id,
+        attempt:       message.attempts,
         to_address:    to,
         template_name: template,
         status:        'invalid',
@@ -251,8 +256,9 @@ async function processMessage(
       const dbTemplate = await getEmailTemplate(env.EMAIL_DB, template);
       if (dbTemplate) {
         // Substitute {{email}} and {{site_url}} placeholders in the DB template.
+        // Fall back to the canonical site URL when site_url is not in params.
         const email   = params['email'] ?? to;
-        const siteUrl = params['site_url'] ?? '';
+        const siteUrl = params['site_url'] ?? SITE_URL;
         customTemplate = {
           subject: dbTemplate.subject,
           html:    dbTemplate.html.replace(/\{\{email\}\}/g, email).replace(/\{\{site_url\}\}/g, siteUrl),
@@ -266,6 +272,7 @@ async function processMessage(
     if (env.EMAIL_DB) {
       await logEmailSend(env.EMAIL_DB, {
         message_id:    id,
+        attempt:       message.attempts,
         to_address:    to,
         template_name: template,
         status:        'invalid',
@@ -286,6 +293,7 @@ async function processMessage(
     if (env.EMAIL_DB) {
       await logEmailSend(env.EMAIL_DB, {
         message_id:    id,
+        attempt:       message.attempts,
         to_address:    to,
         template_name: template,
         status:        'invalid',
@@ -318,6 +326,7 @@ async function processMessage(
     if (env.EMAIL_DB) {
       await logEmailSend(env.EMAIL_DB, {
         message_id:    id,
+        attempt:       message.attempts,
         to_address:    to,
         template_name: template,
         status:        (err instanceof EmailValidationError ? 'invalid' : 'failed') as EmailSendStatus,
@@ -353,6 +362,7 @@ async function processMessage(
   if (env.EMAIL_DB) {
     await logEmailSend(env.EMAIL_DB, {
       message_id:    id,
+      attempt:       message.attempts,
       to_address:    to,
       template_name: template,
       status:        'sent',

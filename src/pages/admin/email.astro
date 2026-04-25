@@ -467,6 +467,11 @@ export const prerender = true;
         document.getElementById('preview-subject-text').textContent = data.subject;
 
         const frame = document.getElementById('preview-html-frame');
+        // Revoke the previous Blob URL before creating a new one to prevent
+        // accumulating object URLs in memory during a long-lived admin session.
+        if (frame.src && frame.src.startsWith('blob:')) {
+          URL.revokeObjectURL(frame.src);
+        }
         const blob  = new Blob([data.html], { type: 'text/html' });
         frame.src   = URL.createObjectURL(blob);
 

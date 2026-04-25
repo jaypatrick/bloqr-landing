@@ -12,8 +12,10 @@
  *     TX API (`https://api.mailchannels.net/tx/v1/send`).  Used when the
  *     service binding is absent (local dev without `npm run preview`, CI, etc.).
  *
- * Both strategies validate the payload with Zod before any network call and
- * treat non-2xx responses as warnings (fire-and-forget safe).
+ * Both strategies validate the payload with Zod before any network call.
+ * Invalid payloads throw `EmailValidationError` — treat as permanent failures.
+ * Delivery failures (including non-2xx responses) are thrown so queue consumers
+ * and other retry-capable callers can retry the operation.
  *
  * Usage:
  *   import { createEmailService } from '@/services/emailService';

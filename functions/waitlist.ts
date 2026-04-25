@@ -137,14 +137,19 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
 
   const sql = neon(env.DATABASE_URL);
 
+  // Generate a message ID up-front so it can be stored in the waitlist row
+  // and used as the queue/workflow message ID, enabling cross-referencing of
+  // signup records with the email_sends delivery log.
+  const emailMessageId = crypto.randomUUID();
+
   // Capture IP and referrer for analytics
   const ip       = request.headers.get('CF-Connecting-IP') ?? null;
   const referrer = request.headers.get('Referer') ?? null;
 
   try {
     await sql`
-      INSERT INTO waitlist (email, segment, ip, referrer)
-      VALUES (${email}, ${segment}, ${ip}, ${referrer})
+      INSERT INTO waitlist (email, segment, ip, referrer, email_message_id)
+      VALUES (${email}, ${segment}, ${ip}, ${referrer}, ${emailMessageId})
     `;
 
     // ── Post-insert side effects ───────────────────────────────────────────────
@@ -172,7 +177,7 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
           // same signup.  If the DB UNIQUE constraint prevents duplicate
           // INSERTs, this code path will only ever run once per email.
           id:     `waitlist-${email}`,
-          params: { email, segment },
+          params: { email, segment, messageId: emailMessageId },
         }).catch((err: unknown) => console.warn('Workflow create failed:', err)),
       );
     } else {
@@ -180,8 +185,10 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
 
       if (env.EMAIL_QUEUE && env.FROM_EMAIL) {
         // Strategy 2: Publish to the durable Queue.
+        // Use the pre-generated emailMessageId so the waitlist row and the
+        // queue consumer's email_sends log share the same message ID.
         const message: EmailQueueMessage = {
-          id:         crypto.randomUUID(),
+          id:         emailMessageId,
           template:   'waitlistWelcome',
           to:         email,
           params:     { email, segment },

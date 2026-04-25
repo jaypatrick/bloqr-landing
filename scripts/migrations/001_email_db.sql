@@ -12,16 +12,20 @@
 -- All timestamps stored as ISO 8601 UTC strings (SQLite TEXT affinity).
 
 -- ─── email_sends ──────────────────────────────────────────────────────────────
--- Immutable delivery log. One row per message processed by the queue consumer.
--- Retries create new rows (distinct message_ids from each queue enqueue).
+-- Immutable delivery log. One row per message processing attempt.
+-- Queue retries create additional rows for the same message_id (one per attempt).
 -- Used by GET /admin/email/logs for delivery history and error inspection.
 
 CREATE TABLE IF NOT EXISTS email_sends (
   -- Auto-incrementing row ID (stable cursor for pagination)
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
 
-  -- UUID from EmailQueueMessage.id — uniquely identifies this delivery attempt
-  message_id    TEXT    NOT NULL UNIQUE,
+  -- UUID from EmailQueueMessage.id — identifies the original queue message.
+  -- NOT unique: a single message_id may have multiple rows (one per attempt).
+  message_id    TEXT    NOT NULL,
+
+  -- Which delivery attempt this row records (1 = first, 2 = first retry, etc.)
+  attempt       INTEGER NOT NULL DEFAULT 1,
 
   -- Recipient email address
   to_address    TEXT    NOT NULL,

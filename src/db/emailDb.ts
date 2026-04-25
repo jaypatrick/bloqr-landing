@@ -52,17 +52,24 @@ export type EmailSendStatus =
 /**
  * A row in the `email_sends` table.
  *
- * Written by the queue consumer after each message is processed.
- * The row is immutable once written — retries create new rows.
+ * Written by the queue consumer after each message processing attempt.
+ * Queue retries create additional rows for the same `message_id` — each
+ * attempt has its own row so the full retry history is preserved.
  */
 export interface EmailSendRow {
   /** Auto-incremented row ID. */
   id: number;
   /**
    * UUID from `EmailQueueMessage.id`.
-   * Unique across all rows — each delivery attempt has a distinct message_id.
+   * Not unique — multiple rows may share a `message_id` (one per attempt).
    */
   message_id: string;
+  /**
+   * Which delivery attempt this row records.
+   * 1 = first attempt, 2 = first retry, etc.
+   * Maps to `message.attempts` in the Cloudflare Queue consumer.
+   */
+  attempt: number;
   /** Recipient email address. */
   to_address: string;
   /** Template name (e.g. `waitlistWelcome`). */
@@ -155,11 +162,12 @@ export async function logEmailSend(
     await db
       .prepare(
         `INSERT INTO email_sends
-           (message_id, to_address, template_name, status, strategy, error_message, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+           (message_id, attempt, to_address, template_name, status, strategy, error_message, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
       .bind(
         record.message_id,
+        record.attempt,
         record.to_address,
         record.template_name,
         record.status,
@@ -240,7 +248,7 @@ export async function listEmailSends(
 
   try {
     const { results } = await db
-      .prepare(`SELECT * FROM email_sends ${where} ORDER BY id DESC LIMIT ?`)
+      .prepare(`SELECT * FROM email_sends ${where} ORDER BY created_at DESC, id DESC LIMIT ?`)
       .bind(...bindings)
       .all<EmailSendRow>();
     return results ?? [];

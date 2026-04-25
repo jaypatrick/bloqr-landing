@@ -53,6 +53,7 @@ import { renderWaitlistWelcome } from '../../src/email/templates/waitlistWelcome
 import {
   SendTestEmailBodySchema,
   PreviewEmailQuerySchema,
+  EmailTemplateNameSchema,
   type EmailTemplateName,
   type EmailPayload,
 } from '../../src/services/emailSchemas';
@@ -329,7 +330,21 @@ export async function handleEmailLogs(request: Request, env: Env): Promise<Respo
   const limitStr = url.searchParams.get('limit');
   const afterStr = url.searchParams.get('after_id');
 
-  const StatusSchema = z.enum(['sent', 'failed', 'stale', 'deduplicated', 'invalid']).optional();
+  const EmailLogsQuerySchema = z.object({
+    status: z.enum(['sent', 'failed', 'stale', 'deduplicated', 'invalid']).optional(),
+  });
+
+  let validatedQuery: z.infer<typeof EmailLogsQuerySchema>;
+  try {
+    validatedQuery = EmailLogsQuerySchema.parse({
+      status: url.searchParams.get('status') ?? undefined,
+    });
+  } catch (err: unknown) {
+    if (err instanceof ZodError) {
+      return json({ error: 'Invalid query parameters.', details: err.issues }, 400);
+    }
+    throw err;
+  }
 
   // Clamp limit to the same maximum enforced by listEmailSends (200).
   const clampedLimit = limitStr ? Math.min(parseInt(limitStr, 10) || 50, 200) : 50;
@@ -337,7 +352,7 @@ export async function handleEmailLogs(request: Request, env: Env): Promise<Respo
   const options: ListEmailSendsOptions = {
     limit:    clampedLimit,
     afterId:  afterStr ? parseInt(afterStr, 10) || undefined : undefined,
-    status:   StatusSchema.parse(url.searchParams.get('status') ?? undefined),
+    status:   validatedQuery.status,
     template: url.searchParams.get('template') ?? undefined,
     to:       url.searchParams.get('to') ?? undefined,
   };
@@ -387,8 +402,12 @@ export async function handleListTemplates(request: Request, env: Env): Promise<R
 // ─── Upsert template body schema ──────────────────────────────────────────────
 
 const UpsertTemplateBodySchema = z.object({
-  /** Template name — must match an entry in EmailTemplateNameSchema. */
-  name:    z.string().min(1),
+  /**
+   * Template name — must match a registered entry in `EmailTemplateNameSchema`.
+   * Using the enum here prevents saving overrides for templates that don't exist,
+   * which would silently be ignored by the consumer/preview paths.
+   */
+  name:    EmailTemplateNameSchema,
   /** Email subject line (non-empty). */
   subject: z.string().min(1),
   /** Full HTML body (non-empty). Supports {{email}} and {{site_url}} placeholders. */
