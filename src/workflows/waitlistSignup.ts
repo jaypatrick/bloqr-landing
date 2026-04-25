@@ -51,6 +51,8 @@
  * @see https://developers.cloudflare.com/workflows/
  */
 
+import { WorkflowEntrypoint } from 'cloudflare:workers';
+import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import type { Env } from '../types/env';
 import type { EmailQueueMessage } from '../types/emailQueue';
 
@@ -106,7 +108,7 @@ const SEGMENT_LABELS: Record<string, string> = {
  * ```
  */
 export class WaitlistSignupWorkflow
-  extends CloudflareWorkersModule.WorkflowEntrypoint<Env, WaitlistWorkflowParams>
+  extends WorkflowEntrypoint<Env, WaitlistWorkflowParams>
 {
   /**
    * Workflow entry point — called once per workflow instance.
@@ -115,8 +117,8 @@ export class WaitlistSignupWorkflow
    * @param step  - durable execution context; each `step.do()` is a checkpoint
    */
   async run(
-    event: Readonly<CloudflareWorkersModule.WorkflowEvent<WaitlistWorkflowParams>>,
-    step: CloudflareWorkersModule.WorkflowStep,
+    event: Readonly<WorkflowEvent<WaitlistWorkflowParams>>,
+    step: WorkflowStep,
   ): Promise<void> {
     const { email, segment } = event.payload;
 
