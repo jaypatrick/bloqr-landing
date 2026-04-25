@@ -48,6 +48,16 @@ interface WaitlistBody {
   segment?: string;
 }
 
+/** Type guard for Neon / postgres-js errors that carry a `code` string. */
+function isPgError(err: unknown): err is { code: string } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    typeof (err as Record<string, unknown>)['code'] === 'string'
+  );
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VALID_SEGMENTS = new Set(['list-maker', 'privacy-vendor', 'individual']);
 
@@ -160,11 +170,7 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
     } catch (insertErr: unknown) {
       // Postgres error 42703 = undefined_column: the email_message_id migration
       // has not been applied yet.  Retry without the column so signups keep working.
-      const pgCode =
-        typeof insertErr === 'object' && insertErr !== null
-          ? (insertErr as Record<string, unknown>)['code']
-          : undefined;
-      if (pgCode === '42703') {
+      if (isPgError(insertErr) && insertErr.code === '42703') {
         await sql`
           INSERT INTO waitlist (email, segment, ip, referrer)
           VALUES (${email}, ${segment}, ${ip}, ${referrer})

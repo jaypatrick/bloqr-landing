@@ -104,14 +104,13 @@ export const CONSUMER_TEMPLATE_REGISTRY: Record<
   string,
   (params: Record<string, string | null>) => { subject: string; html: string; text: string }
 > = {
-  waitlistWelcome: (params) =>
-    renderWaitlistWelcome(
-      // `email` is validated by CONSUMER_PARAMS_SCHEMA_REGISTRY before this
-      // function is called.  The null-coalesce throw here is a last-resort
-      // defensive guard; in practice it should never trigger.
-      params['email'] ?? (() => { throw new Error('waitlistWelcome: params.email is required'); })(),
-      params['segment'] ?? null,
-    ),
+  waitlistWelcome: (params) => {
+    const email = params['email'];
+    // `email` is validated by CONSUMER_PARAMS_SCHEMA_REGISTRY before this
+    // function is called.  The guard here is a last-resort defensive check.
+    if (!email) throw new Error('waitlistWelcome: params.email is required');
+    return renderWaitlistWelcome(email, params['segment'] ?? null);
+  },
 };
 
 /**
