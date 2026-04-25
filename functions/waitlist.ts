@@ -158,9 +158,13 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
         VALUES (${email}, ${segment}, ${ip}, ${referrer}, ${emailMessageId})
       `;
     } catch (insertErr: unknown) {
-      const pgCode = (insertErr as Record<string, unknown>)?.['code'];
+      // Postgres error 42703 = undefined_column: the email_message_id migration
+      // has not been applied yet.  Retry without the column so signups keep working.
+      const pgCode =
+        typeof insertErr === 'object' && insertErr !== null
+          ? (insertErr as Record<string, unknown>)['code']
+          : undefined;
       if (pgCode === '42703') {
-        // Column doesn't exist yet — migration pending.  Use legacy schema.
         await sql`
           INSERT INTO waitlist (email, segment, ip, referrer)
           VALUES (${email}, ${segment}, ${ip}, ${referrer})

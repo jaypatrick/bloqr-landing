@@ -277,7 +277,8 @@ async function processMessage(
         .map((i: z.ZodIssue) => `${i.path.join('.')}: ${i.message}`)
         .join(', ');
       console.error(
-        `[email-queue] Invalid params for template "${template}" (message ${id}): ${detail}`,
+        `[email-queue] Invalid params for template "${template}" (message ${id}) — ACKing without retry:`,
+        validation.error.issues,
       );
       if (env.EMAIL_DB) {
         await logEmailSend(env.EMAIL_DB, {
