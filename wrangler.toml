@@ -112,7 +112,7 @@ pattern = "bloqr.dev"
 custom_domain = true
 
 [[routes]]
-pattern = "mta-sts.bloqr.dev/*"
+pattern = "mta-sts.bloqr.dev"
 custom_domain = true
 
 # ─── Environment Variables ───────────────────────────────────────────────────
