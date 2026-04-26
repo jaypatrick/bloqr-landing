@@ -157,6 +157,42 @@ export default {
       if (request.method === 'OPTIONS') response = emailAdminOptions();
       else if (request.method === 'DELETE') response = await emailAdminDeleteTemplate(request, env);
       else response = new Response('Method Not Allowed', { status: 405 });
+    } else if (url.pathname === '/site.webmanifest') {
+      // Explicit manifest route — ensures correct Content-Type is always set
+      // and provides an inline fallback when ASSETS returns a non-2xx
+      // (e.g. 403 from a WAF rule or detached-asset deploy).
+      const MANIFEST_FALLBACK = JSON.stringify({
+        id: '/',
+        lang: 'en-US',
+        dir: 'ltr',
+        orientation: 'any',
+        name: 'Bloqr',
+        short_name: 'Bloqr',
+        description: 'Internet Hygiene: Automated. DNS-level ad blocking, AI-powered filter lists, and encrypted DNS for every device.',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#070B14',
+        theme_color: '#FF5500',
+        categories: ['security', 'utilities', 'productivity'],
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
+      });
+
+      const manifestAsset = await env.ASSETS.fetch(request);
+      if (manifestAsset.ok) {
+        // Forward the asset body directly — only enforce the correct Content-Type.
+        response = new Response(manifestAsset.body, {
+          status: manifestAsset.status,
+          headers: { 'content-type': 'application/manifest+json; charset=utf-8' },
+        });
+      } else {
+        response = new Response(MANIFEST_FALLBACK, {
+          status: 200,
+          headers: { 'content-type': 'application/manifest+json; charset=utf-8' },
+        });
+      }
     } else if (url.pathname === '/api/browser-health') {
       if (request.method === 'OPTIONS') {
         response = new Response(null, { status: 204 });
@@ -189,6 +225,20 @@ export default {
       }
     } else {
       response = await env.ASSETS.fetch(request);
+
+      // Guard: /_astro/* paths are always hashed CSS/JS/image assets.
+      // If ASSETS returns text/html for them, the bundle is stale or assets are
+      // detached (see AGENTS.md § Dashboard danger). Return a clean 404 so the
+      // browser gets a real error instead of the MIME-type violation.
+      if (
+        url.pathname.startsWith('/_astro/') &&
+        (response.headers.get('content-type') ?? '').toLowerCase().startsWith('text/html')
+      ) {
+        response = new Response(null, {
+          status: 404,
+          headers: { 'x-bloqr-asset-miss': '1' },
+        });
+      }
 
       const contentType = response.headers.get('content-type');
 
