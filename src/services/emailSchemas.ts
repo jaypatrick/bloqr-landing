@@ -18,6 +18,15 @@ import { z } from 'zod';
 /**
  * The minimum payload required to send a transactional email.
  * Validated at the trust boundary before any send attempt.
+ *
+ * @bloqr.dev reply-to address mapping:
+ *   hello@bloqr.dev        — waitlist confirmations, general contact
+ *   support@bloqr.dev      — compilation complete notifications, app support
+ *   sales@bloqr.dev        — upgrade/sales flows
+ *   news@bloqr.dev         — newsletter sends
+ *   noreply@bloqr.dev      — system notifications (omit replyTo entirely)
+ *   admin@bloqr.dev        — internal admin alerts
+ *   abuse@bloqr.dev        — abuse reports
  */
 export const EmailPayloadSchema = z.object({
   /** Recipient email address. Must be a valid RFC 5322 address. */
@@ -28,6 +37,18 @@ export const EmailPayloadSchema = z.object({
   html:    z.string().min(1, 'HTML body is required'),
   /** Plain-text fallback body. Must be non-empty. */
   text:    z.string().min(1, 'Text body is required'),
+  /**
+   * Optional Reply-To address. When set, email clients direct replies here
+   * instead of the From address.  Use to route replies to the correct
+   * @bloqr.dev alias (e.g. hello@, support@, sales@).
+   *
+   * Must be a valid RFC 5322 address or display-name qualified address,
+   * e.g. `"Bloqr Support <support@bloqr.dev>"`.
+   *
+   * Header injection characters (CR, LF) are stripped at the service layer
+   * before the value is inserted into the raw MIME message.
+   */
+  replyTo: z.string().min(1).optional(),
 });
 
 export type EmailPayload = z.infer<typeof EmailPayloadSchema>;
