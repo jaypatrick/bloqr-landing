@@ -24,6 +24,7 @@
  *   POST    /api/auth/*     → Better Auth handler (all auth endpoints)
  *   GET     /api/auth/*     → Better Auth handler (session checks, OAuth callbacks)
  *   Queue   email-queue     → handleEmailQueue (durable email delivery consumer)
+ *   GET     /.well-known/mta-sts.txt  (hostname: mta-sts.bloqr.dev) → MTA-STS policy
  *   *                       → env.ASSETS.fetch(request) (static site)
  */
 
@@ -46,6 +47,7 @@ import {
 import { handleAuth } from './lib/auth';
 import { isAuthConfigured, isAuthorized } from '../functions/admin/_auth-guard';
 import { handleEmailQueue } from '../functions/queues/emailConsumer';
+import { handleMtaStsPolicy } from '../functions/mta-sts';
 
 // ─── Cloudflare Workflows export ──────────────────────────────────────────────
 // WaitlistSignupWorkflow must be exported at the module top level so Wrangler
@@ -134,8 +136,15 @@ export default {
     const url = new URL(request.url);
     let response: Response;
 
+    // MTA-STS policy — served from the mta-sts.bloqr.dev subdomain per RFC 8461
+    if (url.hostname === 'mta-sts.bloqr.dev') {
+      if (url.pathname === '/.well-known/mta-sts.txt' && request.method === 'GET') {
+        response = handleMtaStsPolicy();
+      } else {
+        response = new Response('Not Found', { status: 404 });
+      }
     // Better Auth — handles all /api/auth/* routes (login, logout, session, OAuth callbacks)
-    if (url.pathname.startsWith('/api/auth/')) {
+    } else if (url.pathname.startsWith('/api/auth/')) {
       response = await handleAuth(request, env);
     } else if (url.pathname === '/waitlist') {
       if (request.method === 'OPTIONS') response = waitlistOptions();

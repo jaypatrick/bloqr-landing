@@ -111,6 +111,10 @@ binding = "BROWSER"
 pattern = "bloqr.dev"
 custom_domain = true
 
+[[routes]]
+pattern = "mta-sts.bloqr.dev/*"
+custom_domain = true
+
 # ─── Environment Variables ───────────────────────────────────────────────────
 # Non-secret Worker runtime vars. Secrets (DATABASE_URL, APOLLO_API_KEY, etc.)
 # are set in the Cloudflare dashboard or .dev.vars for local dev.
