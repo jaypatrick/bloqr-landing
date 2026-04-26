@@ -53,6 +53,29 @@ import { handleEmailQueue } from '../functions/queues/emailConsumer';
 // the [[workflows]] binding in wrangler.toml cannot resolve `class_name`.
 export { WaitlistSignupWorkflow } from './workflows/waitlistSignup';
 
+// ─── Static manifest fallback ─────────────────────────────────────────────────
+// Defined at module scope so JSON.stringify runs once at Worker startup rather
+// than on every request.  Used by the /site.webmanifest handler when ASSETS
+// returns a non-2xx (e.g. 403 from a WAF rule or detached-asset deploy).
+const MANIFEST_FALLBACK = JSON.stringify({
+  id: '/',
+  lang: 'en-US',
+  dir: 'ltr',
+  orientation: 'any',
+  name: 'Bloqr',
+  short_name: 'Bloqr',
+  description: 'Internet Hygiene: Automated. DNS-level ad blocking, AI-powered filter lists, and encrypted DNS for every device.',
+  start_url: '/',
+  display: 'standalone',
+  background_color: '#070B14',
+  theme_color: '#FF5500',
+  categories: ['security', 'utilities', 'productivity'],
+  icons: [
+    { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+    { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+  ],
+});
+
 /**
  * Returns the response unchanged if the request host matches the canonical domain.
  * Otherwise appends `X-Robots-Tag: noindex, nofollow` to prevent crawlers from
@@ -161,31 +184,17 @@ export default {
       // Explicit manifest route — ensures correct Content-Type is always set
       // and provides an inline fallback when ASSETS returns a non-2xx
       // (e.g. 403 from a WAF rule or detached-asset deploy).
-      const MANIFEST_FALLBACK = JSON.stringify({
-        id: '/',
-        lang: 'en-US',
-        dir: 'ltr',
-        orientation: 'any',
-        name: 'Bloqr',
-        short_name: 'Bloqr',
-        description: 'Internet Hygiene: Automated. DNS-level ad blocking, AI-powered filter lists, and encrypted DNS for every device.',
-        start_url: '/',
-        display: 'standalone',
-        background_color: '#070B14',
-        theme_color: '#FF5500',
-        categories: ['security', 'utilities', 'productivity'],
-        icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-        ],
-      });
-
       const manifestAsset = await env.ASSETS.fetch(request);
-      if (manifestAsset.ok) {
-        // Forward the asset body directly — only enforce the correct Content-Type.
+
+      if (manifestAsset.ok || manifestAsset.status === 304) {
+        // Forward the asset body directly while preserving cache and validator
+        // headers (ETag, Cache-Control, Last-Modified, etc.). Only override
+        // content-type so the browser treats it as a manifest, not plain JSON.
+        const manifestHeaders = new Headers(manifestAsset.headers);
+        manifestHeaders.set('content-type', 'application/manifest+json; charset=utf-8');
         response = new Response(manifestAsset.body, {
           status: manifestAsset.status,
-          headers: { 'content-type': 'application/manifest+json; charset=utf-8' },
+          headers: manifestHeaders,
         });
       } else {
         response = new Response(MANIFEST_FALLBACK, {
