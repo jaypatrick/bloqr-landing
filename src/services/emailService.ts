@@ -142,6 +142,7 @@ interface EmailWorkerPayload {
   subject: string;
   html:    string;
   text:    string;
+  replyTo?: string;
 }
 
 // ─── MIME helpers ─────────────────────────────────────────────────────────────
@@ -185,18 +186,21 @@ function stripHeaderInjection(value: string): string {
  * passing directly to `new EmailMessage(from, to, rawMime)`.
  */
 function buildRawMimeMessage(
-  from:    string,
-  to:      string,
-  subject: string,
-  text:    string,
-  html:    string,
+  from:     string,
+  to:       string,
+  subject:  string,
+  text:     string,
+  html:     string,
+  replyTo?: string,
 ): string {
   const safeTo      = stripHeaderInjection(to);
   const safeSubject = stripHeaderInjection(subject);
+  const safeReplyTo = replyTo !== undefined ? stripHeaderInjection(replyTo) : undefined;
   const boundary = `----bloqr-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
   const lines = [
     `From: ${from}`,
     `To: ${safeTo}`,
+    ...(safeReplyTo ? [`Reply-To: ${safeReplyTo}`] : []),
     `Subject: ${encodeSubjectRfc2047(safeSubject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -259,6 +263,7 @@ export class ServiceBindingStrategy implements EmailSendStrategy {
       subject: payload.subject,
       html:    payload.html,
       text:    payload.text,
+      ...(payload.replyTo !== undefined ? { replyTo: payload.replyTo } : {}),
     };
 
     let res: Response;
@@ -307,7 +312,7 @@ export class CfEmailSendingStrategy implements EmailSendStrategy {
     }
     const sanitized    = env.FROM_EMAIL.replace(/[\r\n]/g, '');
     const envelopeFrom = parseEmailAddress(sanitized).email;
-    const rawMime      = buildRawMimeMessage(sanitized, payload.to, payload.subject, payload.text, payload.html);
+    const rawMime      = buildRawMimeMessage(sanitized, payload.to, payload.subject, payload.text, payload.html, payload.replyTo);
     const message      = new EmailMessage(envelopeFrom, payload.to, rawMime);
     try {
       await env.SEND_EMAIL.send(message);
@@ -419,8 +424,8 @@ export class EmailService {
    * @param segment Signup segment (controls personalised copy), or null.
    */
   async sendWaitlistConfirmation(to: string, segment: string | null): Promise<void> {
-    const { subject, html, text } = renderWaitlistWelcome(to, segment);
-    return this.sendEmail({ to, subject, html, text });
+    const { subject, html, text, replyTo } = renderWaitlistWelcome(to, segment);
+    return this.sendEmail({ to, subject, html, text, replyTo });
   }
 }
 

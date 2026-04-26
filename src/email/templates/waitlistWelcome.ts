@@ -17,7 +17,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 export function renderWaitlistWelcome(
   email: string,
   segment: string | null,
-): { html: string; text: string; subject: string } {
+): { html: string; text: string; subject: string; replyTo: string } {
   const segmentLabel = segment ? SEGMENT_LABELS[segment] ?? null : null;
   const personalizedLine = segmentLabel
     ? `We're onboarding ${segmentLabel}s first — you're in the right place.`
@@ -70,5 +70,5 @@ export function renderWaitlistWelcome(
 </body>
 </html>`;
 
-  return { subject, html, text };
+  return { subject, html, text, replyTo: 'Bloqr <hello@bloqr.dev>' };
 }

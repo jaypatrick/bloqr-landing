@@ -65,6 +65,19 @@ describe('EmailPayloadSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts a valid payload that includes replyTo', () => {
+    const result = EmailPayloadSchema.safeParse({ ...VALID_PAYLOAD, replyTo: 'reply@bloqr.dev' });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a valid payload without replyTo (replyTo is optional)', () => {
+    const result = EmailPayloadSchema.safeParse(VALID_PAYLOAD);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.replyTo).toBeUndefined();
+    }
+  });
+
   it('rejects a payload with an invalid email address', () => {
     const result = EmailPayloadSchema.safeParse({ ...VALID_PAYLOAD, to: 'not-an-email' });
     expect(result.success).toBe(false);
@@ -116,6 +129,29 @@ describe('ServiceBindingStrategy', () => {
     expect(body['to']).toBe('user@example.com');
     expect(body['from']).toBe('hello@bloqr.dev');
     expect(body['subject']).toBe('Test Subject');
+  });
+
+  it('includes replyTo in the JSON body when payload.replyTo is set', async () => {
+    const { fetcher, fetcherMock } = makeWorkerFetcher();
+    const env: EmailEnv = { ...MINIMAL_ENV, EMAIL_WORKER: fetcher };
+    const strategy = new ServiceBindingStrategy();
+    const payloadWithReplyTo = { ...VALID_PAYLOAD, replyTo: 'reply@bloqr.dev' };
+    await strategy.send(payloadWithReplyTo, env);
+
+    const [request] = fetcherMock.mock.calls[0] as [Request];
+    const body = await request.json() as Record<string, unknown>;
+    expect(body['replyTo']).toBe('reply@bloqr.dev');
+  });
+
+  it('omits replyTo from the JSON body when payload.replyTo is absent', async () => {
+    const { fetcher, fetcherMock } = makeWorkerFetcher();
+    const env: EmailEnv = { ...MINIMAL_ENV, EMAIL_WORKER: fetcher };
+    const strategy = new ServiceBindingStrategy();
+    await strategy.send(VALID_PAYLOAD, env);
+
+    const [request] = fetcherMock.mock.calls[0] as [Request];
+    const body = await request.json() as Record<string, unknown>;
+    expect(body).not.toHaveProperty('replyTo');
   });
 
   it('throws when the service binding returns a non-2xx status', async () => {
@@ -189,6 +225,23 @@ describe('CfEmailSendingStrategy', () => {
     await expect(strategy.send(VALID_PAYLOAD, env)).rejects.toThrow(/CF Email Sending failed/);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
+  });
+
+  it('includes a Reply-To header in the MIME message when replyTo is set', async () => {
+    const { EmailMessage } = await import('cloudflare:email');
+    const strategy = new CfEmailSendingStrategy();
+    const payloadWithReplyTo = { ...VALID_PAYLOAD, replyTo: 'reply@bloqr.dev' };
+    await strategy.send(payloadWithReplyTo, env);
+    const [, , rawMime] = vi.mocked(EmailMessage).mock.lastCall as [string, string, string];
+    expect(rawMime).toContain('Reply-To: reply@bloqr.dev');
+  });
+
+  it('does not include a Reply-To header in the MIME message when replyTo is absent', async () => {
+    const { EmailMessage } = await import('cloudflare:email');
+    const strategy = new CfEmailSendingStrategy();
+    await strategy.send(VALID_PAYLOAD, env);
+    const [, , rawMime] = vi.mocked(EmailMessage).mock.lastCall as [string, string, string];
+    expect(rawMime).not.toContain('Reply-To:');
   });
 });
 
