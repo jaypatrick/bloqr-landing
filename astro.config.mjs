@@ -40,6 +40,14 @@ export default defineConfig({
     //   - An IMAGES binding added to wrangler.toml and the CF dashboard.
     //   - IMAGES: Fetcher added to src/types/env.ts.
     imageService: 'passthrough',
+    // Disable the platform proxy during builds — it is only needed for local
+    // `astro dev` to emulate CF bindings.  During `astro build` every page is
+    // prerendered (export const prerender = true), so no runtime bindings are
+    // required.  Leaving the proxy enabled causes @cloudflare/vite-plugin to
+    // read wrangler.toml and potentially start a remote wrangler dev session
+    // if any binding is misconfigured, which fails on CI runners that have no
+    // `wrangler login` session.
+    platformProxy: { enabled: false },
   }),
 
   // Derived from the SITE_URL env var so the sitemap and RSS context.site stay
