@@ -12,7 +12,8 @@ const posthogKey = import.meta.env.PUBLIC_POSTHOG_KEY;
       if (key) {
         import('posthog-js').then(({ default: posthog }) => {
           posthog.init(key, {
-            api_host: 'https://app.posthog.com',
+            api_host: 'https://us.i.posthog.com',
+            ui_host: 'https://us.posthog.com',
             capture_pageview: true,
             capture_pageleave: true,
             autocapture: false, // manual for landing page precision
