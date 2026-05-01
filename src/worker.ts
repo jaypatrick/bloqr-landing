@@ -23,6 +23,8 @@
  *   GET     /api/browser-health → Browser Rendering binding health check (requires auth)
  *   POST    /api/auth/*     → Better Auth handler (all auth endpoints)
  *   GET     /api/auth/*     → Better Auth handler (session checks, OAuth callbacks)
+ *   GET/POST /ingest/static/* → PostHog asset proxy (us-assets.posthog.com)
+ *   GET/POST /ingest/*      → PostHog reverse proxy (us.i.posthog.com)
  *   Queue   email-queue     → handleEmailQueue (durable email delivery consumer)
  *   GET     /.well-known/mta-sts.txt  (hostname: mta-sts.bloqr.dev) → MTA-STS policy
  *   *                       → env.ASSETS.fetch(request) (static site)
@@ -48,6 +50,7 @@ import { handleAuth } from './lib/auth';
 import { isAuthConfigured, isAuthorized } from '../functions/admin/_auth-guard';
 import { handleEmailQueue } from '../functions/queues/emailConsumer';
 import { handleMtaStsPolicy } from '../functions/mta-sts';
+import { handlePostHogProxy } from '../functions/posthog-proxy';
 
 // ─── Cloudflare Workflows export ──────────────────────────────────────────────
 // WaitlistSignupWorkflow must be exported at the module top level so Wrangler
@@ -241,6 +244,9 @@ export default {
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }
+    // PostHog reverse proxy — /ingest/static/* is handled inside the proxy function
+    } else if (url.pathname.startsWith('/ingest/')) {
+      response = await handlePostHogProxy(request);
     } else {
       response = await env.ASSETS.fetch(request);
 
