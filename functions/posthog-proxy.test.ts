@@ -174,8 +174,8 @@ describe('handlePostHogProxy', () => {
 
       const forwarded = fetchSpy.mock.calls[0][0] as Request;
       expect(forwarded.method).toBe('POST');
-      const forwaredBody = await forwarded.text();
-      expect(forwaredBody).toBe(body);
+      const forwardedBody = await forwarded.text();
+      expect(forwardedBody).toBe(body);
     });
 
     it('sends no body for GET requests', async () => {
