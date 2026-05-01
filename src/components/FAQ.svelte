@@ -2,10 +2,6 @@
   // Track which FAQ item is open (-1 = none)
   let openIndex = $state(-1);
 
-  function toggle(index: number) {
-    openIndex = openIndex === index ? -1 : index;
-  }
-
   const faqs = [
     {
       q: 'Does Bloqr see my internet traffic?',
@@ -33,6 +29,14 @@
       a: 'Two things: (1) natural language rule building — tell Bloqr what you want to block in plain English and it translates that into proper filter rules; (2) real-time threat intelligence — AI continuously monitors emerging malware domains and phishing campaigns and surfaces them as filter list updates. No magic. No vague claims.',
     },
   ];
+
+  function toggle(index: number) {
+    const opening = openIndex !== index;
+    openIndex = opening ? index : -1;
+    if (opening && typeof window !== 'undefined' && window.__posthog) {
+      window.__posthog.capture('faq_item_opened', { question: faqs[index]?.q, index });
+    }
+  }
 </script>
 
 <section class="faq" id="faq" aria-labelledby="faq-heading">

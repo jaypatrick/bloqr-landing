@@ -11,6 +11,14 @@
     { id: 'individual',      label: 'Individual',      desc: 'I want better blocking'  },
   ];
 
+  function selectSegment(segId) {
+    const next = segment === segId ? '' : segId;
+    segment = next;
+    if (next && typeof window !== 'undefined' && window.__posthog) {
+      window.__posthog.capture('waitlist_segment_selected', { segment: next });
+    }
+  }
+
   async function submit(e) {
     e.preventDefault();
     if (status === 'submitting') return;
@@ -18,9 +26,13 @@
     errorMsg = '';
 
     try {
+      const sessionId = typeof window !== 'undefined' ? (window.__posthog?.get_session_id?.() ?? '') : '';
       const res = await fetch('/waitlist', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-PostHog-Session-Id': sessionId,
+        },
         body:    JSON.stringify({ email: email.trim(), segment: segment || null }),
       });
       const data = await res.json();
@@ -28,17 +40,24 @@
       if (res.ok) {
         status = 'success';
         if (typeof window !== 'undefined' && window.__posthog) {
-          window.__posthog.capture('waitlist_signup', { source: 'landing_page' });
+          window.__posthog.capture('waitlist_signup', { source: 'landing_page', segment: segment || null });
+          window.__posthog.identify(email.trim());
         }
       } else if (res.status === 409) {
         status = 'duplicate';
       } else {
         status = 'error';
         errorMsg = data.error ?? 'Something went wrong.';
+        if (typeof window !== 'undefined' && window.__posthog) {
+          window.__posthog.capture('waitlist_signup_failed', { error: data.error ?? 'unknown', segment: segment || null });
+        }
       }
     } catch {
       status = 'error';
       errorMsg = 'Network error — please try again.';
+      if (typeof window !== 'undefined' && window.__posthog) {
+        window.__posthog.capture('waitlist_signup_failed', { error: 'network_error', segment: segment || null });
+      }
     }
   }
 </script>
@@ -87,7 +106,7 @@
                   class="pill"
                   class:active={segment === seg.id}
                   aria-pressed={segment === seg.id}
-                  onclick={() => segment = segment === seg.id ? '' : seg.id}
+                  onclick={() => selectSegment(seg.id)}
                 >
                   {seg.label}
                 </button>

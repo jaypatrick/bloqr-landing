@@ -7,6 +7,7 @@ import Font from 'astro/components/Font.astro';
 import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import SchemaOrg from '../../components/SchemaOrg.astro';
+import PostHog from '../../components/PostHog.astro';
 import { getImage, Image } from 'astro:assets';
 import { getCollection, render } from 'astro:content';
 import { SITE_URL } from '../../config';
@@ -165,7 +166,23 @@ const blogPostSchema = {
 
   <ClientRouter />
   <SchemaOrg schema={blogPostSchema} />
+  <PostHog />
 </head>
+<script is:inline define:vars={{ postTitle: post.data.title, postCategory: post.data.category, postTags: post.data.tags, postSlug: post.id }}>
+  // Fire blog_post_viewed after PostHog initializes (dynamic import may be async)
+  (function captureWhenReady() {
+    if (window.__posthog) {
+      window.__posthog.capture('blog_post_viewed', {
+        title: postTitle,
+        category: postCategory,
+        tags: postTags,
+        slug: postSlug,
+      });
+    } else {
+      setTimeout(captureWhenReady, 100);
+    }
+  })();
+</script>
 <body>
   <Nav client:idle transition:persist="nav" />
 

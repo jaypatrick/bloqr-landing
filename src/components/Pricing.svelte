@@ -3,6 +3,12 @@
 <script>
   import { LINKS } from '../config';
 
+  function trackPricingCta(tierName, cta) {
+    if (typeof window !== 'undefined' && window.__posthog) {
+      window.__posthog.capture('pricing_cta_clicked', { tier: tierName, cta });
+    }
+  }
+
   const tiers = [
     {
       name:     'Personal',
@@ -134,6 +140,7 @@
             class:outline={!tier.featured}
             rel={tier.external ? 'noopener noreferrer' : undefined}
             target={tier.external ? '_blank' : undefined}
+            onclick={() => trackPricingCta(tier.name, tier.cta)}
           >
             {tier.cta}
           </a>

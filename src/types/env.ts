@@ -39,6 +39,12 @@ export interface Env {
   /** Apollo.io API key for contact enrichment (fire-and-forget on waitlist). */
   APOLLO_API_KEY: string;
 
+  // ─── PostHog server-side analytics ────────────────────────────────────────
+  /** PostHog project token for server-side event tracking via posthog-node. Set as a CF secret. */
+  POSTHOG_PROJECT_TOKEN?: string;
+  /** PostHog ingest host. Defaults to the US cloud endpoint if not set. */
+  POSTHOG_HOST?: string;
+
   // ─── Better Auth ──────────────────────────────────────────────────────────
   /** Random 32+ char secret; signs and validates Better Auth sessions. */
   BETTER_AUTH_SECRET: string;

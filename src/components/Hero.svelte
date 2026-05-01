@@ -1,5 +1,11 @@
 <script>
   import { LINKS } from '../config';
+
+  function trackHeroCta(label) {
+    if (typeof window !== 'undefined' && window.__posthog) {
+      window.__posthog.capture('hero_cta_clicked', { label });
+    }
+  }
 </script>
 
 <section class="hero">
@@ -26,13 +32,13 @@
     </div>
 
     <div class="actions">
-      <a href={LINKS.app} class="btn btn-primary" rel="noopener noreferrer" target="_blank">
+      <a href={LINKS.app} class="btn btn-primary" rel="noopener noreferrer" target="_blank" onclick={() => trackHeroCta('get_started_free')}>
         Get started free <span aria-hidden="true">→</span>
       </a>
-      <a href={LINKS.docs} class="btn btn-outline" rel="noopener noreferrer" target="_blank">
+      <a href={LINKS.docs} class="btn btn-outline" rel="noopener noreferrer" target="_blank" onclick={() => trackHeroCta('read_the_docs')}>
         Read the docs
       </a>
-      <a href="/#why" class="btn btn-ghost">
+      <a href="/#why" class="btn btn-ghost" onclick={() => trackHeroCta('see_how_it_works')}>
         See how it works
       </a>
     </div>
