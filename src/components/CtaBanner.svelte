@@ -1,5 +1,11 @@
 <script>
   import { LINKS } from '../config';
+
+  function trackCtaBanner(label) {
+    if (typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture('cta_banner_clicked', { label });
+    }
+  }
 </script>
 <!-- Final CTA section -->
 
@@ -28,10 +34,10 @@
       </div>
     </div>
     <div class="actions">
-      <a href={LINKS.app} class="btn btn-primary" rel="noopener noreferrer" target="_blank">
+      <a href={LINKS.app} class="btn btn-primary" rel="noopener noreferrer" target="_blank" onclick={() => trackCtaBanner('launch_the_app')}>
         Launch the app <span aria-hidden="true">→</span>
       </a>
-      <a href={LINKS.docs} class="btn btn-outline" rel="noopener noreferrer" target="_blank">
+      <a href={LINKS.docs} class="btn btn-outline" rel="noopener noreferrer" target="_blank" onclick={() => trackCtaBanner('view_docs')}>
         View docs
       </a>
     </div>

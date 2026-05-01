@@ -12,12 +12,17 @@
 import { neon } from '@neondatabase/serverless';
 import { createEmailService, DEFAULT_FROM_EMAIL } from '../src/services/emailService';
 import type { EmailQueueMessage } from '../src/types/emailQueue';
+import { getPostHogServer } from '../src/lib/posthog-server';
 
 export interface Env {
   DATABASE_URL: string;
   /** Apollo.io API key for contact enrichment. Optional — enrichment is fire-and-forget. */
   APOLLO_API_KEY?: string;
   FROM_EMAIL?: string;
+  /** PostHog project token for server-side event tracking. Set as a CF secret. */
+  POSTHOG_PROJECT_TOKEN?: string;
+  /** PostHog ingest host (defaults to US cloud if unset). */
+  POSTHOG_HOST?: string;
   /**
    * Cloudflare Email Workers `SEND_EMAIL` binding.
    * When present (and EMAIL_WORKER is absent), CfEmailSendingStrategy is used.
@@ -84,7 +89,7 @@ export function handleOptions(): Response {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, X-PostHog-Session-Id, X-PostHog-Distinct-Id',
     },
   });
 }
@@ -159,6 +164,10 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
   // Capture IP and referrer for analytics
   const ip       = request.headers.get('CF-Connecting-IP') ?? null;
   const referrer = request.headers.get('Referer') ?? null;
+
+  // PostHog correlation headers — read once; coerce empty strings to undefined.
+  const phSessionId  = request.headers.get('X-PostHog-Session-Id')?.trim()  || undefined;
+  const phDistinctId = request.headers.get('X-PostHog-Distinct-Id')?.trim() || undefined;
 
   try {
     // Try to write email_message_id so signups can be cross-referenced with
@@ -260,11 +269,50 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
       });
     }
 
+    // PostHog server-side signup event — authoritative conversion tracking.
+    if (env.POSTHOG_PROJECT_TOKEN) {
+      const posthog    = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
+      const distinctId = phDistinctId ?? email;
+      posthog.capture({
+        distinctId,
+        event: 'waitlist_signup_server',
+        properties: {
+          ...(phSessionId ? { $session_id: phSessionId } : {}),
+          segment:     segment ?? 'none',
+          has_segment: segment !== null,
+          referrer:    referrer ?? undefined,
+          source:      'worker',
+        },
+      });
+      ctx.waitUntil(
+        posthog.flush()
+          .catch((err: unknown) => console.warn('PostHog flush failed:', err)),
+      );
+    }
+
     return json({ success: true });
   } catch (err: unknown) {
     // Unique constraint violation = already registered
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('waitlist_email_unique')) {
+      // PostHog server-side duplicate detection event.
+      if (env.POSTHOG_PROJECT_TOKEN) {
+        const posthog    = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
+        const distinctId = phDistinctId ?? email;
+        posthog.capture({
+          distinctId,
+          event: 'waitlist_signup_duplicate_server',
+          properties: {
+            ...(phSessionId ? { $session_id: phSessionId } : {}),
+            segment: segment ?? 'none',
+            source:  'worker',
+          },
+        });
+        ctx.waitUntil(
+          posthog.flush()
+            .catch((err: unknown) => console.warn('PostHog flush failed:', err)),
+        );
+      }
       return json({ error: 'already_registered' }, 409);
     }
     console.error('Waitlist insert error:', msg);

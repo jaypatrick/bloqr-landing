@@ -7,6 +7,7 @@ import Font from 'astro/components/Font.astro';
 import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import SchemaOrg from '../../components/SchemaOrg.astro';
+import PostHog from '../../components/PostHog.astro';
 import { getImage, Image } from 'astro:assets';
 import { getCollection, render } from 'astro:content';
 import { SITE_URL } from '../../config';
@@ -165,6 +166,29 @@ const blogPostSchema = {
 
   <ClientRouter />
   <SchemaOrg schema={blogPostSchema} />
+  <PostHog />
+  <script is:inline define:vars={{ postTitle: post.data.title, postCategory: post.data.category, postTags: post.data.tags, postSlug: post.id }}>
+    // Fire blog_post_viewed after PostHog initializes (dynamic import may be async).
+    // Bail out after 50 attempts (~5 s) so a blocked/missing PostHog never leaks a timer.
+    const POSTHOG_RETRY_INTERVAL_MS = 100;
+    const POSTHOG_MAX_RETRIES = 50;
+
+    (function captureWhenReady(attempt) {
+      const ph = window.posthog;
+      if (ph && typeof ph.capture === 'function') {
+        ph.capture('blog_post_viewed', {
+          title:    postTitle,
+          category: postCategory,
+          tags:     postTags,
+          slug:     postSlug,
+        });
+        return;
+      }
+      if (attempt < POSTHOG_MAX_RETRIES) {
+        setTimeout(function() { captureWhenReady(attempt + 1); }, POSTHOG_RETRY_INTERVAL_MS);
+      }
+    })(0);
+  </script>
 </head>
 <body>
   <Nav client:idle transition:persist="nav" />
