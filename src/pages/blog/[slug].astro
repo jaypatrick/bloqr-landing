@@ -175,7 +175,7 @@ const blogPostSchema = {
   const POSTHOG_MAX_RETRIES = 50;
 
   (function captureWhenReady(attempt) {
-    var ph = window.posthog;
+    const ph = window.posthog;
     if (ph && typeof ph.capture === 'function') {
       ph.capture('blog_post_viewed', {
         title:    postTitle,

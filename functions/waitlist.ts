@@ -165,6 +165,10 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
   const ip       = request.headers.get('CF-Connecting-IP') ?? null;
   const referrer = request.headers.get('Referer') ?? null;
 
+  // PostHog correlation headers — read once; coerce empty strings to undefined.
+  const phSessionId  = request.headers.get('X-PostHog-Session-Id')?.trim()  || undefined;
+  const phDistinctId = request.headers.get('X-PostHog-Distinct-Id')?.trim() || undefined;
+
   try {
     // Try to write email_message_id so signups can be cross-referenced with
     // the email_sends D1 delivery log.  If the Neon migration hasn't been
@@ -267,14 +271,13 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
 
     // PostHog server-side signup event — authoritative conversion tracking.
     if (env.POSTHOG_PROJECT_TOKEN) {
-      const posthog     = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
-      const sessionId   = request.headers.get('X-PostHog-Session-Id')?.trim()  || undefined;
-      const distinctId  = request.headers.get('X-PostHog-Distinct-Id')?.trim() || email;
+      const posthog    = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
+      const distinctId = phDistinctId ?? email;
       posthog.capture({
         distinctId,
         event: 'waitlist_signup_server',
         properties: {
-          ...(sessionId ? { $session_id: sessionId } : {}),
+          ...(phSessionId ? { $session_id: phSessionId } : {}),
           segment:     segment ?? 'none',
           has_segment: segment !== null,
           referrer:    referrer ?? undefined,
@@ -295,13 +298,12 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
       // PostHog server-side duplicate detection event.
       if (env.POSTHOG_PROJECT_TOKEN) {
         const posthog    = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
-        const sessionId  = request.headers.get('X-PostHog-Session-Id')?.trim()  || undefined;
-        const distinctId = request.headers.get('X-PostHog-Distinct-Id')?.trim() || email;
+        const distinctId = phDistinctId ?? email;
         posthog.capture({
           distinctId,
           event: 'waitlist_signup_duplicate_server',
           properties: {
-            ...(sessionId ? { $session_id: sessionId } : {}),
+            ...(phSessionId ? { $session_id: phSessionId } : {}),
             segment: segment ?? 'none',
             source:  'worker',
           },
