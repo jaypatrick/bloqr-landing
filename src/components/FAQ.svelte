@@ -33,8 +33,8 @@
   function toggle(index: number) {
     const opening = openIndex !== index;
     openIndex = opening ? index : -1;
-    if (opening && typeof window !== 'undefined' && window.__posthog) {
-      window.__posthog.capture('faq_item_opened', { question: faqs[index]?.q, index });
+    if (opening && typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture('faq_item_opened', { question: faqs[index]?.q, index });
     }
   }
 </script>

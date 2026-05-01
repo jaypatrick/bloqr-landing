@@ -14,8 +14,8 @@
   function selectSegment(segId) {
     const next = segment === segId ? '' : segId;
     segment = next;
-    if (next && typeof window !== 'undefined' && window.__posthog) {
-      window.__posthog.capture('waitlist_segment_selected', { segment: next });
+    if (next && typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture('waitlist_segment_selected', { segment: next });
     }
   }
 
@@ -26,12 +26,19 @@
     errorMsg = '';
 
     try {
-      const sessionId = typeof window !== 'undefined' ? (window.__posthog?.get_session_id?.() ?? '') : '';
+      const ph = typeof window !== 'undefined' ? window.posthog : undefined;
+      const sessionId    = ph?.get_session_id?.() ?? '';
+      const distinctId   = ph?.get_distinct_id?.() ?? '';
+
+      const extraHeaders: Record<string, string> = {};
+      if (sessionId)  extraHeaders['X-PostHog-Session-Id']    = sessionId;
+      if (distinctId) extraHeaders['X-PostHog-Distinct-Id']   = distinctId;
+
       const res = await fetch('/waitlist', {
         method:  'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-PostHog-Session-Id': sessionId,
+          ...extraHeaders,
         },
         body:    JSON.stringify({ email: email.trim(), segment: segment || null }),
       });
@@ -39,24 +46,25 @@
 
       if (res.ok) {
         status = 'success';
-        if (typeof window !== 'undefined' && window.__posthog) {
-          window.__posthog.capture('waitlist_signup', { source: 'landing_page', segment: segment || null });
-          window.__posthog.identify(email.trim());
+        if (ph) {
+          // Identify first so the subsequent capture is attributed to the person.
+          ph.identify(email.trim());
+          ph.capture('waitlist_signup', { source: 'landing_page', segment: segment || null });
         }
       } else if (res.status === 409) {
         status = 'duplicate';
       } else {
         status = 'error';
         errorMsg = data.error ?? 'Something went wrong.';
-        if (typeof window !== 'undefined' && window.__posthog) {
-          window.__posthog.capture('waitlist_signup_failed', { error: data.error ?? 'unknown', segment: segment || null });
+        if (ph) {
+          ph.capture('waitlist_signup_failed', { error: data.error ?? 'unknown', segment: segment || null });
         }
       }
     } catch {
       status = 'error';
       errorMsg = 'Network error — please try again.';
-      if (typeof window !== 'undefined' && window.__posthog) {
-        window.__posthog.capture('waitlist_signup_failed', { error: 'network_error', segment: segment || null });
+      if (typeof window !== 'undefined' && window.posthog) {
+        window.posthog.capture('waitlist_signup_failed', { error: 'network_error', segment: segment || null });
       }
     }
   }

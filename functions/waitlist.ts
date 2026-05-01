@@ -267,20 +267,24 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
 
     // PostHog server-side signup event — authoritative conversion tracking.
     if (env.POSTHOG_PROJECT_TOKEN) {
-      const posthog = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
-      const sessionId = request.headers.get('X-PostHog-Session-Id') ?? undefined;
+      const posthog     = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
+      const sessionId   = request.headers.get('X-PostHog-Session-Id')?.trim()  || undefined;
+      const distinctId  = request.headers.get('X-PostHog-Distinct-Id')?.trim() || email;
       posthog.capture({
-        distinctId: emailMessageId,
+        distinctId,
         event: 'waitlist_signup_server',
         properties: {
-          $session_id: sessionId,
-          segment: segment ?? 'none',
+          ...(sessionId ? { $session_id: sessionId } : {}),
+          segment:     segment ?? 'none',
           has_segment: segment !== null,
-          referrer: referrer ?? undefined,
-          source: 'worker',
+          referrer:    referrer ?? undefined,
+          source:      'worker',
         },
       });
-      ctx.waitUntil(posthog.flush());
+      ctx.waitUntil(
+        posthog.flush()
+          .catch((err: unknown) => console.warn('PostHog flush failed:', err)),
+      );
     }
 
     return json({ success: true });
@@ -290,18 +294,22 @@ export async function handlePost(request: Request, env: Env, ctx: ExecutionConte
     if (msg.includes('waitlist_email_unique')) {
       // PostHog server-side duplicate detection event.
       if (env.POSTHOG_PROJECT_TOKEN) {
-        const posthog = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
-        const sessionId = request.headers.get('X-PostHog-Session-Id') ?? undefined;
+        const posthog    = getPostHogServer(env.POSTHOG_PROJECT_TOKEN, env.POSTHOG_HOST);
+        const sessionId  = request.headers.get('X-PostHog-Session-Id')?.trim()  || undefined;
+        const distinctId = request.headers.get('X-PostHog-Distinct-Id')?.trim() || email;
         posthog.capture({
-          distinctId: crypto.randomUUID(),
+          distinctId,
           event: 'waitlist_signup_duplicate_server',
           properties: {
-            $session_id: sessionId,
+            ...(sessionId ? { $session_id: sessionId } : {}),
             segment: segment ?? 'none',
-            source: 'worker',
+            source:  'worker',
           },
         });
-        ctx.waitUntil(posthog.flush());
+        ctx.waitUntil(
+          posthog.flush()
+            .catch((err: unknown) => console.warn('PostHog flush failed:', err)),
+        );
       }
       return json({ error: 'already_registered' }, 409);
     }

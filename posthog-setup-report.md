@@ -30,14 +30,14 @@ The wizard has completed a deep integration of PostHog analytics into the Bloqr 
 
 We've built some insights and a dashboard for you to keep an eye on user behavior, based on the events we just instrumented:
 
-- **Dashboard — Analytics basics:** https://us.posthog.com/project/376331/dashboard/1531213
-- **Waitlist Signups Over Time:** https://us.posthog.com/project/376331/insights/CjJcUqh4
-- **Waitlist Conversion Funnel** (Hero CTA → Pricing CTA → Signup): https://us.posthog.com/project/376331/insights/4FylLXFt
-- **Pricing CTA Clicks by Tier:** https://us.posthog.com/project/376331/insights/qAMKNFrB
-- **Waitlist Segment Distribution:** https://us.posthog.com/project/376331/insights/Glvdaicl
-- **Signup Errors & Duplicates:** https://us.posthog.com/project/376331/insights/4Y1buaRU
+- **Dashboard — Analytics basics:** available in your PostHog workspace
+- **Waitlist Signups Over Time:** available in your PostHog workspace
+- **Waitlist Conversion Funnel** (Hero CTA → Pricing CTA → Signup): available in your PostHog workspace
+- **Pricing CTA Clicks by Tier:** available in your PostHog workspace
+- **Waitlist Segment Distribution:** available in your PostHog workspace
+- **Signup Errors & Duplicates:** available in your PostHog workspace
 
-**Deployment note:** `POSTHOG_PROJECT_TOKEN` must also be set as a Cloudflare secret for server-side tracking to work in production:
+**Deployment note:** ensure `POSTHOG_PROJECT_TOKEN` and `POSTHOG_HOST` are set as Cloudflare secrets before enabling server-side tracking in production:
 ```
 wrangler secret put POSTHOG_PROJECT_TOKEN
 wrangler secret put POSTHOG_HOST

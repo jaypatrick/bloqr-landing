@@ -169,19 +169,26 @@ const blogPostSchema = {
   <PostHog />
 </head>
 <script is:inline define:vars={{ postTitle: post.data.title, postCategory: post.data.category, postTags: post.data.tags, postSlug: post.id }}>
-  // Fire blog_post_viewed after PostHog initializes (dynamic import may be async)
-  (function captureWhenReady() {
-    if (window.__posthog) {
-      window.__posthog.capture('blog_post_viewed', {
-        title: postTitle,
+  // Fire blog_post_viewed after PostHog initializes (dynamic import may be async).
+  // Bail out after 50 attempts (~5 s) so a blocked/missing PostHog never leaks a timer.
+  const POSTHOG_RETRY_INTERVAL_MS = 100;
+  const POSTHOG_MAX_RETRIES = 50;
+
+  (function captureWhenReady(attempt) {
+    var ph = window.posthog;
+    if (ph && typeof ph.capture === 'function') {
+      ph.capture('blog_post_viewed', {
+        title:    postTitle,
         category: postCategory,
-        tags: postTags,
-        slug: postSlug,
+        tags:     postTags,
+        slug:     postSlug,
       });
-    } else {
-      setTimeout(captureWhenReady, 100);
+      return;
     }
-  })();
+    if (attempt < POSTHOG_MAX_RETRIES) {
+      setTimeout(function() { captureWhenReady(attempt + 1); }, POSTHOG_RETRY_INTERVAL_MS);
+    }
+  })(0);
 </script>
 <body>
   <Nav client:idle transition:persist="nav" />

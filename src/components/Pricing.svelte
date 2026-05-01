@@ -4,8 +4,8 @@
   import { LINKS } from '../config';
 
   function trackPricingCta(tierName, cta) {
-    if (typeof window !== 'undefined' && window.__posthog) {
-      window.__posthog.capture('pricing_cta_clicked', { tier: tierName, cta });
+    if (typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture('pricing_cta_clicked', { tier: tierName, cta });
     }
   }
 

@@ -28,5 +28,5 @@ interface ImportMeta {
 }
 
 interface Window {
-  __posthog?: import('posthog-js').PostHog;
+  posthog?: import('posthog-js').PostHog;
 }

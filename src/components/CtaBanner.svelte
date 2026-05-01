@@ -2,8 +2,8 @@
   import { LINKS } from '../config';
 
   function trackCtaBanner(label) {
-    if (typeof window !== 'undefined' && window.__posthog) {
-      window.__posthog.capture('cta_banner_clicked', { label });
+    if (typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture('cta_banner_clicked', { label });
     }
   }
 </script>

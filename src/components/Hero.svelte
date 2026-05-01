@@ -2,8 +2,8 @@
   import { LINKS } from '../config';
 
   function trackHeroCta(label) {
-    if (typeof window !== 'undefined' && window.__posthog) {
-      window.__posthog.capture('hero_cta_clicked', { label });
+    if (typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture('hero_cta_clicked', { label });
     }
   }
 </script>
