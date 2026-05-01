@@ -34,15 +34,27 @@ export async function handlePostHogProxy(request: Request): Promise<Response> {
   const upstreamUrl  = new URL(upstreamPath + url.search, `https://${upstreamHost}`);
 
   // Forward the request with a rewritten Host header so PostHog accepts it.
+  // Strip sensitive headers that must not be leaked to a third-party upstream.
+  // Because /ingest/* is same-origin, browsers attach site cookies and any
+  // Authorization / CF Access tokens to these requests automatically.
   const proxyHeaders = new Headers(request.headers);
+  proxyHeaders.delete('cookie');
+  proxyHeaders.delete('authorization');
+  // Strip Cloudflare Access / JWT identity headers
+  proxyHeaders.delete('cf-access-jwt-assertion');
+  proxyHeaders.delete('cf-access-client-id');
+  proxyHeaders.delete('cf-access-client-secret');
   proxyHeaders.set('host', upstreamHost);
 
+  const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
+  // Buffer the body rather than streaming — avoids the Node.js `duplex: 'half'`
+  // requirement while remaining safe for PostHog's small analytics payloads.
+  const proxyBody = hasBody ? await request.arrayBuffer() : null;
+
   const proxyRequest = new Request(upstreamUrl.toString(), {
-    method:  request.method,
-    headers: proxyHeaders,
-    body:    request.method !== 'GET' && request.method !== 'HEAD'
-               ? request.body
-               : null,
+    method:   request.method,
+    headers:  proxyHeaders,
+    body:     proxyBody,
     redirect: 'follow',
   });
 
