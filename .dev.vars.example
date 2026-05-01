@@ -32,6 +32,13 @@ GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
 # use `npm run preview` (wrangler dev) to exercise email paths locally.
 FROM_EMAIL=Bloqr <hello@bloqr.dev>
 
+# ─── PostHog server-side analytics ───────────────────────────────────────────
+# Required for server-side event tracking in the CF Worker (functions/waitlist.ts).
+# Set as Cloudflare secrets in production: wrangler secret put POSTHOG_PROJECT_TOKEN
+# POSTHOG_HOST defaults to US cloud (https://us.i.posthog.com) if unset.
+POSTHOG_PROJECT_TOKEN=your-posthog-project-token
+# POSTHOG_HOST=https://us.i.posthog.com
+
 # ─── Neon migration note ──────────────────────────────────────────────────────
 # After setting DATABASE_URL, run the email schema migration to add
 # email_message_id to the waitlist table:
