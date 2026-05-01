@@ -7,10 +7,11 @@ The wizard has completed a deep integration of PostHog analytics into the Bloqr 
 
 - Installed `posthog-node` for server-side tracking in Cloudflare Worker functions
 - Created `src/lib/posthog-server.ts` — singleton PostHog client for the CF Worker runtime
-- Added `POSTHOG_PROJECT_TOKEN` and `POSTHOG_HOST` to `src/types/env.ts` and set env vars in `.env`
+- Added `POSTHOG_PROJECT_TOKEN` and `POSTHOG_HOST` to `src/types/env.ts`; these are Cloudflare secrets set via `wrangler secret put` (see `.dev.vars.example` for local values)
+- Updated `src/components/PostHog.astro` to read the project token from `PUBLIC_POSTHOG_KEY` (build-time env var) and gate initialization behind `import.meta.env.PROD`; set `PUBLIC_POSTHOG_KEY` in `.env` (see `.env.example`)
 - Added PostHog initialization to `src/pages/blog/[slug].astro` (was previously missing)
-- Instrumented 9 events across 7 files — client-side (Svelte) and server-side (CF Worker)
-- `waitlist_signup` enhanced: now calls `posthog.identify(email)` and passes `X-PostHog-Session-Id` header to the server for session correlation
+- Instrumented 10 events across 7 files — client-side (Svelte) and server-side (CF Worker)
+- `waitlist_signup` enhanced: now calls `posthog.identify(email)` before capture, and passes `X-PostHog-Session-Id` / `X-PostHog-Distinct-Id` headers to the server for session and person correlation
 - Server-side events use `ctx.waitUntil(posthog.flush())` to guarantee delivery before the Worker terminates
 
 | Event | Description | File |
