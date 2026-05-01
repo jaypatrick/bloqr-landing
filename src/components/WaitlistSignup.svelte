@@ -30,7 +30,7 @@
       const sessionId    = ph?.get_session_id?.() ?? '';
       const distinctId   = ph?.get_distinct_id?.() ?? '';
 
-      const extraHeaders: Record<string, string> = {};
+      const extraHeaders = {};
       if (sessionId)  extraHeaders['X-PostHog-Session-Id']    = sessionId;
       if (distinctId) extraHeaders['X-PostHog-Distinct-Id']   = distinctId;
 
