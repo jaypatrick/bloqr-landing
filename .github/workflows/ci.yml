@@ -26,6 +26,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Caches Astro's incremental build output (.astro/) so repeated builds
+      # only recompile changed pages/components rather than the entire site.
+      # Key is scoped to the OS, Node version, and a hash of the lockfile and
+      # Astro/TS config so the cache is invalidated when dependencies or build
+      # configuration change. Astro's own internal diffing handles per-file
+      # source changes; restore-keys provides a warm start on a partial miss.
+      - name: Cache Astro build
+        uses: actions/cache@v4
+        with:
+          path: .astro/
+          key: astro-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'astro.config.*', 'tsconfig.json') }}
+          restore-keys: |
+            astro-${{ runner.os }}-node22-
+
       - name: Build
         run: npm run build
         env:
