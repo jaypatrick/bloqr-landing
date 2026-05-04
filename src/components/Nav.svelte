@@ -9,7 +9,11 @@
   onMount(() => {
     currentPath = window.location.pathname;
     const handleScroll = () => { scrolled = window.scrollY > 10; };
-    const handlePageLoad = () => { currentPath = window.location.pathname; };
+    const handlePageLoad = () => {
+      currentPath = window.location.pathname;
+      scrolled    = window.scrollY > 10;  // re-sync scroll state — View Transitions don't fire a scroll event
+      menuOpen    = false;                 // always close mobile menu after navigation
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('astro:page-load', handlePageLoad);
     return () => {
