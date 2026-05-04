@@ -133,6 +133,13 @@ jobs:
           fi
           echo "dist/ OK — $(find dist -type f | wc -l) files"
 
+      - name: Provision Cloudflare Queues
+        run: |
+          npx wrangler queues create bloqr-landing-email-queue || true
+          npx wrangler queues create bloqr-landing-email-dlq || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
       - name: Deploy
         run: npx wrangler deploy
         env:
@@ -167,7 +174,7 @@ jobs:
             exit 1
           fi
 
-          SCRIPT_NAME="adblock-landing"
+          SCRIPT_NAME="bloqr-landing"
           API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${SCRIPT_NAME}/deployments"
 
           RESPONSE=$(curl --silent --show-error \
