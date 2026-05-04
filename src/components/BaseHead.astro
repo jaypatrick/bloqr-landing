@@ -27,6 +27,8 @@ interface Props {
   ogImageHeight?: number;
   /** OG type. Defaults to 'website'. */
   ogType?: string;
+  /** Author name for <meta name="author">. Defaults to 'Jayson Knight'. */
+  author?: string;
   /** When true, adds <meta name="robots" content="noindex, nofollow">. */
   noindex?: boolean;
 }
@@ -39,6 +41,7 @@ const {
   ogImageWidth = 1200,
   ogImageHeight = 630,
   ogType = 'website',
+  author = 'Jayson Knight',
   noindex = false,
 } = Astro.props;
 
@@ -49,7 +52,7 @@ const canonical = canonicalURL.toString();
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>{title}</title>
 <meta name="description" content={description} />
-<meta name="author" content="Jayson Knight" />
+<meta name="author" content={author} />
 <meta name="color-scheme" content="dark light" />
 
 <!-- Open Graph -->

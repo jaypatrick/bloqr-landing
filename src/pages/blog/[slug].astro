@@ -122,10 +122,10 @@ const blogPostSchema = {
     ogImageWidth={ogImageWidth}
     ogImageHeight={ogImageHeight}
     ogType="article"
+    author={post.data.author}
   />
   <!-- Blog-post-specific extras BaseHead doesn't cover -->
   <meta property="article:published_time" content={post.data.pubDate.toISOString()} />
-  <meta name="author" content={post.data.author} />
   <SchemaOrg schema={blogPostSchema} />
   <script is:inline define:vars={{ postTitle: post.data.title, postCategory: post.data.category, postTags: post.data.tags, postSlug: post.id }}>
     // Fire blog_post_viewed after PostHog initializes (dynamic import may be async).
