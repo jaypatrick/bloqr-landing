@@ -25,6 +25,10 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
+/* Suppress smooth scroll while Astro View Transitions are in flight —
+   prevents the browser from racing a smooth-scroll-to-top against the
+   crossfade animation, which produces a janky navigation feel. */
+html[data-astro-transition] { scroll-behavior: auto; }
 
 body {
   background: var(--bg-base);
