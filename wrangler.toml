@@ -1,8 +1,4 @@
-name = "adblock-landing"
-# NOTE: The worker name is intentionally kept as "adblock-landing" for deployment
-# continuity (existing CF dashboard bindings, secrets, and routes reference this name).
-# The product is branded as Bloqr — rename the worker only when ready to migrate CF
-# secrets, custom domains, and any monitoring alerts that reference this worker name.
+name = "bloqr-landing"
 compatibility_date = "2026-01-01"
 # Node.js API compatibility — required by better-auth (node:async_hooks) and
 # other packages that use Node.js built-in modules in the Worker runtime.
@@ -40,7 +36,7 @@ main = "src/worker.ts"
 # - Secrets (DATABASE_URL, APOLLO_API_KEY, etc.): use CLI only:
 #     wrangler secret put SECRET_NAME
 # If the dashboard was used accidentally, rollback immediately:
-#   CF dashboard → adblock-landing → Deployments → last Wrangler deploy → Rollback
+#   CF dashboard → bloqr-landing → Deployments → last Wrangler deploy → Rollback
 # Then re-run CI to restore assets.
 assets = { directory = "./dist/client", binding = "ASSETS" }
 
@@ -98,11 +94,11 @@ binding = "BROWSER"
 
 # ─── Tail Worker ───────────────────────────────────────────────────────────────
 # Tail worker binding for real-time log streaming and diagnostics.
-# DISABLED: Commented out pending confirmation that the "adblock-tail" Worker
+# DISABLED: Commented out pending confirmation that the "bloqr-tail" Worker
 # service exists in the account. If this service does not exist, wrangler rejects
-# the config even on --dry-run. Uncomment once adblock-tail is confirmed live.
+# the config even on --dry-run. Uncomment once bloqr-tail is confirmed live.
 # [[tail_consumers]]
-# service = "adblock-tail"
+# service = "bloqr-tail"
 
 # ─── Route / Domain ──────────────────────────────────────────────────────────
 # This route is configured for the current custom domain.
@@ -144,15 +140,15 @@ FROM_EMAIL = "Bloqr <hello@bloqr.dev>"
 #   *                 → env.ASSETS.fetch(request)  (static site)
 #
 # ─── Neon branch → DATABASE_URL mapping ──────────────────────────────────────
-#   production  ep-winter-term-a8rxh2a9-pooler       → adblock-compiler (production CF secret)
-#   staging     ep-polished-resonance-a8mefek3-pooler → adblock-compiler (staging CF secret)
-#   dev/jayson  ep-round-recipe-a8b3d3bd-pooler      → adblock-compiler (.dev.vars)
+#   production  ep-winter-term-a8rxh2a9-pooler       → bloqr-landing (production CF secret)
+#   staging     ep-polished-resonance-a8mefek3-pooler → bloqr-landing (staging CF secret)
+#   dev/jayson  ep-round-recipe-a8b3d3bd-pooler      → bloqr-landing (.dev.vars)
 #
 # ─── Required secrets (set in CF dashboard OR .dev.vars for local dev) ────────
-# Workers → adblock-landing → Settings → Environment variables
+# Workers → bloqr-landing → Settings → Environment variables
 # Add as type "Secret" (encrypted at rest):
 #
-#   DATABASE_URL   — Neon bloqr database connection string (branch-specific, see above; currently named adblock-compiler)
+#   DATABASE_URL   — Neon bloqr database connection string (branch-specific, see above)
 #   APOLLO_API_KEY — Apollo.io API key for contact enrichment
 #   ADMIN_SECRET   — Password for /admin/config UI (any strong random string)
 #
@@ -195,44 +191,44 @@ name = "SEND_EMAIL"
 # destination_address = "hello@bloqr.dev"
 
 # ─── Email Worker service binding ────────────────────────────────────────────
-# Routes outbound transactional email through the dedicated `adblock-email`
+# Routes outbound transactional email through the dedicated `bloqr-email`
 # Cloudflare Worker instead of calling the SEND_EMAIL binding directly.
 #
 # When this binding is present, src/services/emailService.ts uses
 # ServiceBindingStrategy (highest priority).
 #
-# The `adblock-email` worker must exist in the same Cloudflare account.
+# The `bloqr-email` worker must exist in the same Cloudflare account.
 # Activate by uncommenting the lines below:
 #
 # [[services]]
 # binding = "EMAIL_WORKER"
-# service = "adblock-email"
+# service = "bloqr-email"
 #
-# ─── Cloudflare Queues: email-queue ───────────────────────────────────────────
+# ─── Cloudflare Queues: bloqr-landing-email-queue ─────────────────────────────
 # Durable, auto-retried email delivery queue.  Messages published here by
 # the waitlist handler (or WaitlistSignupWorkflow) are consumed by the
 # `handleEmailQueue` function in src/worker.ts.
 #
 # Setup (one-time, per environment):
-#   wrangler queues create email-queue
-#   wrangler queues create email-dlq
+#   wrangler queues create bloqr-landing-email-queue
+#   wrangler queues create bloqr-landing-email-dlq
 #
 # Activate by uncommenting ALL THREE blocks below:
 #
 [[queues.producers]]
 binding = "EMAIL_QUEUE"
-queue   = "email-queue"
+queue   = "bloqr-landing-email-queue"
 #
 [[queues.producers]]
 binding = "EMAIL_DLQ"
-queue   = "email-dlq"
+queue   = "bloqr-landing-email-dlq"
 #
 [[queues.consumers]]
-queue             = "email-queue"
+queue             = "bloqr-landing-email-queue"
 max_batch_size    = 10     # messages per consumer invocation
 max_batch_timeout = 30     # seconds to wait for a full batch
 max_retries       = 3      # per-message retry limit before DLQ routing
-dead_letter_queue = "email-dlq"
+dead_letter_queue = "bloqr-landing-email-dlq"
 #
 # ─── Cloudflare Workflows: waitlist-signup ────────────────────────────────────
 # Durable multi-step orchestration for post-signup side effects (email + Apollo).
@@ -246,7 +242,7 @@ dead_letter_queue = "email-dlq"
 binding     = "WAITLIST_WORKFLOW"
 name        = "waitlist-signup"
 class_name  = "WaitlistSignupWorkflow"
-script_name = "adblock-landing"
+script_name = "bloqr-landing"
 #
 # ─── Cloudflare Analytics Engine: bloqr_email_events ─────────────────────────
 # Tracks email and signup lifecycle events (email_sent, waitlist_signup, etc.)
@@ -274,7 +270,7 @@ dataset = "bloqr_email_events"
 binding = "EMAIL_DEDUP_KV"
 id      = "e6bd43ebed9c445fa1e85a0f9b3d39b9"
 #
-# ─── D1: bloqr-email (email delivery log + custom template store) ─────────────
+# ─── D1: bloqr-landing-email-db (email delivery log + custom template store) ──
 # Purpose-built D1 SQLite edge database for email persistence.
 #
 # Tables (see scripts/migrations/001_email_db.sql for full schema):
@@ -288,16 +284,16 @@ id      = "e6bd43ebed9c445fa1e85a0f9b3d39b9"
 #                     Delete: DELETE /admin/email/templates/:name (restores default)
 #
 # One-time setup — run scripts/setup-d1-email.sh, or manually:
-#   1. wrangler d1 create bloqr-email
+#   1. wrangler d1 create bloqr-landing-email-db
 #   2. Copy the database_id output below
-#   3. wrangler d1 execute bloqr-email --file scripts/migrations/001_email_db.sql
-#   4. wrangler d1 execute bloqr-email --file scripts/migrations/001_email_db.sql --remote
+#   3. wrangler d1 execute bloqr-landing-email-db --file scripts/migrations/001_email_db.sql
+#   4. wrangler d1 execute bloqr-landing-email-db --file scripts/migrations/001_email_db.sql --remote
 #
 # Activate by uncommenting the block below:
 #
 [[d1_databases]]
 binding       = "EMAIL_DB"
-database_name = "bloqr-email"
+database_name = "bloqr-landing-email-db"
 database_id   = "662fc37a-9246-476a-ac5c-2bf0c52124c3"
 #
 # ─── D1 Cache (site_config read-through cache) — RESERVED / FUTURE WORK ────────
@@ -307,12 +303,12 @@ database_id   = "662fc37a-9246-476a-ac5c-2bf0c52124c3"
 # implementation lands in src/worker.ts / functions/config.ts.
 #
 # One-time setup — see scripts/setup-d1-cache.sh, or run manually:
-#   1. wrangler d1 create bloqr-config-cache
+#   1. wrangler d1 create bloqr-landing-config-cache-db
 #   2. Copy the database_id output below
-#   3. wrangler d1 execute bloqr-config-cache --command \
+#   3. wrangler d1 execute bloqr-landing-config-cache-db --command \
 #        "CREATE TABLE IF NOT EXISTS config_cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, cached_at INTEGER NOT NULL)"
 #
 [[d1_databases]]
-binding = "bloqr_config_cache"
-database_name = "bloqr-config-cache"
+binding = "BLOQR_CONFIG_CACHE_DB"
+database_name = "bloqr-landing-config-cache-db"
 database_id = "8d6153e2-9be1-470a-980b-9532a1850378"

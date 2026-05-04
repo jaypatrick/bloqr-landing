@@ -94,14 +94,14 @@ export interface Env {
     send(message: unknown): Promise<void>;
   };
   /**
-   * Cloudflare service binding to the dedicated `adblock-email` Worker.
+   * Cloudflare service binding to the dedicated `bloqr-email` Worker.
    * When present, email is routed through the email worker instead of calling
    * the SEND_EMAIL binding directly.
    *
    * Wire in wrangler.toml:
    *   [[services]]
    *   binding = "EMAIL_WORKER"
-   *   service = "adblock-email"
+   *   service = "bloqr-email"
    *
    * @see src/services/emailService.ts — ServiceBindingStrategy
    */
@@ -128,7 +128,7 @@ export interface Env {
    * Wire in wrangler.toml:
    *   [[d1_databases]]
    *   binding       = "EMAIL_DB"
-   *   database_name = "bloqr-email"
+   *   database_name = "bloqr-landing-email-db"
    *   database_id   = "<id-from-setup-script>"
    *
    * @see src/db/emailDb.ts       — query helpers
@@ -141,16 +141,16 @@ export interface Env {
    * D1 database binding — site_config read-through cache.
    * Currently reserved / not yet active in handler code.
    */
-  bloqr_config_cache: D1Database;
+  BLOQR_CONFIG_CACHE_DB: D1Database;
 
   // ─── Cloudflare Queues ─────────────────────────────────────────────────────
   //
   // Activate by uncommenting the queue blocks in wrangler.toml and running:
-  //   wrangler queues create email-queue
-  //   wrangler queues create email-dlq
+  //   wrangler queues create bloqr-landing-email-queue
+  //   wrangler queues create bloqr-landing-email-dlq
 
   /**
-   * Producer binding for the `email-queue` Cloudflare Queue.
+   * Producer binding for the `bloqr-landing-email-queue` Cloudflare Queue.
    *
    * When present, the waitlist handler publishes `EmailQueueMessage` envelopes
    * here instead of sending emails directly.  The queue consumer
@@ -160,7 +160,7 @@ export interface Env {
    * Wire in wrangler.toml:
    *   [[queues.producers]]
    *   binding = "EMAIL_QUEUE"
-   *   queue   = "email-queue"
+   *   queue   = "bloqr-landing-email-queue"
    *
    * @see functions/queues/emailConsumer.ts — consumer implementation
    * @see https://developers.cloudflare.com/queues/
@@ -168,16 +168,16 @@ export interface Env {
   EMAIL_QUEUE?: Queue<EmailQueueMessage>;
 
   /**
-   * Producer binding for the `email-dlq` dead letter queue.
+   * Producer binding for the `bloqr-landing-email-dlq` dead letter queue.
    *
-   * Messages that exceed `max_retries` in `email-queue` are automatically
-   * routed here by the CF runtime.  This binding allows handlers to inspect
-   * the DLQ size or republish messages via the admin API.
+   * Messages that exceed `max_retries` in `bloqr-landing-email-queue` are
+   * automatically routed here by the CF runtime.  This binding allows handlers
+   * to inspect the DLQ size or republish messages via the admin API.
    *
    * Wire in wrangler.toml:
    *   [[queues.producers]]
    *   binding = "EMAIL_DLQ"
-   *   queue   = "email-dlq"
+   *   queue   = "bloqr-landing-email-dlq"
    */
   EMAIL_DLQ?: Queue<EmailQueueMessage>;
 
@@ -198,7 +198,7 @@ export interface Env {
    *   binding     = "WAITLIST_WORKFLOW"
    *   name        = "waitlist-signup"
    *   class_name  = "WaitlistSignupWorkflow"
-   *   script_name = "adblock-landing"
+   *   script_name = "bloqr-landing"
    *
    * @see src/workflows/waitlistSignup.ts — workflow class definition
    * @see https://developers.cloudflare.com/workflows/

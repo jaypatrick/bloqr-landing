@@ -30,7 +30,7 @@ export interface Env {
   SEND_EMAIL?: {
     send(message: unknown): Promise<void>;
   };
-  /** Service binding to the `adblock-email` Cloudflare Worker (preferred over direct send). */
+  /** Service binding to the `bloqr-email` Cloudflare Worker (preferred over direct send). */
   EMAIL_WORKER?: Fetcher;
   /**
    * Cloudflare Queue producer for durable email delivery.

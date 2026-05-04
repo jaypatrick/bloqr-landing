@@ -40,7 +40,7 @@
  *    binding     = "WAITLIST_WORKFLOW"
  *    name        = "waitlist-signup"
  *    class_name  = "WaitlistSignupWorkflow"
- *    script_name = "adblock-landing"
+ *    script_name = "bloqr-landing"
  *    ```
  * 3. Add `WAITLIST_WORKFLOW?: Workflow` to `src/types/env.ts` (already done).
  * 4. Verify `src/worker.ts` exports this class at the top level (already done).

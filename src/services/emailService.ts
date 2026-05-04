@@ -4,7 +4,7 @@
  * Supports three delivery strategies — automatically selected at runtime:
  *
  *  1. **Service binding** (`EMAIL_WORKER`): Routes the request through the
- *     dedicated `adblock-email` Cloudflare Worker via a service binding.
+ *     dedicated `bloqr-email` Cloudflare Worker via a service binding.
  *     Preferred when the binding is present because it centralises delivery
  *     logic, retries, and logging in a single place.
  *
@@ -102,13 +102,13 @@ interface SendEmailBinding {
  *
  * `FROM_EMAIL` is the only strictly required field.
  *
- * `EMAIL_WORKER` is the service binding to the `adblock-email` Cloudflare
+ * `EMAIL_WORKER` is the service binding to the `bloqr-email` Cloudflare
  * Worker.  When present the service forwards the payload there instead of
  * calling the CF Email Sending binding.  Wire it in `wrangler.toml`:
  *
  *   [[services]]
  *   binding = "EMAIL_WORKER"
- *   service = "adblock-email"
+ *   service = "bloqr-email"
  *
  * `SEND_EMAIL` is the native CF Email Workers binding.  When present (and
  * `EMAIL_WORKER` is absent), `CfEmailSendingStrategy` is selected.
@@ -117,7 +117,7 @@ export interface EmailEnv {
   /** Sender address, e.g. `"Bloqr <hello@bloqr.dev>"` */
   FROM_EMAIL: string;
   /**
-   * Cloudflare service binding to the `adblock-email` Worker.
+   * Cloudflare service binding to the `bloqr-email` Worker.
    * When present, email delivery is routed through this binding instead of
    * calling the CF Email Sending binding directly.
    */
@@ -132,7 +132,7 @@ export interface EmailEnv {
 // ─── Service binding payload ──────────────────────────────────────────────────
 
 /**
- * JSON body sent to the `adblock-email` worker via the service binding.
+ * JSON body sent to the `bloqr-email` worker via the service binding.
  * The worker receives this and forwards to its configured provider,
  * allowing the delivery implementation to be updated independently.
  */
@@ -244,7 +244,7 @@ export interface EmailSendStrategy {
 export const DEFAULT_FROM_EMAIL = 'Bloqr <hello@bloqr.dev>';
 
 /**
- * Delivers via the `adblock-email` Worker service binding.
+ * Delivers via the `bloqr-email` Worker service binding.
  *
  * Forwards a JSON payload to `env.EMAIL_WORKER.fetch()`.  A non-2xx response
  * or network error throws so callers (e.g. the queue consumer) can choose to
@@ -278,13 +278,13 @@ export class ServiceBindingStrategy implements EmailSendStrategy {
     } catch (err) {
       // Re-throw so queue consumers can call message.retry().
       // HTTP handler callers must wrap with .catch().
-      console.warn('adblock-email service binding request failed:', err);
+      console.warn('bloqr-email service binding request failed:', err);
       throw err;
     }
 
     if (!res.ok) {
       const text = await res.text().catch(() => '(no body)');
-      const msg  = `adblock-email service binding returned ${res.status}: ${text}`;
+      const msg  = `bloqr-email service binding returned ${res.status}: ${text}`;
       console.warn(msg);
       throw new Error(msg);
     }
@@ -436,7 +436,7 @@ export class EmailService {
  *
  * Strategy selection (in priority order):
  * - **`EMAIL_WORKER` present** → `ServiceBindingStrategy` (routes through the
- *   `adblock-email` Worker via a Cloudflare service binding).
+ *   `bloqr-email` Worker via a Cloudflare service binding).
  * - **`SEND_EMAIL` present** → `CfEmailSendingStrategy` (delivers via the
  *   native CF Email Routing binding — no third-party API key required).
  * - **Neither present** → `NullEmailStrategy` (logs a warning, drops the email).
