@@ -123,7 +123,7 @@ const blogPostSchema = {
     ogImageHeight={ogImageHeight}
     ogType="article"
   />
-  <!-- Blog-post–specific extras BaseHead doesn't cover -->
+  <!-- Blog-post-specific extras BaseHead doesn't cover -->
   <meta property="article:published_time" content={post.data.pubDate.toISOString()} />
   <meta name="author" content={post.data.author} />
   <SchemaOrg schema={blogPostSchema} />
