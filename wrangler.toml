@@ -232,9 +232,9 @@ dead_letter_queue = "bloqr-landing-email-dlq"
 #
 # ─── Cloudflare Workflows: waitlist-signup ────────────────────────────────────
 # Durable multi-step orchestration for post-signup side effects (email + Apollo).
-# Requires the email-queue producer binding to also be active (Step 1 publishes
-# to it).  When WAITLIST_WORKFLOW is present it takes priority over EMAIL_QUEUE
-# and direct send in functions/waitlist.ts.
+# Requires the bloqr-landing-email-queue producer binding (EMAIL_QUEUE) to also
+# be active (Step 1 publishes to it).  When WAITLIST_WORKFLOW is present it takes
+# priority over EMAIL_QUEUE and direct send in functions/waitlist.ts.
 #
 # Activate by uncommenting the block below:
 #

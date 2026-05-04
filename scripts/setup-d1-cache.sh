@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/setup-d1-cache.sh
 #
-# One-time Cloudflare D1 setup for the bloqr-config-cache database.
+# One-time Cloudflare D1 setup for the bloqr-landing-config-cache-db database.
 # Run from the repo root after initial Worker deployment.
 #
 # Usage:
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 echo "═══ Step 1: Create D1 database ══════════════════════════════════════════"
-wrangler d1 create bloqr-config-cache
+wrangler d1 create bloqr-landing-config-cache-db
 
 echo ""
 echo "  ⚠  ACTION REQUIRED"
@@ -24,7 +24,7 @@ read -rp "  Press ENTER once wrangler.toml is updated..."
 
 echo ""
 echo "═══ Step 2: Apply schema ════════════════════════════════════════════════"
-wrangler d1 execute bloqr-config-cache --command \
+wrangler d1 execute bloqr-landing-config-cache-db --command \
   "CREATE TABLE IF NOT EXISTS config_cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, cached_at INTEGER NOT NULL)"
 
 echo ""
