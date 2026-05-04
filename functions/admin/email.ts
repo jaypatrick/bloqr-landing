@@ -78,7 +78,7 @@ export interface Env extends AuthEnv {
   SEND_EMAIL?: {
     send(message: unknown): Promise<void>;
   };
-  /** Service binding to the `adblock-email` Cloudflare Worker. */
+  /** Service binding to the `bloqr-email` Cloudflare Worker. */
   EMAIL_WORKER?: Fetcher;
   /** Cloudflare Queue producer binding for durable email delivery. */
   EMAIL_QUEUE?: Queue<unknown>;
@@ -166,7 +166,7 @@ export async function handleStatus(request: Request, env: Env): Promise<Response
   }
 
   const strategy = env.EMAIL_WORKER
-    ? 'service-binding (adblock-email)'
+    ? 'service-binding (bloqr-email)'
     : env.SEND_EMAIL
       ? 'cf-email-sending'
       : 'null (no provider configured)';
@@ -319,7 +319,7 @@ export async function handleSendTest(request: Request, env: Env): Promise<Respon
   }
 
   const strategy = env.EMAIL_WORKER
-    ? 'service-binding (adblock-email)'
+    ? 'service-binding (bloqr-email)'
     : env.SEND_EMAIL
       ? 'cf-email-sending'
       : 'null (no provider configured)';

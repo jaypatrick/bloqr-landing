@@ -12,9 +12,9 @@
  * workflow orchestrates the non-blocking side-effects:
  *
  *   Step 1 — `enqueue-email`      (3 retries, exponential backoff, 30 s timeout)
- *             Publishes an `EmailQueueMessage` to the `email-queue` Cloudflare
- *             Queue.  The queue consumer handles actual delivery, giving email
- *             its own independent retry budget.
+ *             Publishes an `EmailQueueMessage` to the `bloqr-landing-email-queue`
+ *             Cloudflare Queue.  The queue consumer handles actual delivery,
+ *             giving email its own independent retry budget.
  *
  *   Step 2 — `apollo-enrichment`  (2 retries, linear backoff, 15 s timeout)
  *             POSTs the new contact to the Apollo.io contacts API.  A failure
@@ -32,15 +32,15 @@
  *
  * ## Activation
  *
- * 1. Ensure the `email-queue` Queue producer binding is also active (Step 1
- *    publishes to it).
+ * 1. Ensure the `bloqr-landing-email-queue` Queue producer binding (EMAIL_QUEUE)
+ *    is also active (Step 1 publishes to it).
  * 2. Uncomment the `[[workflows]]` block in `wrangler.toml`:
  *    ```toml
  *    [[workflows]]
  *    binding     = "WAITLIST_WORKFLOW"
  *    name        = "waitlist-signup"
  *    class_name  = "WaitlistSignupWorkflow"
- *    script_name = "adblock-landing"
+ *    script_name = "bloqr-landing"
  *    ```
  * 3. Add `WAITLIST_WORKFLOW?: Workflow` to `src/types/env.ts` (already done).
  * 4. Verify `src/worker.ts` exports this class at the top level (already done).

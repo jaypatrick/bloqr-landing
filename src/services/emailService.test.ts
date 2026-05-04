@@ -6,7 +6,7 @@
  *
  * Test categories:
  *   1. EmailPayloadSchema — Zod validation edge cases
- *   2. ServiceBindingStrategy — adblock-email service binding path
+ *   2. ServiceBindingStrategy — bloqr-email service binding path
  *   3. CfEmailSendingStrategy — CF Email Workers binding path
  *   4. NullEmailStrategy — no-op fallback path
  *   5. EmailService.sendEmail — end-to-end validation + strategy delegation
@@ -158,7 +158,7 @@ describe('ServiceBindingStrategy', () => {
     const { fetcher } = makeWorkerFetcher(500);
     const env: EmailEnv = { ...MINIMAL_ENV, EMAIL_WORKER: fetcher };
     const strategy = new ServiceBindingStrategy();
-    await expect(strategy.send(VALID_PAYLOAD, env)).rejects.toThrow(/adblock-email service binding returned 500/);
+    await expect(strategy.send(VALID_PAYLOAD, env)).rejects.toThrow(/bloqr-email service binding returned 500/);
   });
 
   it('throws when the service binding fetch rejects', async () => {

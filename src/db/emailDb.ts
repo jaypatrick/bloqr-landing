@@ -78,7 +78,7 @@ export interface EmailSendRow {
   status: EmailSendStatus;
   /**
    * Delivery strategy used.
-   * - `service-binding`  — routed through `EMAIL_WORKER` (adblock-email)
+   * - `service-binding`  — routed through `EMAIL_WORKER` (bloqr-email)
    * - `cf-email-sending` — delivered via the native `SEND_EMAIL` CF binding
    * - `null`             — NullEmailStrategy (no provider configured)
    * - `none`             — skipped (stale, dedup, invalid, or FROM_EMAIL absent)
