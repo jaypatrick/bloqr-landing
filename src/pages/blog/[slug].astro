@@ -2,12 +2,10 @@
 export const prerender = true;
 
 import '../../styles/global.css';
-import { ClientRouter } from 'astro:transitions';
-import Font from 'astro/components/Font.astro';
 import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import SchemaOrg from '../../components/SchemaOrg.astro';
-import PostHog from '../../components/PostHog.astro';
+import BaseHead from '../../components/BaseHead.astro';
 import { getImage, Image } from 'astro:assets';
 import { getCollection, render } from 'astro:content';
 import { SITE_URL } from '../../config';
@@ -116,57 +114,19 @@ const blogPostSchema = {
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{meta.title}</title>
-  <meta name="description" content={meta.description} />
-  <!-- Open Graph -->
-  <meta property="og:site_name"    content="Bloqr" />
-  <meta property="og:title"        content={meta.title} />
-  <meta property="og:description"  content={meta.description} />
-  <meta property="og:url"          content={meta.url} />
-  <meta property="og:image"        content={ogImageSrc} />
-  <meta property="og:image:width"  content={String(ogImageWidth)} />
-  <meta property="og:image:height" content={String(ogImageHeight)} />
-  <meta property="og:image:alt"    content={meta.title} />
-  <meta property="og:type"         content="article" />
+  <BaseHead
+    title={meta.title}
+    description={meta.description}
+    canonicalURL={meta.url}
+    ogImage={ogImageSrc}
+    ogImageWidth={ogImageWidth}
+    ogImageHeight={ogImageHeight}
+    ogType="article"
+  />
+  <!-- Blog-post–specific extras BaseHead doesn't cover -->
   <meta property="article:published_time" content={post.data.pubDate.toISOString()} />
-
-  <!-- Twitter / X -->
-  <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content={meta.title} />
-  <meta name="twitter:description" content={meta.description} />
-  <meta name="twitter:image"       content={ogImageSrc} />
-  <meta name="twitter:image:alt"   content={meta.title} />
-  <meta name="twitter:site"        content="@bloqr_ai" />
-  <meta name="twitter:creator"     content="@jaysonknight" />
-
-  <!-- Author -->
   <meta name="author" content={post.data.author} />
-
-  <!-- Color scheme -->
-  <meta name="color-scheme" content="dark light" />
-
-  <!-- OG locale -->
-  <meta property="og:locale" content="en_US" />
-
-  <link rel="canonical" href={meta.url} />
-  <link rel="alternate"  type="application/rss+xml" title="Bloqr Blog" href="/rss.xml" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="/icon-192.png" />
-
-  <!-- PWA / Theme -->
-  <link rel="manifest" href="/site.webmanifest" />
-  <meta name="theme-color" content="#FF5500" />
-
-  <!-- Astro 6 Fonts API — self-hosted via fontsource, with preload links -->
-  <Font cssVariable="--font-display" preload />
-  <Font cssVariable="--font-mono" preload />
-
-  <ClientRouter />
   <SchemaOrg schema={blogPostSchema} />
-  <PostHog />
   <script is:inline define:vars={{ postTitle: post.data.title, postCategory: post.data.category, postTags: post.data.tags, postSlug: post.id }}>
     // Fire blog_post_viewed after PostHog initializes (dynamic import may be async).
     // Bail out after 50 attempts (~5 s) so a blocked/missing PostHog never leaks a timer.
