@@ -7,10 +7,12 @@
  *
  *   Subdomain proxy (preferred) — f.bloqr.dev:
  *     f.bloqr.dev/static/*  →  https://us-assets.posthog.com/static/*
+ *     f.bloqr.dev/array/*   →  https://us-assets.posthog.com/array/*
  *     f.bloqr.dev/*         →  https://us.i.posthog.com/*
  *
  *   Path proxy (legacy fallback) — bloqr.dev/ingest:
  *     /ingest/static/*      →  https://us-assets.posthog.com/static/*
+ *     /ingest/array/*       →  https://us-assets.posthog.com/array/*
  *     /ingest/*             →  https://us.i.posthog.com/*
  *
  * Why: proxying PostHog through the site's own origin prevents
@@ -34,12 +36,12 @@ export async function handlePostHogProxy(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const isSubdomain = url.hostname === POSTHOG_PROXY_DOMAIN;
 
-  // Determine whether the request is for a static asset (JS snippet / sourcemaps).
-  // Subdomain: /static/*  →  us-assets.posthog.com
-  // Path:      /ingest/static/*  →  us-assets.posthog.com
+  // Determine whether the request is for a static asset (JS snippet / sourcemaps / toolbar bundle).
+  // Subdomain: /static/* or /array/*  →  us-assets.posthog.com
+  // Path:      /ingest/static/* or /ingest/array/*  →  us-assets.posthog.com
   const isStaticAsset = isSubdomain
-    ? url.pathname.startsWith('/static/')
-    : url.pathname.startsWith('/ingest/static/');
+    ? url.pathname.startsWith('/static/') || url.pathname.startsWith('/array/')
+    : url.pathname.startsWith('/ingest/static/') || url.pathname.startsWith('/ingest/array/');
 
   const upstreamHost = isStaticAsset ? POSTHOG_ASSETS_HOST : POSTHOG_INGEST_HOST;
 

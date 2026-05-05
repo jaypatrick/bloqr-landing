@@ -29,4 +29,6 @@ interface ImportMeta {
 
 interface Window {
   posthog?: import('posthog-js').PostHog;
+  /** Guard flag set by PostHog.astro to prevent double-init on ClientRouter soft navigations. */
+  __posthogInitialized?: boolean;
 }

@@ -15,9 +15,10 @@ import { handlePostHogProxy } from './posthog-proxy';
 
 function makeRequest(
   path: string,
-  options: { method?: string; headers?: Record<string, string>; body?: string } = {},
+  options: { method?: string; headers?: Record<string, string>; body?: string; host?: string } = {},
 ): Request {
-  return new Request(`https://bloqr.dev${path}`, {
+  const host = options.host ?? 'bloqr.dev';
+  return new Request(`https://${host}${path}`, {
     method:  options.method ?? 'GET',
     headers: options.headers ?? {},
     body:    options.body ?? null,
@@ -67,6 +68,24 @@ describe('handlePostHogProxy', () => {
       const url = new URL(forwarded.url);
       expect(url.hostname).toBe('us-assets.posthog.com');
       expect(url.pathname).toBe('/static/array.js');
+    });
+
+    it('routes /ingest/array/* to us-assets.posthog.com and strips /ingest prefix', async () => {
+      await handlePostHogProxy(makeRequest('/ingest/array/toolbar.js'));
+
+      const forwarded = fetchSpy.mock.calls[0][0] as Request;
+      const url = new URL(forwarded.url);
+      expect(url.hostname).toBe('us-assets.posthog.com');
+      expect(url.pathname).toBe('/array/toolbar.js');
+    });
+
+    it('routes subdomain /array/toolbar.js to us-assets.posthog.com with path preserved', async () => {
+      await handlePostHogProxy(makeRequest('/array/toolbar.js', { host: 'f.bloqr.dev' }));
+
+      const forwarded = fetchSpy.mock.calls[0][0] as Request;
+      const url = new URL(forwarded.url);
+      expect(url.hostname).toBe('us-assets.posthog.com');
+      expect(url.pathname).toBe('/array/toolbar.js');
     });
 
     it('rewrites path to / when only /ingest is matched with no trailing path', async () => {
