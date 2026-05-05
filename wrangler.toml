@@ -40,7 +40,7 @@ main = "src/worker.ts"
 # Then re-run CI to restore assets.
 assets = { directory = "./dist/client", binding = "ASSETS" }
 
-# ─── Smart Placement ─────────────────────────────────────────────────────────
+# ─── Smart Placement ──────────────────────────────────────────────────────────
 # Cloudflare automatically places the Worker to help reduce latency based on
 # its Smart Placement heuristics and your application's traffic patterns.
 [placement]
@@ -92,7 +92,7 @@ head_sampling_rate = 1   # TODO: reduce before high-traffic production
 [browser]
 binding = "BROWSER"
 
-# ─── Tail Worker ───────────────────────────────────────────────────────────────
+# ─── Tail Worker ──────────────────────────────────────────────────────────────
 # Tail worker binding for real-time log streaming and diagnostics.
 # DISABLED: Commented out pending confirmation that the "bloqr-tail" Worker
 # service exists in the account. If this service does not exist, wrangler rejects
@@ -100,7 +100,7 @@ binding = "BROWSER"
 # [[tail_consumers]]
 # service = "bloqr-tail"
 
-# ─── Route / Domain ──────────────────────────────────────────────────────────
+# ─── Route / Domain ───────────────────────────────────────────────────────────
 # This route is configured for the current custom domain.
 # Update pattern when the custom domain changes.
 [[routes]]
@@ -109,6 +109,15 @@ custom_domain = true
 
 [[routes]]
 pattern = "mta-sts.bloqr.dev"
+custom_domain = true
+
+# PostHog analytics reverse-proxy subdomain.
+# All requests to f.bloqr.dev are routed to handlePostHogProxy in src/worker.ts,
+# which forwards them to us.i.posthog.com (events) or us-assets.posthog.com (JS).
+# This keeps PostHog calls first-party and prevents ad-blocker interference.
+# Must stay in sync with: src/config.ts POSTHOG_HOST, src/components/PostHog.astro api_host.
+[[routes]]
+pattern = "f.bloqr.dev"
 custom_domain = true
 
 # ─── Environment Variables ───────────────────────────────────────────────────
