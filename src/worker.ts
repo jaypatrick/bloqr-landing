@@ -23,8 +23,9 @@
  *   GET     /api/browser-health → Browser Rendering binding health check (requires auth)
  *   POST    /api/auth/*     → Better Auth handler (all auth endpoints)
  *   GET     /api/auth/*     → Better Auth handler (session checks, OAuth callbacks)
- *   GET/POST /ingest/static/* → PostHog asset proxy (us-assets.posthog.com)
- *   GET/POST /ingest/*      → PostHog reverse proxy (us.i.posthog.com)
+ *   *       (hostname: f.bloqr.dev) → PostHog subdomain reverse proxy (preferred)
+ *   GET/POST /ingest/static/* → PostHog asset proxy — legacy path fallback (us-assets.posthog.com)
+ *   GET/POST /ingest/*      → PostHog reverse proxy — legacy path fallback (us.i.posthog.com)
  *   Queue   email-queue     → handleEmailQueue (durable email delivery consumer)
  *   GET     /.well-known/mta-sts.txt  (hostname: mta-sts.bloqr.dev) → MTA-STS policy
  *   *                       → env.ASSETS.fetch(request) (static site)
@@ -139,6 +140,13 @@ export default {
     const url = new URL(request.url);
     let response: Response;
 
+    // PostHog subdomain proxy — f.bloqr.dev routes ALL traffic to the proxy.
+    // This is the preferred path; PostHog.astro sets api_host: 'https://f.bloqr.dev'.
+    // applyRobotsTag / applyCSP are intentionally skipped for proxy responses.
+    if (url.hostname === 'f.bloqr.dev') {
+      return handlePostHogProxy(request);
+    }
+
     // MTA-STS policy — served from the mta-sts.bloqr.dev subdomain per RFC 8461
     if (url.hostname === 'mta-sts.bloqr.dev') {
       if (url.pathname === '/.well-known/mta-sts.txt' && request.method === 'GET') {
@@ -244,7 +252,8 @@ export default {
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }
-    // PostHog reverse proxy — /ingest/static/* is handled inside the proxy function
+    // PostHog legacy path proxy — /ingest/* fallback for any direct path-based calls.
+    // Preferred path is the f.bloqr.dev subdomain handled above.
     } else if (url.pathname.startsWith('/ingest/')) {
       response = await handlePostHogProxy(request);
     } else {
