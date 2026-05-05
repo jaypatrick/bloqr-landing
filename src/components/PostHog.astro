@@ -5,10 +5,12 @@
  * Uses the posthog-js npm package (bundled by Vite) so the snippet is always
  * current and correctly handles the ph_authorize toolbar hash flow.
  *
- * A single <script> (no is:inline, no define:vars) is processed by Vite as an
- * ES module, which allows `import posthog from 'posthog-js'` and direct use of
- * import.meta.env.PUBLIC_* variables. The window.__posthogInitialized guard
- * prevents double-init on Astro ClientRouter soft navigations.
+ * The <script> is an unconditional top-level template element so Astro/Vite
+ * can hoist and bundle it as an ES module. All gating logic (isProd, key
+ * presence, __posthogInitialized guard) lives inside the script body at
+ * runtime. A <script> inside a JSX conditional is not processed by Vite as a
+ * module — the import statement would silently fail, preventing PostHog and
+ * the toolbar from ever loading.
  *
  * api_host: POSTHOG_HOST (src/config.ts) — routes event ingestion through the
  * first-party proxy (keeps analytics first-party, bypasses ad blockers).
@@ -28,32 +30,29 @@
  *   - functions/waitlist.ts      — waitlist_signup_server capture
  *   Requires: wrangler secret put POSTHOG_PROJECT_TOKEN
  *
- * Only active in production.
+ * Only active in production (import.meta.env.PROD guard inside the script).
  */
-const isProd     = import.meta.env.PROD;
-const posthogKey = import.meta.env.PUBLIC_POSTHOG_KEY;
 ---
 
-{isProd && posthogKey && (
-  <script>
-    import posthog from 'posthog-js';
-    import { POSTHOG_HOST, POSTHOG_UI_HOST } from '../config';
+<script>
+  import posthog from 'posthog-js';
+  import { POSTHOG_HOST, POSTHOG_UI_HOST } from '../config';
 
-    const key = import.meta.env.PUBLIC_POSTHOG_KEY;
+  const key    = import.meta.env.PUBLIC_POSTHOG_KEY;
+  const isProd = import.meta.env.PROD;
 
-    if (key && !window.__posthogInitialized) {
-      window.__posthogInitialized = true;
-      posthog.init(key, {
-        api_host:         POSTHOG_HOST,
-        ui_host:          POSTHOG_UI_HOST,
-        defaults:         '2026-01-30',
-        capture_pageview: false,
-      });
-    }
-
-    // Fire $pageview on every Astro ClientRouter navigation (initial + soft navs).
-    document.addEventListener('astro:page-load', () => {
-      if (window.posthog) window.posthog.capture('$pageview');
+  if (isProd && key && !window.__posthogInitialized) {
+    window.__posthogInitialized = true;
+    posthog.init(key, {
+      api_host:         POSTHOG_HOST,
+      ui_host:          POSTHOG_UI_HOST,
+      defaults:         '2026-01-30',
+      capture_pageview: false,
     });
-  </script>
-)}
+  }
+
+  // Fire $pageview on every Astro ClientRouter navigation (initial + soft navs).
+  document.addEventListener('astro:page-load', () => {
+    if (window.posthog) window.posthog.capture('$pageview');
+  });
+</script>
