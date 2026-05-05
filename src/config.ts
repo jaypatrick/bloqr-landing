@@ -1,7 +1,7 @@
 /**
  * Site configuration — single source of truth for all external URLs.
  *
- * ── URL Migration Guide ────────────────────────────────────────────────────────
+ * ── URL Migration Guide ────────────────────────────────────────────────────
  * Current (production): bloqr.dev subdomain scheme
  *
  * To migrate to a new domain in the future:
@@ -10,7 +10,7 @@
  *   3. Update wrangler.toml [[routes]] pattern
  *   4. Run `npm run build && wrangler deploy`
  *   No other files need changes — all components consume from LINKS.
- * ──────────────────────────────────────────────────────────────────────────────
+ * ────────────────────────────────────────────────────────────────
  */
 
 // ── External service URLs — edit these to change domains ──────────────────────
@@ -43,6 +43,20 @@ export const SITE_URL: string =
     : undefined) ?? EXTERNAL_URLS.landing;
 
 /**
+ * POSTHOG_HOST — subdomain reverse-proxy for PostHog analytics.
+ *
+ * All PostHog event/decide/asset requests are routed through this first-party
+ * subdomain so they are not blocked by ad blockers. The Cloudflare Worker
+ * (src/worker.ts) routes requests arriving on this hostname to
+ * handlePostHogProxy (functions/posthog-proxy.ts).
+ *
+ * This value must stay in sync with:
+ *   - wrangler.toml  [[routes]]  pattern = "f.bloqr.dev"
+ *   - src/components/PostHog.astro  api_host
+ */
+export const POSTHOG_HOST = 'https://f.bloqr.dev';
+
+/**
  * LINKS — all external and internal URLs consumed by components and pages.
  * Internal routes (blog, changelog, etc.) stay as relative paths — never absolute.
  */
@@ -51,7 +65,7 @@ export const LINKS = {
   app:    EXTERNAL_URLS.app,
   api:    EXTERNAL_URLS.api,
   docs:   EXTERNAL_URLS.docs,
-  // ── Third-party ───────────────────────────────────────────────────────────
+  // ── Third-party ─────────────────────────────────────────────────────────
   github:  'https://github.com/jaypatrick/adblock-compiler',
   jsr:     'https://jsr.io/@jk-com/adblock-compiler',
   author:  'https://jaysonknight.com',

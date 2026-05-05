@@ -3,9 +3,15 @@
  *
  * Reverse-proxy handler for PostHog analytics (US instance, project 376331).
  *
- * Routes (registered in src/worker.ts):
- *   /ingest/static/*  →  https://us-assets.posthog.com
- *   /ingest/*         →  https://us.i.posthog.com
+ * Supports two proxy modes:
+ *
+ *   Subdomain proxy (preferred) — f.bloqr.dev:
+ *     f.bloqr.dev/static/*  →  https://us-assets.posthog.com/static/*
+ *     f.bloqr.dev/*         →  https://us.i.posthog.com/*
+ *
+ *   Path proxy (legacy fallback) — bloqr.dev/ingest:
+ *     /ingest/static/*      →  https://us-assets.posthog.com/static/*
+ *     /ingest/*             →  https://us.i.posthog.com/*
  *
  * Why: proxying PostHog through the site's own origin prevents
  * ad-blocker interference and keeps analytics calls first-party.
@@ -13,30 +19,43 @@
  * @see https://posthog.com/docs/advanced/proxy/cloudflare
  */
 
-const POSTHOG_INGEST_HOST = 'us.i.posthog.com';
-const POSTHOG_ASSETS_HOST = 'us-assets.posthog.com';
+const POSTHOG_INGEST_HOST  = 'us.i.posthog.com';
+const POSTHOG_ASSETS_HOST  = 'us-assets.posthog.com';
+const POSTHOG_PROXY_DOMAIN = 'f.bloqr.dev';
 
 /**
  * Proxy a request to the appropriate PostHog upstream.
  *
- * - /ingest/static/* → us-assets.posthog.com  (JS snippet + sourcemaps)
- * - /ingest/*        → us.i.posthog.com        (event ingestion)
+ * Handles both the subdomain proxy (f.bloqr.dev) and the legacy path proxy
+ * (bloqr.dev/ingest). The subdomain form is preferred — PostHog.astro sends
+ * all traffic to https://f.bloqr.dev.
  */
 export async function handlePostHogProxy(request: Request): Promise<Response> {
   const url = new URL(request.url);
+  const isSubdomain = url.hostname === POSTHOG_PROXY_DOMAIN;
 
-  // Determine upstream host and rewrite the path.
-  // Strip the /ingest prefix so the upstream receives the correct path.
-  const isStaticAsset = url.pathname.startsWith('/ingest/static/');
-  const upstreamHost  = isStaticAsset ? POSTHOG_ASSETS_HOST : POSTHOG_INGEST_HOST;
+  // Determine whether the request is for a static asset (JS snippet / sourcemaps).
+  // Subdomain: /static/*  →  us-assets.posthog.com
+  // Path:      /ingest/static/*  →  us-assets.posthog.com
+  const isStaticAsset = isSubdomain
+    ? url.pathname.startsWith('/static/')
+    : url.pathname.startsWith('/ingest/static/');
 
-  const upstreamPath = url.pathname.replace(/^\/ingest/, '') || '/';
-  const upstreamUrl  = new URL(upstreamPath + url.search, `https://${upstreamHost}`);
+  const upstreamHost = isStaticAsset ? POSTHOG_ASSETS_HOST : POSTHOG_INGEST_HOST;
+
+  // Rewrite the path to strip the proxy prefix.
+  // Subdomain: path is already correct — forward as-is.
+  // Path:      strip the /ingest prefix before forwarding.
+  const upstreamPath = isSubdomain
+    ? (url.pathname || '/')
+    : (url.pathname.replace(/^\/ingest/, '') || '/');
+
+  const upstreamUrl = new URL(upstreamPath + url.search, `https://${upstreamHost}`);
 
   // Forward the request with a rewritten Host header so PostHog accepts it.
   // Strip sensitive headers that must not be leaked to a third-party upstream.
-  // Because /ingest/* is same-origin, browsers attach site cookies and any
-  // Authorization / CF Access tokens to these requests automatically.
+  // Because the proxy is same-origin (or a dedicated subdomain), browsers attach
+  // site cookies and any Authorization / CF Access tokens automatically.
   const proxyHeaders = new Headers(request.headers);
   proxyHeaders.delete('cookie');
   proxyHeaders.delete('authorization');
