@@ -2,15 +2,13 @@
 /**
  * PostHog.astro — PostHog analytics integration.
  *
- * The minified PostHog stub is defined as a frontmatter string and injected
- * via set:html so Astro's compiler never template-parses its `}` characters
- * (which it would mis-read as closing template expression braces if the stub
- * were inlined directly inside a {condition && <script>} expression).
+ * Uses the posthog-js npm package (bundled by Vite) so the snippet is always
+ * current and correctly handles the ph_authorize toolbar hash flow.
  *
- * Two script tags are emitted:
- *   1. set:html stub   — the static PostHog loader, injected as raw HTML
- *   2. define:vars init — posthog.init() with the runtime key + the
- *                         astro:page-load listener for View Transitions
+ * A single <script> (no is:inline, no define:vars) is processed by Vite as an
+ * ES module, which allows `import posthog from 'posthog-js'` and direct use of
+ * import.meta.env.PUBLIC_* variables. The window.__posthogInitialized guard
+ * prevents double-init on Astro ClientRouter soft navigations.
  *
  * api_host: POSTHOG_HOST (src/config.ts) — routes event ingestion through the
  * first-party proxy (keeps analytics first-party, bypasses ad blockers).
@@ -32,39 +30,30 @@
  *
  * Only active in production.
  */
-import { POSTHOG_HOST, POSTHOG_UI_HOST } from '../config';
-
 const isProd     = import.meta.env.PROD;
 const posthogKey = import.meta.env.PUBLIC_POSTHOG_KEY;
-const posthogApiHost = POSTHOG_HOST;
-const posthogUiHost  = POSTHOG_UI_HOST;
-
-// Defined in frontmatter so Astro's compiler never scans it for `{}` template
-// expressions. Do NOT move this inline into the template — the minified content
-// contains hundreds of `}` chars that the compiler mis-reads as expression closures.
-const POSTHOG_STUB = `!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var m=e;for(void 0!==a?m=e[a]=[]:a="posthog",m.people=m.people||[],m.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},m.people.toString=function(){return m.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(m,o[n]);var y=t.createElement("script");y.type="text/javascript",y.crossOrigin="anonymous",y.async=!0,y.src=s.api_host.replace(".i.posthog.com","-assets.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(y,r)}(window,window.posthog||[])}(document,window.posthog||[]);`;
 ---
 
 {isProd && posthogKey && (
-  <>
-    {/* Stub injected via set:html — compiler never parses the minified content */}
-    <script is:inline set:html={POSTHOG_STUB} />
+  <script>
+    import posthog from 'posthog-js';
+    import { POSTHOG_HOST, POSTHOG_UI_HOST } from '../config';
 
-    {/* Init with runtime key + astro:page-load pageview listener */}
-    <script is:inline define:vars={{ posthogKey, posthogApiHost, posthogUiHost }}>
-      posthog.init(posthogKey, {
-        api_host:         posthogApiHost,
-        ui_host:          posthogUiHost,
+    const key = import.meta.env.PUBLIC_POSTHOG_KEY;
+
+    if (key && !window.__posthogInitialized) {
+      window.__posthogInitialized = true;
+      posthog.init(key, {
+        api_host:         POSTHOG_HOST,
+        ui_host:          POSTHOG_UI_HOST,
         defaults:         '2026-01-30',
         capture_pageview: false,
       });
+    }
 
-      // Fire $pageview on every Astro ClientRouter navigation (initial + soft navs).
-      document.addEventListener('astro:page-load', function () {
-        if (window.posthog) {
-          window.posthog.capture('$pageview');
-        }
-      });
-    </script>
-  </>
+    // Fire $pageview on every Astro ClientRouter navigation (initial + soft navs).
+    document.addEventListener('astro:page-load', () => {
+      if (window.posthog) window.posthog.capture('$pageview');
+    });
+  </script>
 )}
