@@ -6,11 +6,14 @@
  * current and correctly handles the ph_authorize toolbar hash flow.
  *
  * The <script> is an unconditional top-level template element so Astro/Vite
- * can hoist and bundle it as an ES module. All gating logic (isProd, key
- * presence, __posthogInitialized guard) lives inside the script body at
- * runtime. A <script> inside a JSX conditional is not processed by Vite as a
- * module — the import statement would silently fail, preventing PostHog and
- * the toolbar from ever loading.
+ * can hoist and bundle it as an ES module. A <script> inside a JSX conditional
+ * is not processed by Vite as a module — the import statement would silently
+ * fail, preventing PostHog and the toolbar from ever loading.
+ *
+ * posthog-js is loaded via a runtime-gated dynamic import so no module chunk
+ * is fetched outside production or when PUBLIC_POSTHOG_KEY is absent. The
+ * config module (POSTHOG_HOST / POSTHOG_UI_HOST) is statically imported — it
+ * contains only constants and adds negligible weight to the bundle.
  *
  * api_host: POSTHOG_HOST (src/config.ts) — routes event ingestion through the
  * first-party proxy (keeps analytics first-party, bypasses ad blockers).
@@ -30,12 +33,11 @@
  *   - functions/waitlist.ts      — waitlist_signup_server capture
  *   Requires: wrangler secret put POSTHOG_PROJECT_TOKEN
  *
- * Only active in production (import.meta.env.PROD guard inside the script).
+ * posthog-js is dynamically imported — no network request outside production.
  */
 ---
 
 <script>
-  import posthog from 'posthog-js';
   import { POSTHOG_HOST, POSTHOG_UI_HOST } from '../config';
 
   const key    = import.meta.env.PUBLIC_POSTHOG_KEY;
@@ -43,11 +45,13 @@
 
   if (isProd && key && !window.__posthogInitialized) {
     window.__posthogInitialized = true;
-    posthog.init(key, {
-      api_host:         POSTHOG_HOST,
-      ui_host:          POSTHOG_UI_HOST,
-      defaults:         '2026-01-30',
-      capture_pageview: false,
+    import('posthog-js').then(({ default: posthog }) => {
+      posthog.init(key, {
+        api_host:         POSTHOG_HOST,
+        ui_host:          POSTHOG_UI_HOST,
+        defaults:         '2026-01-30',
+        capture_pageview: false,
+      });
     });
   }
 
