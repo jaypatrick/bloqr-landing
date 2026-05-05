@@ -2,38 +2,17 @@
 /**
  * ApolloTracker.astro — Apollo.io website visitor tracking.
  *
- * Dynamically injects the Apollo tracker script at runtime so the
- * cache-busting `nocache` query parameter is always fresh.
- * Only runs in production to avoid polluting Apollo analytics with
- * local / preview traffic.
+ * Emits the Apollo script verbatim (as Apollo requires), placed just before
+ * </head> via BaseHead. Only runs in production to avoid polluting Apollo
+ * analytics with local / preview traffic.
  *
- * The script load is fire-and-forget; tracker failures must never
- * surface as user-visible errors.
+ * Must not use define:vars or any Astro script transformation — Apollo's
+ * connection test checks for the exact script shape in the page source.
  */
 const isProd = import.meta.env.PROD;
-const apolloAppId = '69f949b454e7e60021818bee';
 ---
 {isProd && (
-  <script define:vars={{ apolloAppId }} is:inline>
-    (function initApollo() {
-      try {
-        var n = Math.random().toString(36).substring(7);
-        var o = document.createElement('script');
-        o.src =
-          'https://assets.apollo.io/micro/website-tracker/tracker.iife.js?nocache=' + n;
-        o.async = true;
-        o.defer = true;
-        o.onload = function () {
-          try {
-            window.trackingFunctions.onLoad({ appId: apolloAppId });
-          } catch (_) {
-            // non-critical — swallow silently
-          }
-        };
-        document.head.appendChild(o);
-      } catch (_) {
-        // non-critical — swallow silently
-      }
-    })();
+  <script is:inline>
+    function initApollo(){var n=Math.random().toString(36).substring(7),o=document.createElement("script");o.src="https://assets.apollo.io/micro/website-tracker/tracker.iife.js?nocache="+n,o.async=!0,o.defer=!0,o.onload=function(){window.trackingFunctions.onLoad({appId:"69f949b454e7e60021818bee"})},document.head.appendChild(o)}initApollo();
   </script>
 )}
