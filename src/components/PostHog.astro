@@ -12,12 +12,15 @@
  *   2. define:vars init — posthog.init() with the runtime key + the
  *                         astro:page-load listener for View Transitions
  *
- * api_host: f.bloqr.dev subdomain proxy — keeps analytics first-party and
- * bypasses ad blockers. Worker routes all f.bloqr.dev traffic to
- * handlePostHogProxy (functions/posthog-proxy.ts).
+ * api_host: f.bloqr.dev subdomain proxy — routes event ingestion through the
+ * first-party proxy (keeps analytics first-party, bypasses ad blockers).
+ * Worker routes all f.bloqr.dev traffic to handlePostHogProxy
+ * (functions/posthog-proxy.ts).
  *
- * ui_host intentionally omitted — toolbar auth flows through api_host proxy;
- * setting ui_host to us.posthog.com breaks the toolbar auth handshake.
+ * ui_host: us.posthog.com — must point at PostHog cloud so the toolbar,
+ * session replay links, and OAuth callbacks resolve correctly. Without it,
+ * PostHog uses api_host for toolbar assets, which the proxy does not serve,
+ * causing the toolbar to silently fail to load.
  *
  * capture_pageview: false — $pageview is fired manually via astro:page-load
  * so every ClientRouter soft navigation is tracked, not just the initial load.
@@ -47,6 +50,7 @@ const POSTHOG_STUB = `!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=
     <script is:inline define:vars={{ posthogKey }}>
       posthog.init(posthogKey, {
         api_host:         'https://f.bloqr.dev',
+        ui_host:          'https://us.posthog.com',
         defaults:         '2026-01-30',
         capture_pageview: false,
       });
