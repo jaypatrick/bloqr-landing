@@ -52,9 +52,26 @@ export const SITE_URL: string =
  *
  * This value must stay in sync with:
  *   - wrangler.toml  [[routes]]  pattern = "f.bloqr.dev"
- *   - src/components/PostHog.astro  api_host
+ *   - src/components/PostHog.astro  api_host (consumed via define:vars)
  */
 export const POSTHOG_HOST = 'https://f.bloqr.dev';
+
+/**
+ * POSTHOG_UI_HOST — canonical PostHog cloud host for toolbar and OAuth flows.
+ *
+ * PostHog splits traffic between two hosts:
+ *   - api_host  (POSTHOG_HOST)    — event ingestion, routed through the
+ *                                   first-party proxy so ad blockers can't
+ *                                   fingerprint the destination.
+ *   - ui_host   (POSTHOG_UI_HOST) — toolbar JS, session replay links, and
+ *                                   OAuth callbacks that must reach PostHog
+ *                                   cloud directly. Cannot be proxied because
+ *                                   the proxy only handles /ingest/* routes.
+ *
+ * This value must stay in sync with:
+ *   - src/components/PostHog.astro  ui_host (consumed via define:vars)
+ */
+export const POSTHOG_UI_HOST = 'https://us.posthog.com';
 
 /**
  * LINKS — all external and internal URLs consumed by components and pages.
