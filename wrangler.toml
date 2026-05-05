@@ -111,20 +111,20 @@ custom_domain = true
 pattern = "mta-sts.bloqr.dev"
 custom_domain = true
 
-# PostHog analytics reverse-proxy subdomain.
-# All requests to f.bloqr.dev are routed to handlePostHogProxy in src/worker.ts,
-# which forwards them to us.i.posthog.com (events) or us-assets.posthog.com (JS).
-# This keeps PostHog calls first-party and prevents ad-blocker interference.
-# Must stay in sync with: src/config.ts POSTHOG_HOST, src/components/PostHog.astro api_host.
+# ─── PostHog proxy subdomain (f.bloqr.dev) ────────────────────────────────────
+# f.bloqr.dev is NOT listed as a [[routes]] custom_domain here because the
+# @cloudflare/vite-plugin bundled wrangler does not support the
+# `override_existing_dns_record` field required to claim an already-existing
+# manually-created CNAME record (CF error 100117).
 #
-# override_existing_dns_record = true — the CNAME for f.bloqr.dev was manually
-# created in the Cloudflare DNS dashboard before this wrangler.toml route existed.
-# This flag tells wrangler to take ownership of the existing record rather than
-# erroring with code 100117 ("already has externally managed DNS records").
-[[routes]]
-pattern = "f.bloqr.dev"
-custom_domain = true
-override_existing_dns_record = true
+# Instead, routing works via the existing CNAME:
+#   f CNAME bloqr-landing.jk-com.workers.dev  (Proxied)
+#
+# Cloudflare routes f.bloqr.dev requests to this Worker via the CNAME.
+# src/worker.ts detects url.hostname === 'f.bloqr.dev' and calls handlePostHogProxy().
+# No wrangler route entry is needed — the CNAME is sufficient.
+#
+# Must stay in sync with: src/config.ts POSTHOG_HOST, src/components/PostHog.astro api_host.
 
 # ─── Environment Variables ───────────────────────────────────────────────────
 # Non-secret Worker runtime vars. Secrets (DATABASE_URL, APOLLO_API_KEY, etc.)
