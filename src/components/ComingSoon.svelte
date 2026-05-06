@@ -197,23 +197,24 @@
   input[type="email"] {
     flex: 1;
     min-width: 0;
-    height: 44px;
-    padding: 0 14px;
+    height: 52px;
+    padding: 0 16px;
     background: var(--bg-surface);
-    border: 1px solid var(--border-2);
-    border-radius: 8px;
+    border: 1.5px solid rgba(255, 85, 0, 0.7);
+    border-radius: 10px;
     color: var(--text-1);
-    font-size: 14px;
+    font-size: 15px;
     font-family: var(--font-display);
     outline: none;
     transition: border-color 150ms, box-shadow 150ms;
+    box-shadow: 0 0 0 0 rgba(255, 85, 0, 0);
   }
 
   input[type="email"]::placeholder { color: var(--text-3); }
 
   input[type="email"]:focus {
-    border-color: rgba(255, 85, 0, 0.55);
-    box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.12);
+    border-color: rgba(255, 85, 0, 1);
+    box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.18);
   }
 
   input:disabled { opacity: 0.55; cursor: not-allowed; }
