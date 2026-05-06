@@ -30,6 +30,7 @@ const EXTERNAL_URLS = {
  * The canonical production domain. Used by the Worker to set
  * `X-Robots-Tag: noindex, nofollow` on responses from non-canonical hosts.
  */
+// Future domain: bloqr.ai (update CANONICAL_DOMAIN and EXTERNAL_URLS.landing when ready)
 export const CANONICAL_DOMAIN = 'bloqr.dev';
 
 /**
@@ -117,31 +118,31 @@ export const CHANGELOG_URL =
  */
 export const PAGE_META = {
   home: {
-    title:       'Bloqr — Internet Hygiene: Automated.',
+    title:       'Bloqr AI — Internet Hygiene. Automated.',
     description: 'AI-powered adblock list management and real-time threat intelligence. Block ads, trackers, and malware at the network level — without routing your traffic anywhere.',
   },
   about: {
-    title:       'About Bloqr — Why We Exist',
+    title:       'About Bloqr AI — Why We Exist',
     description: "Bloqr started as a two-minute automation task that exposed a twenty-year gap at the center of consumer internet privacy. Here's the story.",
   },
   changelog: {
-    title:       "Bloqr Changelog — What's New",
+    title:       "Bloqr AI Changelog — What's New",
     description: 'A running log of every Bloqr release: features added, bugs fixed, things we broke and fixed again.',
   },
   'vpn-myths': {
-    title:       'Consumer VPN Myths, Examined — Bloqr',
+    title:       'Consumer VPN Myths, Examined — Bloqr AI',
     description: "A sourced, honest look at what consumer VPNs actually do — and don't do. Fingerprinting, DNS, jurisdiction, vendor lock-in, and more.",
   },
   'why-not-private': {
-    title:       "Why Your Browsing Isn't as Private as You Think — Bloqr",
+    title:       "Why Your Browsing Isn't as Private as You Think — Bloqr AI",
     description: "HTTPS encrypts your page content. But your DNS lookups — the \"where is this website?\" requests your device makes thousands of times a day — travel unencrypted. Here's what that means.",
   },
   blog: {
-    title:       'Bloqr Blog — Education, Industry News & Releases',
+    title:       'Bloqr AI Blog — Education, Industry News & Releases',
     description: 'DNS blocking explainers for everyday users, VPN incident coverage, and feature release notes from the Bloqr team.',
   },
   pricing: {
-    title:       'Pricing — Bloqr',
+    title:       'Pricing — Bloqr AI',
     description: 'Simple, transparent pricing for individuals, developers, and enterprise teams. Free tier, monthly subscriptions, and Pay As You Go — charged via Stripe. No crypto required.',
   },
 } as const;
@@ -193,7 +194,7 @@ export async function getConfig(databaseUrl?: string): Promise<SiteConfig> {
     JSR_URL:         'https://jsr.io/@jk-com/adblock-compiler',
     GITHUB_URL:      'https://github.com/jaypatrick/adblock-compiler',
     AUTHOR_URL:      'https://jaysonknight.com',
-    PRODUCT_NAME:    'Bloqr',
+    PRODUCT_NAME:    'Bloqr AI',
     PRODUCT_TAGLINE: 'Internet Hygiene. Automated.',
     OG_IMAGE_PATH:   '/og-image.png',
   };

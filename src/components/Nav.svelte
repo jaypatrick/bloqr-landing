@@ -36,14 +36,14 @@
   <div class="inner container">
 
     <!-- Logo -->
-    <a href="/" class="logo" aria-label="Bloqr — home" onclick={closeMenu}>
+    <a href="/" class="logo" aria-label="Bloqr AI — home" onclick={closeMenu}>
       <div class="logo-icon" aria-hidden="true">
         <span class="bar bar-1"></span>
         <span class="bar bar-2"></span>
         <span class="bar bar-3"></span>
       </div>
       <div class="logo-text">
-        <span class="logo-name">BLOQR</span>
+        <span class="logo-name">BLOQR<span class="logo-ai">AI</span></span>
         <span class="logo-sub">Internet Hygiene:<br/><span class="logo-sub-auto">Automated</span></span>
       </div>
     </a>
@@ -97,7 +97,7 @@
     ></button>
     <div id="mobile-menu" class="mobile-menu" role="dialog" aria-label="Navigation menu">
       <ul class="mobile-links" role="list">
-        <li><a href="/#why"           onclick={closeMenu}>Why Bloqr</a></li>
+        <li><a href="/#why"           onclick={closeMenu}>Why Bloqr AI</a></li>
         <li><a href="/#how"           onclick={closeMenu}>How it works</a></li>
         <li><a href="/#audiences"     onclick={closeMenu}>Who it's for</a></li>
         <li><a href="/#features"      onclick={closeMenu}>Features</a></li>
@@ -203,6 +203,16 @@
     font-weight: 700;
     letter-spacing: 0.1em;
     color: var(--text-1);
+  }
+
+  .logo-ai {
+    color: var(--cyan);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin-left: 4px;
+    vertical-align: super;
+    opacity: 0.9;
   }
 
   .logo-sub {
