@@ -11,7 +11,7 @@
 <footer>
   <div class="container inner">
     <span class="copy">
-      © 2026 Bloqr<span class="footer-ai">AI</span> ·
+      © 2026 Bloqr <span class="footer-ai">AI</span> ·
       Made by <a href={LINKS.author} rel="noopener">Jayson Knight</a>
     </span>
     <p class="hygiene-def">
