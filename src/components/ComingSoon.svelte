@@ -188,18 +188,19 @@
     gap: 10px;
     width: 100%;
     max-width: 440px;
+    align-items: stretch;
   }
 
   @media (max-width: 520px) {
     .form { flex-direction: column; }
   }
 
+  /* Input and button share identical vertical padding so they're the same height */
   input[type="email"] {
     flex: 1;
     min-width: 0;
-    /* Use padding (not height) so iOS Safari respects the size */
     box-sizing: border-box;
-    padding: 16px 16px;
+    padding: 12px 16px;
     -webkit-appearance: none;
     appearance: none;
     background: var(--bg-surface);
@@ -221,6 +222,12 @@
   }
 
   input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* Override global .btn padding so button height matches the input exactly */
+  .btn.btn-primary {
+    box-sizing: border-box;
+    padding: 12px 20px;
+  }
 
   .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 
