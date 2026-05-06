@@ -10,7 +10,7 @@ export async function GET(context: APIContext) {
   posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
   return rss({
-    title:       'Bloqr — Blog',
+    title:       'Bloqr AI — Blog',
     description: META.description,
     site:        context.site ?? SITE_URL,
     items: posts.map((post) => ({

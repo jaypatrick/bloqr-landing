@@ -8,14 +8,14 @@ import Nav from '../../components/Nav.svelte';
 import Footer from '../../components/Footer.svelte';
 import SchemaOrg from '../../components/SchemaOrg.astro';
 import { getCollection } from 'astro:content';
-import { SITE_URL, LINKS } from '../../config';
+import { SITE_URL, LINKS, PAGE_META } from '../../config';
 
 const allPosts = await getCollection('blog', ({ data }) => !data.draft);
 allPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
 const meta = {
-  title:       'Bloqr Blog — Education, Industry News & Releases',
-  description: 'DNS blocking explainers for everyday users, VPN incident coverage, and feature release notes from the Bloqr team.',
+  title:       PAGE_META.blog.title,
+  description: PAGE_META.blog.description,
   url:         `${SITE_URL}/blog`,
   image:       `${SITE_URL}/og/blog.png`,
 };
@@ -23,7 +23,7 @@ const meta = {
 const blogIndexSchema = {
   "@context": "https://schema.org",
   "@type": "Blog",
-  "name": "Bloqr Blog",
+  "name": "Bloqr AI Blog",
   "url": `${SITE_URL}/blog`,
   "description": meta.description,
   "blogPost": allPosts.map((post) => ({
@@ -60,14 +60,14 @@ function formatDate(d: Date) {
   <title>{meta.title}</title>
   <meta name="description" content={meta.description} />
   <!-- Open Graph -->
-  <meta property="og:site_name"    content="Bloqr" />
+  <meta property="og:site_name"    content="Bloqr AI" />
   <meta property="og:title"        content={meta.title} />
   <meta property="og:description"  content={meta.description} />
   <meta property="og:url"          content={meta.url} />
   <meta property="og:image"        content={meta.image} />
   <meta property="og:image:width"  content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt"    content="Bloqr Blog — Education, Industry News & Releases" />
+  <meta property="og:image:alt"    content={meta.title} />
   <meta property="og:type"         content="website" />
 
   <!-- Twitter / X -->
@@ -75,7 +75,7 @@ function formatDate(d: Date) {
   <meta name="twitter:title"       content={meta.title} />
   <meta name="twitter:description" content={meta.description} />
   <meta name="twitter:image"       content={meta.image} />
-  <meta name="twitter:image:alt"   content="Bloqr Blog — Education, Industry News & Releases" />
+  <meta name="twitter:image:alt"   content={meta.title} />
   <meta name="twitter:site"        content="@bloqr_ai" />
   <meta name="twitter:creator"     content="@jaysonknight" />
 
@@ -89,7 +89,7 @@ function formatDate(d: Date) {
   <meta property="og:locale" content="en_US" />
 
   <link rel="canonical" href={meta.url} />
-  <link rel="alternate"   type="application/rss+xml" title="Bloqr Blog" href="/rss.xml" />
+  <link rel="alternate"   type="application/rss+xml" title="Bloqr AI Blog" href="/rss.xml" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
