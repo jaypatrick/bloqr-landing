@@ -197,17 +197,20 @@
   input[type="email"] {
     flex: 1;
     min-width: 0;
-    height: 52px;
-    padding: 0 16px;
+    /* Use padding (not height) so iOS Safari respects the size */
+    box-sizing: border-box;
+    padding: 16px 16px;
+    -webkit-appearance: none;
+    appearance: none;
     background: var(--bg-surface);
     border: 1.5px solid rgba(255, 85, 0, 0.7);
     border-radius: 10px;
     color: var(--text-1);
     font-size: 15px;
+    line-height: 1.4;
     font-family: var(--font-display);
     outline: none;
     transition: border-color 150ms, box-shadow 150ms;
-    box-shadow: 0 0 0 0 rgba(255, 85, 0, 0);
   }
 
   input[type="email"]::placeholder { color: var(--text-3); }
